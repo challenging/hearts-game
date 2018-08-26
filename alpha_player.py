@@ -199,7 +199,10 @@ class MCTS(object):
 
         state_copy = copy.deepcopy(state)
         seen_cards = state.players[0].seen_cards
-        for n in range(self._n_playout):
+        #for n in range(self._n_playout):
+
+        stime = time.time()
+        while time.time()-stime < TIMEOUT_SECOND:
             hand_cards = state_copy._player_hands[state.current_player_idx]
             remaining_cards = state.players[state.current_player_idx].get_remaining_cards(state._player_hands[state.current_player_idx])
             state.players[state.current_player_idx].redistribute_cards(state, remaining_cards[:])

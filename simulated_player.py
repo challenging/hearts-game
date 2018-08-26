@@ -155,7 +155,6 @@ class MonteCarloPlayer2(MonteCarloPlayer):
 
     def redistribute_cards(self, game, remaining_cards):
         shuffle(remaining_cards)
-        #print("1. remaining_cards", len(remaining_cards))
 
         ori_size = []
         for idx in range(len(game._player_hands)):
@@ -179,8 +178,6 @@ class MonteCarloPlayer2(MonteCarloPlayer):
             else:
                 ori_size.append(len(game._player_hands[idx]))
 
-
-        #print("2. remaining_cards", len(remaining_cards))
 
         lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) != ori_size[idx]]
         while remaining_cards:

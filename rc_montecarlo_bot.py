@@ -24,10 +24,10 @@ IS_DEBUG = False
 system_log = Log(IS_DEBUG)
 
 
-class SimpleBot(PokerBot):
+class MonteCarloBot(PokerBot):
 
     def __init__(self,name):
-        super(SimpleBot, self).__init__(name)
+        super(MonteCarloBot, self).__init__(name)
 
         self.player = MonteCarloPlayer2(verbose=True)
         self.player_names = []
@@ -88,7 +88,7 @@ class SimpleBot(PokerBot):
 
 
     def turn_end(self, data):
-        super(SimpleBot, self).turn_end(data)
+        super(MonteCarloBot, self).turn_end(data)
 
         def find_leading_suit():
             leading_idx = int(len(self.round_cards_history)/4)*4
@@ -343,16 +343,15 @@ def main():
     if argv_count>2:
         player_name = sys.argv[1]
         player_number = sys.argv[2]
-        token= sys.argv[3]
-        connect_url = sys.argv[4]
     else:
         player_name = "RungChiChen-MonteCarlo"
         player_number = 3
-        token = "12345678"
-        connect_url = "ws://localhost:8080/"
 
-    sample_bot = SimpleBot(player_name)
-    myPokerSocket = PokerSocket(player_name, player_number, token, connect_url, sample_bot)
+    token = "12345678"
+    connect_url = "ws://localhost:8080/"
+
+    bot = MonteCarloBot(player_name)
+    myPokerSocket = PokerSocket(player_name, player_number, token, connect_url, bot)
     myPokerSocket.doListen()
 
 if __name__ == "__main__":
