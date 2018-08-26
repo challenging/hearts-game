@@ -27,7 +27,6 @@ class Suit(OrderedEnum):
             # They don't work for 1252 of utf8
             return [chr(5), chr(4), chr(6), chr(3)][self.value]
         else:
-            #return [' of clubs', ' of diamonds', ' of spades', ' of hearts'][self.value]
             return ["C", "D", "S", "H"][self.value]
 
     def __hash__(self):
@@ -51,10 +50,10 @@ class Rank(OrderedEnum):
     ace = 14
 
     def __repr__(self):
-        if self.value <= 10:
+        if self.value < 10:
             return str(self.value)
         else:
-            return ['J', 'Q', 'K', 'A'][self.value - 11]
+            return ['T', 'J', 'Q', 'K', 'A'][self.value - 10]
 
     def __hash__(self):
         return hash(self.value)
@@ -76,7 +75,7 @@ class Card:
         return (self.suit, self.rank) == (other.suit, other.rank)
 
     def __hash__(self):
-        return hash(self.suit) + hash(self.rank)
+        return hash(self.rank) + hash(self.suit)
 
 
 class Deck:

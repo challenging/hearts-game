@@ -11,8 +11,9 @@ class Game:
         players is a list of four players
         """
         self.verbose = verbose
+
         if len(players) != 4:
-            raise ValueError('There must be four players.')
+            raise ValueError('There must be four players')
 
         self.players = players
         self.player_scores = [0, 0, 0, 0]
@@ -45,9 +46,6 @@ class Game:
                 suits[suit] = False
 
             self.lacking_cards.append(suits)
-
-        #if self.verbose:
-        #    self.print_hand_cards()
 
 
     def add_lacking_cards_info(self, winning_index, winning_player_index):
@@ -130,20 +128,23 @@ class Game:
         if self.verbose:
             self.say('Results of this game:')
 
-        for i in range(4):
-            s = self.count_points(self._cards_taken[i])
+        if self.is_shootmoon:
+            max_score = max([self.count_points(self._cards_taken[idx]) for idx in range(4)])
 
-            if self.is_shootmoon:
-                if s == 26:
+            for i in range(4):
+                s = self.count_points(self._cards_taken[i])
+
+                if s > 0:
                     self.player_scores[i] = 0
                 else:
-                    self.player_scores[i] = 26
-            else:
-                self.player_scores[i] = s
+                    self.player_scores[i] = max_score
+        else:
+            for i in range(4):
+                self.player_scores[i] = self.count_points(self._cards_taken[i])
 
-            if self.verbose:
-                self.say('self.is_shootmoon={}, Player {} got {} points from the cards {}',
-                         self.is_shootmoon, i, self.player_scores[i], ' '.join(str(card) for card in self._cards_taken[i]))
+        if self.verbose:
+            self.say('self.is_shootmoon={}, Player {} got {} points from the cards {}',
+                     self.is_shootmoon, i, self.player_scores[i], ' '.join(str(card) for card in self._cards_taken[i]))
 
 
     def check_shootmoon(self):
@@ -210,7 +211,7 @@ class Game:
 
         if played_card not in self._player_hands[self.current_player_idx]:
             raise ValueError("Not found {} card in this Player-{} hand cards({})".format(\
-                played_card, sele.current_player_idx, self._player_hands[self.current_player_idx]))
+                played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
@@ -259,7 +260,14 @@ class Game:
         Count the number of points in cards, where cards is a list of Cards.
         """
 
-        return sum(card_points(card) for card in cards)
+        point, is_double = 0, 1
+        for card in cards:
+            point += card_points(card)
+
+            if is_double == 1 and card == Card(Suit.clubs, Rank.ten):
+                is_double = 2
+
+        return point*is_double
 
 
     def get_game_winners(self):
@@ -269,10 +277,7 @@ class Game:
             self.score()
             scores = self.player_scores
 
-            min_score = sys.maxsize
-            for score in scores:
-                if score < min_score:
-                    min_score = score
+            min_score = min(scores)
 
             return [idx for idx in range(4) if scores[idx] == min_score]
         else:

@@ -16,8 +16,8 @@ from rules import is_card_valid
 from simulated_player import MonteCarloPlayer2
 from player import SimplePlayer, StupidPlayer
 
-TIMEOUT_SECOND = 4
-COUNT_CPU = mp.cpu_count()
+TIMEOUT_SECOND = 0.9
+COUNT_CPU = 1#mp.cpu_count()
 
 
 class MCTSPlayer(MonteCarloPlayer2):
@@ -67,23 +67,33 @@ class MCTSPlayer(MonteCarloPlayer2):
                 moves_states.append((card, tuple(seen_cards)))
 
             tmp_wins = []
-            percent_wins, played_card = -sys.maxsize, None
+            percent_wins, average_score, played_rank_card, played_score_card = -sys.maxsize, sys.maxsize, None, None
             for card, states in moves_states:
                 k = (game.current_player_idx, states)
 
+                avg_score =  scores[k] / plays[k]
+                if avg_score < average_score:
+                    average_score = avg_score
+                    played_score_card = card
+
+                win_rate = -1
                 if k in wins:
                     win_rate = wins[k] / max(plays[k], 1)
                     tmp_wins.append(win_rate)
-                    #print(card, "ranking --->", k, win_rate)
 
                     if win_rate > percent_wins:
                         percent_wins = win_rate
-                        played_card = card
+                        played_rank_card = card
                 else:
                     print("not found", k, "current win_rate is", percent_wins)
 
+                print("{}: ranking ---> {:.2f}, score ---> {:.2f}".format(card, win_rate, avg_score))
+
+            played_card = played_rank_card
+
             sum_win_rate = sum(tmp_wins)
             if sum_win_rate == 0:
+                """
                 percent_wins, played_card = sys.maxsize, None
                 for card, states in moves_states:
                     k = (game.current_player_idx, states)
@@ -93,9 +103,11 @@ class MCTSPlayer(MonteCarloPlayer2):
                     if avg_score < percent_wins:
                         percent_wins = avg_score
                         played_card = card
+                """
+                played_card = played_score_card
 
-            print("(is_ranking_mode, count_simulation, wins, plays, scores, percent_wins, played_card, valid_cards) = ({}, {}, {}, {}, {}, {:.2f}, {}, {})".format(\
-                sum_win_rate > 0, count_simulation, len(wins), len(plays), len(scores), percent_wins, played_card, valid_cards))
+            print("(is_ranking_mode, count_simulation, wins, plays, scores, played_rank_card, played_score_card, valid_cards) = ({}, {}, {}, {}, {}, {}({:.2f}), {}({:.2f}), {})".format(\
+                sum_win_rate > 0, count_simulation, len(wins), len(plays), len(scores), played_rank_card, percent_wins, played_score_card, average_score, valid_cards))
         else:
             played_card = valid_cards[0]
 
@@ -123,6 +135,7 @@ class MCTSPlayer(MonteCarloPlayer2):
         winners = None
         tmp_plays, tmp_wins, tmp_scores = {}, {}, {}
 
+        init_card = None
         for t in range(self.max_moves):
             player_idx = game.current_player_idx
             player = game.players[player_idx]
@@ -166,6 +179,9 @@ class MCTSPlayer(MonteCarloPlayer2):
             else:
                 played_card = player.play_card(game._player_hands[player_idx], game)
 
+            if t == 0:
+                init_card = played_card
+
             game.step(played_card)
 
             if player_idx == self.position:
@@ -180,7 +196,11 @@ class MCTSPlayer(MonteCarloPlayer2):
 
             winners = game.get_game_winners()
             if winners:
-                #print("get winners", winners, game.player_scores)
+                if self.position in winners:
+                    print(init_card, "get winners", winners, game.player_scores)
+                else:
+                    print(init_card, "not winners", winners, game.player_scores)
+
                 break
 
         for state in visited_states:
@@ -197,5 +217,7 @@ class MCTSPlayer(MonteCarloPlayer2):
                     tmp_wins[key] += 1
 
                     #print("key >>>>>>", key, tmp_wins[key], winners)
+            else:
+                print("not found", key, init_card)
 
         return tmp_wins, tmp_plays, tmp_scores

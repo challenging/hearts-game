@@ -15,6 +15,9 @@ class Player(object):
         self.seen_cards = []
         self.freeze_cards = []
 
+        self.name = None
+        self.position = None
+
 
     def say(self, message, *formatargs):
         if self.verbose:
@@ -92,8 +95,9 @@ class StupidPlayer(Player):
 
     def play_card(self, hand, game):
         # Play first card that is valid
+        shuffle(hand)
         for card in hand:
-            #print(game.trick_nr, game.is_heart_broken, trick, card, is_card_valid(hand, trick, card, game.trick_nr, game.is_heart_broken))
+            #print(game.trick_nr, game.is_heart_broken, game.trick, card, is_card_valid(hand, trick, card, game.trick_nr, game.is_heart_broken))
             if is_card_valid(hand, game.trick, card, game.trick_nr, game.is_heart_broken):
                 return card
 
@@ -120,6 +124,7 @@ class SimplePlayer(Player):
             card.rank.value
             + (10 if card.suit == Suit.spades and card.rank >= Rank.queen else 0)
         )
+
 
     def pass_cards(self, hand):
         hand.sort(key=self.undesirability, reverse=True)

@@ -15,7 +15,7 @@ from rules import get_setting_cards
 from player import StupidPlayer, SimplePlayer
 from heuristic_player import GreedyHeusisticPlayer, DynamicRankPlayer
 from simulated_player import MonteCarloPlayer, MonteCarloPlayer2
-from mcts_player import MCTSPlayer
+from alpha_player import MCTSPlayer
 
 # We are simulating n games accumulating a total score
 nr_of_games = int(sys.argv[1])
@@ -23,20 +23,24 @@ print('We are playing {} game in total.'.format(nr_of_games))
 
 player = SimplePlayer()
 player_ai = sys.argv[2]
-if player_ai.lower() == "montecarlo":
+if player_ai.lower() == "mc2":
     player = MonteCarloPlayer2(verbose=True)
+elif player_ai.lower() == "mc":
+    player = MonteCarloPlayer(verbose=True)
 elif player_ai.lower() == "mcts":
     player = MCTSPlayer(verbose=True)
 
-setting_cards = read_card_games("game/game_0008/game_1534672484.pkl")
-#setting_cards = get_setting_cards()
+#setting_cards = read_card_games("game/game_0008/game_1534672484.pkl")
+setting_cards = get_setting_cards()
+for player_idx, cards in enumerate(setting_cards[0]):
+    print(player_idx, cards)
 
-players = [player, SimplePlayer(verbose=False), SimplePlayer(verbose=False), SimplePlayer(verbose=False)]
+players = [player, SimplePlayer(verbose=False), SimplePlayer(), SimplePlayer(verbose=False)]
 
 final_scores = [[], [], [], []]
 for game_idx in range(nr_of_games):
     # These four players are playing the game
-    game = Game(players, verbose=False)
+    game = Game(players, verbose=True)
 
     scores = [0, 0, 0, 0]
     for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):

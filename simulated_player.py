@@ -70,7 +70,7 @@ class MonteCarloPlayer(SimplePlayer):
                     pig_winning_rate = abs(c/count_simulation)
 
                 if self.verbose:
-                    print("simulation: {} round".format(game.trick_nr), "valid_cards: {}, simulate {} card --> {:3d} {} /{:4d} wins {:.4f}".format(\
+                    print("simulation: {} round".format(game.trick_nr), "valid_cards: {}, simulate {} card --> {:3d} {} /{:4d} simulations {:.4f}".format(\
                         valid_cards, card, abs(c), "score" if is_score else "rounds", count_simulation, abs(c/count_simulation)))
 
             if pig_winning_rate is not None and card != Card(Suit.spades, Rank.queen):
@@ -81,7 +81,7 @@ class MonteCarloPlayer(SimplePlayer):
                         if self.verbose:
                             self.say("score mode: force to play QS({} vs. {})", -pig_winning_rate, -simulation_rate)
                 elif not is_score:
-                    if abs(pig_winning_rate-simulation_rate) < 0.001:
+                    if abs(pig_winning_rate-simulation_rate) < 0.01:
                         card = Card(Suit.spades, Rank.queen)
 
                         if self.verbose:
@@ -120,7 +120,7 @@ class MonteCarloPlayer(SimplePlayer):
                     remaining_cards.remove(used_card)
 
         if remaining_cards:
-            print("error", type(self).__name__, [len(v) for v in game._player_hands])
+            print("error", type(self).__name__, remaining_cards, [len(v) for v in game._player_hands])
             raise
 
 
@@ -137,8 +137,6 @@ class MonteCarloPlayer(SimplePlayer):
         for _ in range(4-len(game.trick)):
             game.step()
 
-        #winning_card = game.round_over()
-
         for _ in range(13-game.trick_nr):
             game.play_trick()
 
@@ -146,8 +144,6 @@ class MonteCarloPlayer(SimplePlayer):
 
         min_score = min([score for score in game.player_scores])
         player_score = game.player_scores[self.position]
-
-        #print("win??", self.position,  game.player_scores, player_score, min_score)
 
         return idx, player_score, player_score == min_score
 
@@ -159,6 +155,7 @@ class MonteCarloPlayer2(MonteCarloPlayer):
 
     def redistribute_cards(self, game, remaining_cards):
         shuffle(remaining_cards)
+        #print("1. remaining_cards", len(remaining_cards))
 
         ori_size = []
         for idx in range(len(game._player_hands)):
@@ -182,6 +179,8 @@ class MonteCarloPlayer2(MonteCarloPlayer):
             else:
                 ori_size.append(len(game._player_hands[idx]))
 
+
+        #print("2. remaining_cards", len(remaining_cards))
 
         lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) != ori_size[idx]]
         while remaining_cards:

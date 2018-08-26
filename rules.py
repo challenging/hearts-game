@@ -53,6 +53,46 @@ def reversed_score(cards):
     return len(t) == 14
 
 
+def transform(rank, suit):
+    if suit == "S":
+        suit = Suit.spades
+    elif suit == "H":
+        suit = Suit.hearts
+    elif suit == "C":
+        suit = Suit.clubs
+    elif suit == "D":
+        suit = Suit.diamonds
+
+    if rank == "A":
+        rank = Rank.ace
+    elif rank == "2":
+        rank = Rank.two
+    elif rank == "3":
+        rank = Rank.three
+    elif rank == "4":
+        rank = Rank.four
+    elif rank == "5":
+        rank = Rank.five
+    elif rank == "6":
+        rank = Rank.six
+    elif rank == "7":
+        rank = Rank.seven
+    elif rank == "8":
+        rank = Rank.eight
+    elif rank == "9":
+        rank = Rank.nine
+    elif rank == "10" or rank == "T":
+        rank = Rank.ten
+    elif rank == "J":
+        rank = Rank.jack
+    elif rank == "Q":
+        rank = Rank.queen
+    elif rank == "K":
+        rank = Rank.king
+
+    return Card(suit, rank)
+
+
 def get_setting_cards():
     card_string = ["JS, JH, 9C, 9D, 7S, 6H, 4D, 3D, 3S, 2S, AS, QS, KC",
                    "KS, 10S, QH, JC, 10D, 9H, 7D, 7H, 6C, 4H, 3C, 2D, 2H",
@@ -124,17 +164,22 @@ def get_setting_cards():
                    "AS, AC, KC, KH, JS, 10D, 8H, 7D, 6S, 4C, 4S, 2D, 7C"]
 
     """
-    player 0(MCTSPlayer) win this  1 trick by QC card based on [2C, QC, AS, JC]
+    player 2(StupidPlayer) win this  1 trick by 9C card based on [2C, 9C, 8C, 5C]
     after   1 round, status of every players' hand cards
     ==================================================================
-    0 MCTSPlayer [6C, 9C, 4D, 4S, 5S, 6S, 8S, 10S, JS, KS, 4H, 9H] 0
-    1 SimplePlayer [QS, AD, AH, KH, JH, 10H, 7H, 6H, 3D, 3H, 2S, 2H] 0
-    2 SimplePlayer [KD, QD, QH, JD, 10C, 10D, 7C, 7D, 5C, 5D, 5H, 3C] 0
-    3 SimplePlayer [4C, 8C, KC, AC, 2D, 6D, 8D, 9D, 3S, 7S, 9S, 8H] 0
-
+    0 MCTSPlayer [JC, KC, 6D, 8D, 9D, JD, QD, KD, 3S, JS, AS, 9H] 0
+    1 SimplePlayer [4C, 6C, 7C, QC, 2S, TS, QS, KS, 4H, 8H, JH, QH] 0
+    2 StupidPlayer [TH, 8S, 4S, KH, 9S, 7D, 2D, 5S, TD, 5H, AH, 4D] 0
+    3 SimplePlayer [AC, AD, TC, 7S, 7H, 6S, 6H, 5D, 3C, 3D, 3H, 2H] 0
     """
 
+    card_string = ["JC, KC, 6D, 8D, 9D, JD, QD, KD, 3S, JS, AS, 9H, 5C",
+                   "4C, 6C, 7C, QC, 2S, TS, QS, KS, 4H, 8H, JH, QH, 2C",
+                   "TH, 8S, 4S, KH, 9S, 7D, 2D, 5S, TD, 5H, AH, 4D, 9C",
+                   "AC, AD, TC, 7S, 7H, 6S, 6H, 5D, 3C, 3D, 3H, 2H, 8C"]
+
     return transform_cards(card_string)
+
 
 def transform_cards(card_string):
     cards = []
@@ -146,43 +191,7 @@ def transform_cards(card_string):
             rank = "".join(card[:-1])
             suit = card[-1]
 
-            if suit == "S":
-                suit = Suit.spades
-            elif suit == "H":
-                suit = Suit.hearts
-            elif suit == "C":
-                suit = Suit.clubs
-            elif suit == "D":
-                suit = Suit.diamonds
-
-            if rank == "A":
-                rank = Rank.ace
-            elif rank == "2":
-                rank = Rank.two
-            elif rank == "3":
-                rank = Rank.three
-            elif rank == "4":
-                rank = Rank.four
-            elif rank == "5":
-                rank = Rank.five
-            elif rank == "6":
-                rank = Rank.six
-            elif rank == "7":
-                rank = Rank.seven
-            elif rank == "8":
-                rank = Rank.eight
-            elif rank == "9":
-                rank = Rank.nine
-            elif rank == "10":
-                rank = Rank.ten
-            elif rank == "J":
-                rank = Rank.jack
-            elif rank == "Q":
-                rank = Rank.queen
-            elif rank == "K":
-                rank = Rank.king
-
-            t.append(Card(suit, rank))
+            t.append(transform(rank, suit))
 
         cards.append(t)
 
@@ -248,9 +257,9 @@ if __name__ == "__main__":
     #print(get_setting_cards())
 
     """
-    cards = ["8C, 10C, 3S, QS, 4H, 5H, 9H, AH",
-             "QC, JH, 10D, 10H, 8D, 6D, 6H, 5D",
-             "AS, KS, KC, QD, JS, 10S, 9D, 2H",
+    cards = ["8C, TC, 3S, QS, 4H, 5H, 9H, AH",
+             "QC, JH, TD, TH, 8D, 6D, 6H, 5D",
+             "AS, KS, KC, QD, JS, TS, 9D, 2H",
              "KD, KH, QH, JD, 8H, 7H, 6C, 3H"]
     """
     cards = ["JH", "4C", "6D", "8D"]
