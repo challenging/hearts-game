@@ -143,6 +143,7 @@ class SimpleBot(PokerBot):
         expose_player = None
         expose_card = None
 
+        self.player_names = []
         self.game = Game([SimplePlayer(verbose=False) for idx in range(4)], verbose=False)
 
         for player in players:
@@ -155,8 +156,6 @@ class SimpleBot(PokerBot):
             except Exception as e:
                 system_log.show_message(e)
                 system_log.save_logs(e)
-
-        print("player_names", self.player_names)
 
         if expose_player is not None and expose_card is not None:
             message="Player:{}, Expose card:{}".format(expose_player,expose_card)

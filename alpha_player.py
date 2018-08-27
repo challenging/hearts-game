@@ -51,8 +51,10 @@ class TreeNode(object):
     prior probability P, and its visit-count-adjusted prior score u.
     """
 
-    def __init__(self, parent, prior_p):
+    def __init__(self, parent, prior_p, player_idx):
         self._parent = parent
+        self._player_idx = player_idx
+
         self._children = {}  # a map from action to TreeNode
         self._n_visits = 0
         self._Q = 0
@@ -60,16 +62,14 @@ class TreeNode(object):
         self._P = prior_p
 
 
-    def expand(self, action_priors):
+    def expand(self, player_idx, action_priors):
         """Expand tree by creating new children.
         action_priors: a list of tuples of actions and their prior probability
             according to the policy function.
         """
         for action, prob in action_priors:
             if action not in self._children:
-                self._children[action] = TreeNode(self, prob)
-
-        #print(self._parent, self, self._children)
+                self._children[action] = TreeNode(self, prob, player_idx)
 
 
     def select(self, c_puct):
@@ -92,14 +92,16 @@ class TreeNode(object):
         self._Q += 1.0*(leaf_value - self._Q) / self._n_visits
 
 
-    def update_recursive(self, leaf_value):
+    def update_recursive(self, scores):
         """Like a call to update(), but applied recursively for all ancestors.
         """
         # If it is not root, this node's parent should be updated first.
         if self._parent:
-            self._parent.update_recursive(-leaf_value)
+            self._parent.update_recursive(scores)
 
-        self.update(leaf_value)
+        #print(scores, self._parent, self._player_idx)
+        if self._parent:
+            self.update(-scores[self._player_idx])
 
 
     def get_value(self, c_puct):
@@ -139,7 +141,7 @@ class MCTS(object):
             converges to the maximum-value policy. A higher value means
             relying on the prior more.
         """
-        self._root = TreeNode(None, 1.0)
+        self._root = TreeNode(None, 1.0, None)
         self._policy = policy_value_fn
         self._c_puct = c_puct
         self._n_playout = n_playout
@@ -165,14 +167,15 @@ class MCTS(object):
         # Check for end of game
         winners = state.get_game_winners()
         if not winners:
-            node.expand(action_probs)
+            node.expand(state.current_player_idx, action_probs)
 
         # Evaluate the leaf node by random rollout
-        leaf_value = self._evaluate_rollout(state)
-        #print("leaf_value", leaf_value)
-
+        #leaf_value = self._evaluate_rollout(state)
         # Update value and visit count of nodes in this traversal.
-        node.update_recursive(-leaf_value)
+        #node.update_recursive(-leaf_value)
+
+        scores = self._evaluate_rollout(state)
+        node.update_recursive(scores)
 
 
     def _evaluate_rollout(self, state):
@@ -188,7 +191,8 @@ class MCTS(object):
 
         #return 1 if state.current_player_idx in winners else -1
 
-        return -state.player_scores[state.current_player_idx]
+        #return -state.player_scores[state.current_player_idx]
+        return state.player_scores
 
 
     def get_move(self, state):
@@ -199,10 +203,10 @@ class MCTS(object):
 
         state_copy = copy.deepcopy(state)
         seen_cards = state.players[0].seen_cards
-        #for n in range(self._n_playout):
 
-        stime = time.time()
-        while time.time()-stime < TIMEOUT_SECOND:
+        #stime = time.time()
+        #while time.time()-stime < TIMEOUT_SECOND:
+        for n in range(self._n_playout):
             hand_cards = state_copy._player_hands[state.current_player_idx]
             remaining_cards = state.players[state.current_player_idx].get_remaining_cards(state._player_hands[state.current_player_idx])
             state.players[state.current_player_idx].redistribute_cards(state, remaining_cards[:])
@@ -217,7 +221,7 @@ class MCTS(object):
         for played_card, node in sorted(self._root._children.items(), key=lambda x: -x[1].get_value(self._c_puct)):
             print(played_card, node._n_visits, node.get_value(self._c_puct))
 
-        return max(self._root._children.items(), key=lambda act_node: act_node[1].get_value(self._c_puct))[0]
+        return max(self._root._children.items(), key=lambda act_node: act_node[1]._n_visits)[0]
 
 
     def update_with_move(self, last_move):
@@ -227,8 +231,9 @@ class MCTS(object):
         if last_move in self._root._children:
             self._root = self._root._children[last_move]
             self._root._parent = None
+            self._player_idx = None
         else:
-            self._root = TreeNode(None, 1.0)
+            self._root = TreeNode(None, 1.0, None)
 
 
     def __str__(self):
@@ -237,7 +242,7 @@ class MCTS(object):
 
 class MCTSPlayer(MonteCarloPlayer2):
     """AI player based on MCTS"""
-    def __init__(self, verbose=False, c_puct=5, n_playout=2048):
+    def __init__(self, verbose=False, c_puct=5, n_playout=2**10):
         super(MCTSPlayer, self).__init__(verbose)
 
         self.mcts = MCTS(policy_value_fn, c_puct, n_playout)
@@ -254,7 +259,7 @@ class MCTSPlayer(MonteCarloPlayer2):
 
         if len(valid_cards) > 1:
             played_card = self.mcts.get_move(copy.deepcopy(game))
-            print("pick card", played_card)
+            print("pick card", played_card, hand_cards, valid_cards)
             self.mcts.update_with_move(-1)
         else:
             played_card = valid_cards[0]

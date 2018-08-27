@@ -123,7 +123,7 @@ class MCTSPlayer(MonteCarloPlayer2):
 
         seen_cards = copy.deepcopy(game.players[0].seen_cards)
         game.verbose = False
-        game.players = [SimplePlayer() for idx in range(4)]
+        game.players = [StupidPlayer() for idx in range(4)]
         for player in game.players:
             player.seen_cards = copy.deepcopy(seen_cards)
 
@@ -196,10 +196,10 @@ class MCTSPlayer(MonteCarloPlayer2):
 
             winners = game.get_game_winners()
             if winners:
-                if self.position in winners:
-                    print(init_card, "get winners", winners, game.player_scores)
-                else:
-                    print(init_card, "not winners", winners, game.player_scores)
+                #if self.position in winners:
+                #    print(init_card, "get winners", winners, game.player_scores)
+                #else:
+                #    print(init_card, "not winners", winners, game.player_scores)
 
                 break
 
@@ -217,7 +217,7 @@ class MCTSPlayer(MonteCarloPlayer2):
                     tmp_wins[key] += 1
 
                     #print("key >>>>>>", key, tmp_wins[key], winners)
-            else:
-                print("not found", key, init_card)
+            #else:
+            #    print("not found", key, init_card)
 
         return tmp_wins, tmp_plays, tmp_scores

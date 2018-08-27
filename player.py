@@ -1,5 +1,6 @@
 """This module containts the abstract class Player and some implementations."""
 from random import shuffle
+from collections import defaultdict
 
 from card import Suit, Rank, Card, Deck
 from rules import is_card_valid
@@ -11,17 +12,29 @@ class Player(object):
     Abstract class defining the interface of a Computer Player.
     """
 
-    def __init__(self):
+    def __init__(self, verbose=False):
         self.seen_cards = []
         self.freeze_cards = []
+        self.transfer_cards = defaultdict(list)
 
         self.name = None
         self.position = None
+
+        self.verbose = verbose
 
 
     def say(self, message, *formatargs):
         if self.verbose:
             print(message.format(*formatargs))
+
+
+    def set_transfer_card(self, received_player, card):
+        if isinstance(card, list):
+            self.transfer_cards[received_player].extend(card)
+        elif isinstance(card, Card):
+            self.transfer_cards[received_player].append(card)
+        else:
+            raise
 
 
     def set_position(self, idx):
@@ -72,6 +85,7 @@ class Player(object):
     def reset(self):
         self.seen_cards = []
         self.freeze_cards = []
+        self.transfer_cards = defaultdict(list)
 
 
 class StupidPlayer(Player):
@@ -80,6 +94,9 @@ class StupidPlayer(Player):
     Most simple player you can think of.
     It just plays random valid cards.
     """
+
+    def __init__(self, verbose=False):
+        super(StupidPlayer, self).__init__(verbose=verbose)
 
     def pass_cards(self, hand):
         cards = []
@@ -114,9 +131,7 @@ class SimplePlayer(Player):
     """
 
     def __init__(self, verbose=False):
-        super(SimplePlayer, self).__init__()
-
-        self.verbose = verbose
+        super(SimplePlayer, self).__init__(verbose=verbose)
 
 
     def undesirability(self, card):

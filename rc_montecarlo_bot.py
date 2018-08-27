@@ -34,6 +34,9 @@ class MonteCarloBot(PokerBot):
 
         self.game = None
 
+        self.given_cards = []
+        self.received_cards = []
+
         self.my_hand_cards = []
         self.expose_card = False
         self.my_pass_card = []
@@ -58,8 +61,6 @@ class MonteCarloBot(PokerBot):
             return_values.append(str(card))
 
         message="Pass Cards:{}".format(return_values)
-        print(message)
-
         system_log.show_message(message)
         system_log.save_logs(message)
 
@@ -68,7 +69,7 @@ class MonteCarloBot(PokerBot):
         return return_values
 
 
-    def receive_opponent_cards(self,data):
+    def receive_opponent_cards(self, data):
         self.my_hand_cards = self.get_cards(data)
 
         players = data['players']
@@ -76,7 +77,14 @@ class MonteCarloBot(PokerBot):
             player_name = player['playerName']
             if player_name == self.player_name:
                 picked_cards = player['pickedCards']
+                for card_str in picked_cards:
+                    card = transform(card_str[0], card_str[1])
+                    self.given_cards.append(card)
+
                 receive_cards = player['receivedCards']
+                for card_str in receive_cards:
+                    card = transform(card_str[0], card_str[1])
+                    self.received_cards.append(card)
 
                 message = "User Name:{}, Picked Cards:{}, Receive Cards:{}".format(player_name, picked_cards, receive_cards)
                 print(message)
@@ -219,13 +227,10 @@ class MonteCarloBot(PokerBot):
         return expose_card
 
 
-    def expose_cards_end(self,data):
-        expose_player = None
-        expose_card = None
+    def expose_cards_end(self, data):
+        expose_player, expose_card = None, None
 
-        self.player_names = []
-        players = []
-
+        self.player_names, players = [], []
         for player in data['players']:
             try:
                 if player['exposedCards'] != [] and len(player['exposedCards']) > 0 and player['exposedCards'] is not None:
@@ -248,6 +253,23 @@ class MonteCarloBot(PokerBot):
                 system_log.save_logs(e)
 
         self.game = Game(players, verbose=False)
+
+        deal_number = data["dealNumber"]
+        if deal_number == 1:
+            idx = (self.player.position+1)%4
+            self.player.set_transfer_card(idx, self.given_cards)
+            print("pass card to {}, {}".format(idx, self.given_cards))
+        elif deal_number == 2:
+            idx = self.player.position-1 if self.player.position > 0 else 3
+            self.player.set_transfer_card(idx, self.given_cards)
+            print("pass card to {}, {}".format(idx, self.given_cards))
+        elif deal_number == 3:
+            idx = (self.player.position+2)%4
+            self.player.set_transfer_card(idx, self.given_cards)
+            print("pass card to {}, {}".format(idx, self.given_cards))
+        else:
+            print("not passing card")
+
 
         if expose_player is not None and expose_card is not None:
             message="Player:{}, Expose card:{}".format(expose_player, expose_card)
@@ -305,6 +327,9 @@ class MonteCarloBot(PokerBot):
         print("---------------------------------------------")
 
         self.my_hand_cards = []
+        self.given_cards = []
+        self.received_cards = []
+
         self.expose_card = False
         deal_scores,initial_cards,receive_cards,picked_cards=self.get_deal_scores(data)
         message = "Player name:{}, Pass Cards:{}".format(self.player_name, self.my_pass_card)
@@ -344,7 +369,7 @@ def main():
         player_name = sys.argv[1]
         player_number = sys.argv[2]
     else:
-        player_name = "RungChiChen-MonteCarlo"
+        player_name = "RungChiChen-MonteCarlo-{}".format(int(time.time()))
         player_number = 3
 
     token = "12345678"

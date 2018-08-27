@@ -69,9 +69,16 @@ class Game:
 
 
     def print_hand_cards(self):
+        def is_score_card(card):
+            if card.suit == Suit.hearts or card in [Card(Suit.clubs, Rank.ten), Card(Suit.spades, Rank.queen)]:
+                return True
+            else:
+                return False
+
         if self.verbose:
-            for player_idx, (player, hand_cards) in enumerate(zip(self.players, self._player_hands)):
-                print(player_idx, type(player).__name__, hand_cards, self.count_points(self._cards_taken[player_idx]))
+            for player_idx, (player, hand_cards, taken_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken)):
+                self.say("position: {}, name:{:18s}, hand_cards: {}, score: {:3d}, taken_cards: {}".format(\
+                    player_idx, type(player).__name__, hand_cards, self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)])))
             print()
 
 
@@ -87,18 +94,12 @@ class Game:
 
 
     def pass_cards(self):
-        # Perform the card passing.
-        # Currently always passes in one direction.
-        # Alternating directions can be implemented later if desirable
-
-        if self.verbose:
-            self.print_hand_cards()
-
         for i in range(4):
             for card in self.players[i].pass_cards(self._player_hands[i]):
                 next_idx = (i + 1) % 4
 
                 self._player_hands[i].remove(card)
+                self.players[i].set_transfer_card(next_idx, card)
                 self._player_hands[next_idx].append(card)
 
                 self.players[next_idx].freeze_pass_card(card)
@@ -143,8 +144,9 @@ class Game:
                 self.player_scores[i] = self.count_points(self._cards_taken[i])
 
         if self.verbose:
-            self.say('self.is_shootmoon={}, Player {} got {} points from the cards {}',
-                     self.is_shootmoon, i, self.player_scores[i], ' '.join(str(card) for card in self._cards_taken[i]))
+            for i in range(4):
+                self.say('self.is_shootmoon={}, Player {} got {} points from the cards {}',
+                    self.is_shootmoon, i, self.player_scores[i], ' '.join(str(card) for card in self._cards_taken[i]))
 
 
     def check_shootmoon(self):

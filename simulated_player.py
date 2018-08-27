@@ -55,37 +55,62 @@ class MonteCarloPlayer(SimplePlayer):
             pool.close()
 
             is_score = all([v == 0 for v in winning_rate.values()])
+            is_score = True
 
             rating = winning_rate
             if is_score:
                 rating = winning_score
 
-            pig_winning_rate = None
-            simulation_rate = None
+            card, prev_card = None, None
+            winning_rate, prev_winning_rate = -1, -1
+            pig_winning_rate, simulation_rate = None, None
             for card_idx, c in sorted(rating.items(), key=lambda x: x[1]/count_simulation):
+                prev_winning_rate = winning_rate
+                prev_card = card
+
                 card = valid_cards[card_idx]
-                simulation_rate = abs(c/count_simulation)
+                winning_rate = abs(c/count_simulation)
 
                 if card == Card(Suit.spades, Rank.queen):
-                    pig_winning_rate = abs(c/count_simulation)
+                    pig_winning_rate = winning_rate
 
                 if self.verbose:
-                    print("simulation: {} round".format(game.trick_nr), "valid_cards: {}, simulate {} card --> {:3d} {} /{:4d} simulations {:.4f}".format(\
-                        valid_cards, card, abs(c), "score" if is_score else "rounds", count_simulation, abs(c/count_simulation)))
+                    self.say("simulation: {} round --> valid_cards: {}, simulate {} card --> {:3d} {} /{:4d} simulations {:.4f}".format(\
+                        game.trick_nr, valid_cards, card, abs(c), "score" if is_score else "rounds", count_simulation, winning_rate))
+
+            """
+            if card == Card(Suit.spades, Rank.queen):
+                if winning_rate-prev_winning_rate < 0.001:
+                    card = prev_card
+
+                    self.say("use {} instead of QS", prev_card)
 
             if pig_winning_rate is not None and card != Card(Suit.spades, Rank.queen):
+                ori_card = card
                 if is_score:
-                    if abs(-pig_winning_rate+simulation_rate) < 2:
+                    if abs(-pig_winning_rate+winning_rate) < 2:
                         card = Card(Suit.spades, Rank.queen)
 
                         if self.verbose:
-                            self.say("score mode: force to play QS({} vs. {})", -pig_winning_rate, -simulation_rate)
-                elif not is_score:
-                    if abs(pig_winning_rate-simulation_rate) < 0.01:
+                            self.say("score mode: force to play QS({} vs. {})", -pig_winning_rate, -winning_rate)
+                else:
+                    if abs(pig_winning_rate-winning_rate) < 0.001:
                         card = Card(Suit.spades, Rank.queen)
 
                         if self.verbose:
-                            self.say("rate mode: force to play QS({} vs. {})", pig_winning_rate, simulation_rate)
+                            self.say("rate mode: force to play QS({} vs. {})", pig_winning_rate, winning_rate)
+
+                if game.trick and game.trick[0].suit == Suit.spades:
+                    not_forced = False
+                    for c in game.trick:
+                        if c.suit == Suit.spades and c.rank > Rank.queen:
+                            not_forced = True
+
+                            break
+
+                    if not not_forced:
+                        card = ori_card
+            """
         else:
             card = valid_cards[0]
 
@@ -128,7 +153,7 @@ class MonteCarloPlayer(SimplePlayer):
         remaining_cards = self.get_remaining_cards(hand_cards)
 
         game.verbose = False
-        game.players = [SimplePlayer(), SimplePlayer(), SimplePlayer(), SimplePlayer()]
+        game.players = [StupidPlayer() for _ in range(4)]
 
         self.redistribute_cards(game, remaining_cards[:])
 
@@ -156,13 +181,23 @@ class MonteCarloPlayer2(MonteCarloPlayer):
     def redistribute_cards(self, game, remaining_cards):
         shuffle(remaining_cards)
 
-        ori_size = []
+        ori_size, fixed_cards = [], set()
         for idx in range(len(game._player_hands)):
             if idx != self.position:
                 size = len(game._player_hands[idx])
                 ori_size.append(size)
 
                 game._player_hands[idx] = []
+
+                #print("process about fixing cards")
+                for card in self.transfer_cards.get(idx, []):
+                    if card in remaining_cards:
+                        game._player_hands[idx].append(card)
+                        remaining_cards.remove(card)
+
+                        fixed_cards.add(card)
+
+                    #print("fix player-{}'s card({})".format(game._player_hands[idx]))
 
                 removed_cards = []
                 for card in remaining_cards:
@@ -191,7 +226,7 @@ class MonteCarloPlayer2(MonteCarloPlayer):
                 hand_cards = game._player_hands[player_idx]
 
                 for card_idx, hand_card in enumerate(hand_cards):
-                    if not game.lacking_cards[latest_lacking_idx[0]][hand_card.suit]:
+                    if hand_card not in fixed_cards and not game.lacking_cards[latest_lacking_idx[0]][hand_card.suit]:
                         game._player_hands[player_idx][card_idx] = card
                         game._player_hands[latest_lacking_idx[0]].append(hand_card)
                         remaining_cards.remove(card)
