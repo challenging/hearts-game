@@ -114,13 +114,12 @@ class StupidPlayer(Player):
         # Play first card that is valid
         shuffle(hand)
         for card in hand:
-            #print(game.trick_nr, game.is_heart_broken, game.trick, card, is_card_valid(hand, trick, card, game.trick_nr, game.is_heart_broken))
             if is_card_valid(hand, game.trick, card, game.trick_nr, game.is_heart_broken):
                 return card
 
-        raise AssertionError(
-            'Apparently there is no valid card that can be played. This should not happen.'
-        )
+        game.verbose = True
+        game.print_game_status()
+        raise AssertionError('Apparently there is no valid card that can be played. This should not happen.')
 
 
 class SimplePlayer(Player):

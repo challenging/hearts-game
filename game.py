@@ -1,7 +1,7 @@
 import sys
 
 from card import Suit, Rank, Card, Deck
-from rules import is_card_valid, card_points, reversed_score
+from rules import is_card_valid, is_score_card, card_points, reversed_score
 
 
 class Game:
@@ -68,13 +68,15 @@ class Game:
             print(message.format(*formatargs))
 
 
-    def print_hand_cards(self):
-        def is_score_card(card):
-            if card.suit == Suit.hearts or card in [Card(Suit.clubs, Rank.ten), Card(Suit.spades, Rank.queen)]:
-                return True
-            else:
-                return False
+    def print_game_status(self):
+        for player_idx, (player, hand_cards, taken_cards, lacking_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken, self.lacking_cards)):
+            self.say("trick_nr: {:2d}, current_trick: {}, leading_position: {}", self.trick_nr, self.trick, self.current_player_idx)
+            self.say("lacking_info: {}", lacking_cards)
+            self.say("position: {}, name:{:18s}, hand_cards: {}, score: {:3d}, taken_cards: {}",\
+                player_idx, type(player).__name__, hand_cards, self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)]))
 
+
+    def print_hand_cards(self):
         if self.verbose:
             for player_idx, (player, hand_cards, taken_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken)):
                 self.say("position: {}, name:{:18s}, hand_cards: {}, score: {:3d}, taken_cards: {}".format(\

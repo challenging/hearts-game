@@ -114,9 +114,6 @@ class MonteCarloPlayer(SimplePlayer):
         else:
             card = valid_cards[0]
 
-            if self.verbose:
-                print("don't need simulation, can only play {} card".format(card))
-
         return card
 
 
@@ -134,7 +131,7 @@ class MonteCarloPlayer(SimplePlayer):
         return remaining_cards
 
 
-    def redistribute_cards(self, game, remaining_cards):
+    def simple_redistribute_cards(self, game, remaining_cards):
         shuffle(remaining_cards)
 
         for idx in range(len(game._player_hands)):
@@ -147,6 +144,9 @@ class MonteCarloPlayer(SimplePlayer):
         if remaining_cards:
             print("error", type(self).__name__, remaining_cards, [len(v) for v in game._player_hands])
             raise
+
+    def redistribute_cards(self, game, remaining_cards):
+        self.simple_redistribute_cards(game, remaining_cards)
 
 
     def run_simulation(self, idx, game, hand_cards, played_card):
@@ -178,62 +178,90 @@ class MonteCarloPlayer2(MonteCarloPlayer):
         super(MonteCarloPlayer2, self).__init__(verbose=verbose)
 
 
-    def redistribute_cards(self, game, remaining_cards):
-        shuffle(remaining_cards)
+    def redistribute_cards(self, copy_game, copy_remaining_cards):
+        retry = 3
+        while retry >= 0:
+            #print(self, "retry", retry)
 
-        ori_size, fixed_cards = [], set()
-        for idx in range(len(game._player_hands)):
-            if idx != self.position:
-                size = len(game._player_hands[idx])
-                ori_size.append(size)
+            game = copy.deepcopy(copy_game)
+            remaining_cards = copy.deepcopy(copy_remaining_cards)
 
-                game._player_hands[idx] = []
+            shuffle(remaining_cards)
 
-                #print("process about fixing cards")
-                for card in self.transfer_cards.get(idx, []):
-                    if card in remaining_cards:
-                        game._player_hands[idx].append(card)
+            ori_size, fixed_cards = [], set()
+            for idx in range(len(game._player_hands)):
+                if idx != self.position:
+                    size = len(game._player_hands[idx])
+                    ori_size.append(size)
+
+                    game._player_hands[idx] = []
+
+                    for card in self.transfer_cards.get(idx, []):
+                        if card in remaining_cards:
+                            game._player_hands[idx].append(card)
+                            remaining_cards.remove(card)
+
+                            fixed_cards.add(card)
+
+                    removed_cards = []
+                    for card in remaining_cards:
+                        if game.lacking_cards[idx][card.suit] == False:
+                            game._player_hands[idx].append(card)
+                            removed_cards.append(card)
+
+                            if len(game._player_hands[idx]) == size:
+                                break
+
+                    for card in removed_cards:
                         remaining_cards.remove(card)
+                else:
+                    ori_size.append(len(game._player_hands[idx]))
 
-                        fixed_cards.add(card)
 
-                    #print("fix player-{}'s card({})".format(game._player_hands[idx]))
+            retry2 = 3
+            lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) < ori_size[idx]]
+            while retry2 >= 0 and any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
+                #if self.verbose:
+                #    print("--->", self, self.position, ori_size, [len(cards) for cards in game._player_hands], remaining_cards, game.lacking_cards, retry, retry2)
 
                 removed_cards = []
                 for card in remaining_cards:
-                    if game.lacking_cards[idx][card.suit] == False:
-                        game._player_hands[idx].append(card)
-                        removed_cards.append(card)
+                    latest_lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) < ori_size[idx]]
 
-                        if len(game._player_hands[idx]) == size:
+                    player_idx = choice([player_idx for player_idx in range(4) if player_idx not in latest_lacking_idx + [self.position]])
+                    hand_cards = game._player_hands[player_idx]
+
+                    #print("player_idx", player_idx, "latest_lacking_idx", latest_lacking_idx)
+                    for card_idx, hand_card in enumerate(hand_cards):
+                        if hand_card not in fixed_cards and not game.lacking_cards[latest_lacking_idx[0]][hand_card.suit]:
+                            game._player_hands[player_idx][card_idx] = card
+                            game._player_hands[latest_lacking_idx[0]].append(hand_card)
+
+                            removed_cards.append(card)
+
                             break
 
                 for card in removed_cards:
                     remaining_cards.remove(card)
+
+                for player_idx, size in enumerate(ori_size):
+                    if len(game._player_hands[player_idx]) > size:
+                        remaining_cards.extend(game._player_hands[player_idx][size:])
+                        game._player_hands[player_idx] = game._player_hands[player_idx][:size]
+
+                retry2 -= 1
+
+            if remaining_cards or any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
+                #if self.verbose:
+                #    print("error --> remaining_cards: {}, ori_size:{}, simulated_hand_cards: {}".format(remaining_cards, ori_size, game._player_hands))
+
+                retry -= 1
             else:
-                ori_size.append(len(game._player_hands[idx]))
+                copy_game = game
 
+                break
+        else:
+            if self.verbose:
+                print("apply self.simple_redistribute_cards")
 
-        lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) != ori_size[idx]]
-        while remaining_cards:
-            for card in remaining_cards:
-                latest_lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) != ori_size[idx]]
-
-                player_idx = lacking_idx[0]
-                while player_idx in lacking_idx or player_idx == self.position:
-                    player_idx = randint(0, 3)
-
-                hand_cards = game._player_hands[player_idx]
-
-                for card_idx, hand_card in enumerate(hand_cards):
-                    if hand_card not in fixed_cards and not game.lacking_cards[latest_lacking_idx[0]][hand_card.suit]:
-                        game._player_hands[player_idx][card_idx] = card
-                        game._player_hands[latest_lacking_idx[0]].append(hand_card)
-                        remaining_cards.remove(card)
-
-                        break
-
-        if remaining_cards:
-            print("error", remaining_cards)
-            for lacking_card_info, hand_cards in zip(game.lacking_cards, game._player_hands):
-                print(lacking_card_info, hand_cards, len(hand_cards))
+            self.simple_redistribute_cards(copy_game, copy_remaining_cards)

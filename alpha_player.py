@@ -16,7 +16,7 @@ from rules import is_card_valid
 from simulated_player import MonteCarloPlayer2
 from player import SimplePlayer, StupidPlayer
 
-TIMEOUT_SECOND = 0.9
+TIMEOUT_SECOND = 8
 COUNT_CPU = mp.cpu_count()
 
 
@@ -204,9 +204,9 @@ class MCTS(object):
         state_copy = copy.deepcopy(state)
         seen_cards = state.players[0].seen_cards
 
-        #stime = time.time()
-        #while time.time()-stime < TIMEOUT_SECOND:
-        for n in range(self._n_playout):
+        stime = time.time()
+        while time.time()-stime < TIMEOUT_SECOND:
+        #for n in range(self._n_playout):
             hand_cards = state_copy._player_hands[state.current_player_idx]
             remaining_cards = state.players[state.current_player_idx].get_remaining_cards(state._player_hands[state.current_player_idx])
             state.players[state.current_player_idx].redistribute_cards(state, remaining_cards[:])
@@ -218,8 +218,8 @@ class MCTS(object):
 
             self._playout(copy.deepcopy(state_copy))
 
-        for played_card, node in sorted(self._root._children.items(), key=lambda x: -x[1].get_value(self._c_puct)):
-            print(played_card, node._n_visits, node.get_value(self._c_puct))
+        for played_card, node in sorted(self._root._children.items(), key=lambda x: -x[1]._n_visits):
+            print("card: {}, n_visits: {:4d}, value: {:.4f}".format(played_card, node._n_visits, node.get_value(self._c_puct)))
 
         return max(self._root._children.items(), key=lambda act_node: act_node[1]._n_visits)[0]
 
@@ -242,7 +242,7 @@ class MCTS(object):
 
 class MCTSPlayer(MonteCarloPlayer2):
     """AI player based on MCTS"""
-    def __init__(self, verbose=False, c_puct=5, n_playout=2**10):
+    def __init__(self, verbose=False, c_puct=5, n_playout=512):
         super(MCTSPlayer, self).__init__(verbose)
 
         self.mcts = MCTS(policy_value_fn, c_puct, n_playout)

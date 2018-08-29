@@ -3,6 +3,7 @@ This module contains a few functions comprising the rules of the game.
 """
 
 import sys
+import copy
 
 from random import shuffle, randint
 from card import Suit, Rank, Card
@@ -33,6 +34,14 @@ def is_card_valid(hand, trick, card, trick_nr, are_hearts_broken):
     leading_suit = trick[0].suit
 
     return card.suit == leading_suit or all([card.suit != leading_suit for card in hand])
+
+
+def is_score_card(card):
+    if card.suit == Suit.hearts or card in [Card(Suit.clubs, Rank.ten), Card(Suit.spades, Rank.queen)]:
+        return True
+    else:
+        return False
+
 
 def card_points(card):
     """
@@ -178,7 +187,7 @@ def get_setting_cards():
                    "TH, 8S, 4S, KH, 9S, 7D, 2D, 5S, TD, 5H, AH, 4D, 9C",
                    "AC, AD, TC, 7S, 7H, 6S, 6H, 5D, 3C, 3D, 3H, 2H, 8C"]
 
-    return transform_cards(card_string)
+    return [transform_cards(card_string)]
 
 
 def transform_cards(card_string):
@@ -195,62 +204,60 @@ def transform_cards(card_string):
 
         cards.append(t)
 
-    return [cards]
+    return cards
 
 
-def redistribute_card(cards, info):
-    remaining_cards = []
-    for card in cards:
-        remaining_cards.extend(card)
-    shuffle(remaining_cards)
+def redistribute_card(copy_cards, info):
+    remaining_cards = [c for card in copy_cards for c in card]
 
-    for idx in range(len(cards)):
-        size = len(cards[idx])
-        cards[idx] = []
+    ori_size = [len(card) for card in copy_cards]
+    new_cards = [[], [], [], []]
 
+    player_idxs = []
+    for player_idx, lacking_info in enumerate(info):
+        player_idxs.append((player_idx, sum(lacking_info.values())))
+
+    while sum([player_idx for player_idx in range(4) if len(new_cards[player_idx]) != len(copy_cards[player_idx])]):
+        cards = copy.deepcopy(copy_cards)
+        shuffle(remaining_cards)
+
+        new_cards = [[], [], [], []]
         removed_cards = []
         for card in remaining_cards:
-            if info[idx][card.suit] == False:
-                cards[idx].append(card)
-                removed_cards.append(card)
-
-                if len(cards[idx]) == size:
-                    break
-
-        for card in removed_cards:
-            remaining_cards.remove(card)
-
-    ori_pool = [idx for idx in range(len(cards)) if not cards[idx]]
-    while remaining_cards:
-        removed_cards = []
-
-        for card in remaining_cards:
-            pool = [idx for idx in range(len(cards)) if not cards[idx]]
-
-            player_idx = randint(0,3)
-            while player_idx in ori_pool:
-                player_idx = randint(0,3)
-
-            hand_cards = cards[player_idx]
-
-            for card_idx, hand_card in enumerate(hand_cards):
-                if not info[pool[0]][hand_card.suit]:
-                    cards[player_idx][card_idx] = card
-                    cards[pool[0]].append(hand_card)
+            for player_idx, _ in sorted(player_idxs, key=lambda x: -x[1]):
+                if info[player_idx][card.suit] == False and len(new_cards[player_idx]) < ori_size[player_idx]:
+                    new_cards[player_idx].append(card)
                     removed_cards.append(card)
 
-                    print("switch", pool[0], card, player_idx, hand_card)
-
                     break
 
-        print(222, remaining_cards, removed_cards, pool, player_idx)
-        for card in removed_cards:
-            remaining_cards.remove(card)
+        lacking_player_idxs = [player_idx for player_idx in range(4) if len(new_cards[player_idx]) < len(cards[player_idx])]
+        print("enter re-redistribute cards", new_cards, cards, lacking_player_idxs, [len(new_cards[player_idx]) == len(cards[player_idx]) for player_idx in range(4)])
 
+        is_found = False
+        for lacking_player_idx in lacking_player_idxs:
+            for card in set(remaining_cards) - set(removed_cards):
+                for player_idx, hand_cards in enumerate(new_cards):
+                    if lacking_player_idx != player_idx and info[player_idx][card.suit] == False:
+                        for given_card in new_cards[player_idx]:
+                            if info[lacking_player_idx][given_card.suit] == False:
+                                print("{}'s {} to {}, and get {}".format(player_idx, given_card, lacking_player_idx, card))
 
-    print(remaining_cards)
-    for card in cards:
-        print(card, len(card))
+                                new_cards[lacking_player_idx].append(given_card)
+                                new_cards[player_idx].remove(given_card)
+                                new_cards[player_idx].append(card)
+
+                                is_found = True
+
+                                break
+                        if is_found:
+                            break
+                if is_found:
+                    break
+            if is_found:
+               break
+
+    print(cards, new_cards)
 
 
 if __name__ == "__main__":
@@ -262,12 +269,14 @@ if __name__ == "__main__":
              "AS, KS, KC, QD, JS, TS, 9D, 2H",
              "KD, KH, QH, JD, 8H, 7H, 6C, 3H"]
     """
-    cards = ["JH", "4C", "6D", "8D"]
+    #cards = ["JH", "4C", "6D", "8D"]
+    cards = ["4C,7H", "AD", "JH", "4S,7S"]
     cards = transform_cards(cards)
 
-    info = [{Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False},
+    info = [{Suit.spades: True, Suit.hearts: False, Suit.diamonds: True, Suit.clubs: False},
             {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False},
-            {Suit.spades: False, Suit.hearts: False, Suit.diamonds: True, Suit.clubs: False},
-            {Suit.spades: False, Suit.hearts: False, Suit.diamonds: True, Suit.clubs: False}]
+            {Suit.spades: False, Suit.hearts: False, Suit.diamonds: True, Suit.clubs: True},
+            {Suit.spades: False, Suit.hearts: True, Suit.diamonds: True, Suit.clubs: False}]
 
-    redistribute_card(cards, info)
+    for _ in range(32):
+        redistribute_card(cards, info)
