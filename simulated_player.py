@@ -204,7 +204,7 @@ class MonteCarloPlayer2(MonteCarloPlayer):
 
 class MonteCarloPlayer3(MonteCarloPlayer2):
     def __init__(self, verbose=False):
-        super(MonteCarloPlayer2, self).__init__(verbose=verbose)
+        super(MonteCarloPlayer3, self).__init__(verbose=verbose)
 
 
     def score_func(self, scores):
@@ -221,3 +221,68 @@ class MonteCarloPlayer3(MonteCarloPlayer2):
             return self_score-second_score
         else:
             return self_score-min_score
+
+
+class MonteCarloPlayer4(MonteCarloPlayer2):
+    def __init__(self, verbose=False):
+        super(MonteCarloPlayer4, self).__init__(verbose=verbose)
+
+
+    def overwrite_game_score_func(self, game):
+        import types
+
+        def score(self):
+            self.check_shootmoon()
+
+            if self.is_shootmoon:
+                max_score = max([self.count_points(self._cards_taken[idx]) for idx in range(4)])
+
+                for i in range(4):
+                    s = self.count_points(self._cards_taken[i])
+
+                    if s > 0:
+                        self.player_scores[i] = 0
+                    else:
+                        self.player_scores[i] = max_score
+            else:
+                #is_debugging = False
+                for i in range(4):
+                    self.player_scores[i] = self.count_points(self._cards_taken[i])
+                    if self.player_scores[i] == 0:
+                        for card in self._cards_taken[i]:
+                            if card == Card(Suit.clubs, Rank.ten):
+                                self.player_scores[i] = -2
+                                #is_debugging = True
+
+                                break
+
+                #if is_debugging:
+                #    print("------->", self.player_scores, self._cards_taken)
+
+        game.score = types.MethodType(score, game)
+
+
+    def run_simulation(self, idx, game, hand_cards, played_card):
+        remaining_cards = self.get_remaining_cards(hand_cards)
+
+        trick_nr = game.trick_nr
+
+        game.verbose = False
+        game.players = [StupidPlayer() for _ in range(4)]
+
+        self.redistribute_cards(game, remaining_cards[:])
+
+        game.step(played_card)
+
+        for _ in range(4-len(game.trick)):
+            game.step()
+
+        for _ in range(13-game.trick_nr):
+            game.play_trick()
+
+        if trick_nr < 6:
+            self.overwrite_game_score_func(game)
+
+        game.score()
+
+        return idx, self.score_func(game.player_scores)
