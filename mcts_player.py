@@ -16,7 +16,7 @@ from rules import is_card_valid
 from simulated_player import MonteCarloPlayer3
 from player import SimplePlayer, StupidPlayer
 
-TIMEOUT_SECOND = 0.9
+TIMEOUT_SECOND = 0.95
 COUNT_CPU = mp.cpu_count()
 
 
@@ -37,7 +37,7 @@ class MCTSPlayer(MonteCarloPlayer3):
             plays, scores = defaultdict(int), defaultdict(int)
             pool = mp.Pool(processes=self.num_of_cpu)
             while time.time() - stime < simulation_time_limit:
-                mul_result = [pool.apply_async(self.run_simulation, args=(game, wins, plays, scores)) for _ in range(self.num_of_cpu)]
+                mul_result = [pool.apply_async(self.run_simulation, args=(game, plays, scores)) for _ in range(self.num_of_cpu)]
                 results = [res.get() for res in mul_result]
 
                 for tmp_plays, tmp_scores in results:
@@ -59,7 +59,7 @@ class MCTSPlayer(MonteCarloPlayer3):
                 k = (game.current_player_idx, states)
 
                 if k in plays:
-                    avg_score =  scores.get(k, 0) / plays[k]
+                    avg_score = scores.get(k, 0) / plays[k]
                     if avg_score < average_score:
                         average_score = avg_score
                         played_card = card
@@ -68,7 +68,7 @@ class MCTSPlayer(MonteCarloPlayer3):
                 else:
                     self.say("not found {} in {}", k, plays)
 
-            self.say("(plays, scores, played_score_card, valid_cards) = ({}, {}, {}, {}({:.2f}), {})",
+            self.say("(plays, scores, played_card, valid_cards) = ({}, {}, {}({:.2f}), {})",
                 len(plays), len(scores), played_card, average_score, valid_cards)
         else:
             played_card = valid_cards[0]
@@ -77,6 +77,7 @@ class MCTSPlayer(MonteCarloPlayer3):
         return played_card
 
 
+    """
     def score_func(self, scores):
         for idx, (player_idx, second_score) in enumerate(sorted(zip(range(4), scores), key=lambda x: x[1])):
             if idx == 1:
@@ -87,15 +88,16 @@ class MCTSPlayer(MonteCarloPlayer3):
             return self_score-second_score
         else:
             return self_score-min_score
+    """
 
 
-    def run_simulation(self, game, wins, plays, scores):
+    def run_simulation(self, game, plays, scores):
         hand_cards = game._player_hands[game.current_player_idx]
         remaining_cards = self.get_remaining_cards(hand_cards)
 
         seen_cards = copy.deepcopy(game.players[0].seen_cards)
         game.verbose = False
-        game.players = [StupidPlayer() for idx in range(4)]
+        game.players = [SimplePlayer() for idx in range(4)]
         for player in game.players:
             player.seen_cards = copy.deepcopy(seen_cards)
 
@@ -124,14 +126,7 @@ class MCTSPlayer(MonteCarloPlayer3):
                     key = (card, tuple(seen_cards))
                     moves_states.append(key)
 
-                    try:
-                        is_all_pass &= (key in plays)
-                    except:
-                        print(key)
-                        print(plays)
-
-                        raise
-
+                    is_all_pass &= (key in plays)
                     if is_all_pass:
                         log_total += plays[key]
 
@@ -175,6 +170,6 @@ class MCTSPlayer(MonteCarloPlayer3):
                 tmp_plays[key] += 1
 
                 tmp_scores.setdefault(key, 0)
-                tmp_scores[key] += self.score_func(game.player_scores)#game.player_scores[self.position]
+                tmp_scores[key] += self.score_func(game.player_scores)
 
         return tmp_plays, tmp_scores

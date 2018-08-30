@@ -43,7 +43,6 @@ class MonteCarloPlayer(SimplePlayer):
 
                 for idx, score in results:
                     winning_score[idx] += score
-
                     count_simulation[idx] += 1
 
             pool.close()
@@ -163,9 +162,6 @@ class MonteCarloPlayer2(MonteCarloPlayer):
             retry2 = 3
             lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) < ori_size[idx]]
             while retry2 >= 0 and any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
-                #if self.verbose:
-                #    print("--->", self.position, ori_size, [len(cards) for cards in game._player_hands], remaining_cards, game.lacking_cards, retry, retry2)
-
                 removed_cards = []
                 for card in remaining_cards:
                     latest_lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) < ori_size[idx]]
@@ -212,11 +208,15 @@ class MonteCarloPlayer3(MonteCarloPlayer2):
 
 
     def score_func(self, scores):
-        for idx, (player_idx, second_score) in enumerate(sorted(zip(range(4), scores), key=lambda x: x[1])):
-            if idx == 1:
+        min_score, second_score = None, None
+        for idx, score in enumerate(sorted(scores)):
+            if idx == 0:
+                min_score = score
+            elif idx == 1:
+                second_score = score
                 break
 
-        min_score, self_score = min(scores), scores[self.position]
+        self_score = scores[self.position]
         if self_score == min_score:
             return self_score-second_score
         else:

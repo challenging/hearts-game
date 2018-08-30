@@ -106,14 +106,9 @@ class Game:
 
                 self.players[next_idx].freeze_pass_card(card)
 
-                if self.verbose:
-                    print("Player {}({}) give Player {}({}) {} card".format(\
-                        i, type(self.players[i]).__name__, \
-                        next_idx, type(self.players[next_idx]).__name__, card))
+                self.say("Player {}({}) give Player {}({}) {} card", i, type(self.players[i]).__name__, next_idx, type(self.players[next_idx]).__name__, card)
 
-        if self.verbose:
-            print()
-            self.print_hand_cards()
+        self.print_hand_cards()
 
 
     def play(self, num_of_rounds=13):
@@ -145,10 +140,9 @@ class Game:
             for i in range(4):
                 self.player_scores[i] = self.count_points(self._cards_taken[i])
 
-        if self.verbose:
-            for i in range(4):
-                self.say('self.is_shootmoon={}, Player {} got {} points from the cards {}',
-                    self.is_shootmoon, i, self.player_scores[i], ' '.join(str(card) for card in self._cards_taken[i]))
+        for i in range(4):
+            self.say('self.is_shootmoon={}, Player {} got {} points from the cards {}',
+                self.is_shootmoon, i, self.player_scores[i], ' '.join(str(card) for card in self._cards_taken[i]))
 
 
     def check_shootmoon(self):
