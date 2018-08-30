@@ -30,87 +30,30 @@ class MonteCarloPlayer(SimplePlayer):
 
         card = None
         if len(valid_cards) > 1:
-            winning_rate = defaultdict(int)
             winning_score = defaultdict(int)
 
             stime = time.time()
 
-            count_simulation = 0
+            count_simulation = defaultdict(int)
 
-            is_score = False
             pool = mp.Pool(processes=self.num_of_cpu)
-            while True:
+            while time.time() - stime < simulation_time_limit:
                 mul_result = [pool.apply_async(self.run_simulation, args=(idx, copy.deepcopy(game), hand_cards, card)) for idx, card in enumerate(valid_cards)]
                 results = [res.get() for res in mul_result]
 
-                for idx, score, is_winner in results:
-                    winning_score[idx] += -score
-                    winning_rate[idx] += 1 if is_winner else 0
+                for idx, score in results:
+                    winning_score[idx] += score
 
-                    count_simulation += 1
-
-                if time.time() - stime >= simulation_time_limit:
-                    break
+                    count_simulation[idx] += 1
 
             pool.close()
 
-            is_score = all([v == 0 for v in winning_rate.values()])
-            is_score = True
-
-            rating = winning_rate
-            if is_score:
-                rating = winning_score
-
-            card, prev_card = None, None
-            winning_rate, prev_winning_rate = -1, -1
-            pig_winning_rate, simulation_rate = None, None
-            for card_idx, c in sorted(rating.items(), key=lambda x: x[1]/count_simulation):
-                prev_winning_rate = winning_rate
-                prev_card = card
-
+            for card_idx, c in sorted(winning_score.items(), key=lambda x: -x[1]/count_simulation[x[0]]):
                 card = valid_cards[card_idx]
-                winning_rate = abs(c/count_simulation)
+                winning_rate = c/count_simulation[card_idx]
 
-                if card == Card(Suit.spades, Rank.queen):
-                    pig_winning_rate = winning_rate
-
-                if self.verbose:
-                    self.say("simulation: {} round --> valid_cards: {}, simulate {} card --> {:3d} {} /{:4d} simulations {:.4f}".format(\
-                        game.trick_nr, valid_cards, card, abs(c), "score" if is_score else "rounds", count_simulation, winning_rate))
-
-            """
-            if card == Card(Suit.spades, Rank.queen):
-                if winning_rate-prev_winning_rate < 0.001:
-                    card = prev_card
-
-                    self.say("use {} instead of QS", prev_card)
-
-            if pig_winning_rate is not None and card != Card(Suit.spades, Rank.queen):
-                ori_card = card
-                if is_score:
-                    if abs(-pig_winning_rate+winning_rate) < 2:
-                        card = Card(Suit.spades, Rank.queen)
-
-                        if self.verbose:
-                            self.say("score mode: force to play QS({} vs. {})", -pig_winning_rate, -winning_rate)
-                else:
-                    if abs(pig_winning_rate-winning_rate) < 0.001:
-                        card = Card(Suit.spades, Rank.queen)
-
-                        if self.verbose:
-                            self.say("rate mode: force to play QS({} vs. {})", pig_winning_rate, winning_rate)
-
-                if game.trick and game.trick[0].suit == Suit.spades:
-                    not_forced = False
-                    for c in game.trick:
-                        if c.suit == Suit.spades and c.rank > Rank.queen:
-                            not_forced = True
-
-                            break
-
-                    if not not_forced:
-                        card = ori_card
-            """
+                self.say("{}, simulation: {} round --> valid_cards: {}, simulate {} card --> {:3d} score /{:4d} average_score {:.4f}".format(\
+                    type(self).__name__, game.trick_nr, valid_cards, card, c, count_simulation[card_idx], winning_rate))
         else:
             card = valid_cards[0]
 
@@ -149,6 +92,10 @@ class MonteCarloPlayer(SimplePlayer):
         self.simple_redistribute_cards(game, remaining_cards)
 
 
+    def score_func(self, scores):
+        return scores[self.position]
+
+
     def run_simulation(self, idx, game, hand_cards, played_card):
         remaining_cards = self.get_remaining_cards(hand_cards)
 
@@ -167,10 +114,7 @@ class MonteCarloPlayer(SimplePlayer):
 
         game.score()
 
-        min_score = min([score for score in game.player_scores])
-        player_score = game.player_scores[self.position]
-
-        return idx, player_score, player_score == min_score
+        return idx, self.score_func(game.player_scores)
 
 
 class MonteCarloPlayer2(MonteCarloPlayer):
@@ -181,8 +125,6 @@ class MonteCarloPlayer2(MonteCarloPlayer):
     def redistribute_cards(self, copy_game, copy_remaining_cards):
         retry = 3
         while retry >= 0:
-            #print(self, "retry", retry)
-
             game = copy.deepcopy(copy_game)
             remaining_cards = copy.deepcopy(copy_remaining_cards)
 
@@ -222,7 +164,7 @@ class MonteCarloPlayer2(MonteCarloPlayer):
             lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) < ori_size[idx]]
             while retry2 >= 0 and any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
                 #if self.verbose:
-                #    print("--->", self, self.position, ori_size, [len(cards) for cards in game._player_hands], remaining_cards, game.lacking_cards, retry, retry2)
+                #    print("--->", self.position, ori_size, [len(cards) for cards in game._player_hands], remaining_cards, game.lacking_cards, retry, retry2)
 
                 removed_cards = []
                 for card in remaining_cards:
@@ -231,7 +173,6 @@ class MonteCarloPlayer2(MonteCarloPlayer):
                     player_idx = choice([player_idx for player_idx in range(4) if player_idx not in latest_lacking_idx + [self.position]])
                     hand_cards = game._player_hands[player_idx]
 
-                    #print("player_idx", player_idx, "latest_lacking_idx", latest_lacking_idx)
                     for card_idx, hand_card in enumerate(hand_cards):
                         if hand_card not in fixed_cards and not game.lacking_cards[latest_lacking_idx[0]][hand_card.suit]:
                             game._player_hands[player_idx][card_idx] = card
@@ -252,8 +193,7 @@ class MonteCarloPlayer2(MonteCarloPlayer):
                 retry2 -= 1
 
             if remaining_cards or any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
-                #if self.verbose:
-                #    print("error --> remaining_cards: {}, ori_size:{}, simulated_hand_cards: {}".format(remaining_cards, ori_size, game._player_hands))
+                self.say("error --> remaining_cards: {}, ori_size:{}, simulated_hand_cards: {}", remaining_cards, ori_size, game._player_hands)
 
                 retry -= 1
             else:
@@ -261,7 +201,23 @@ class MonteCarloPlayer2(MonteCarloPlayer):
 
                 break
         else:
-            if self.verbose:
-                print("apply self.simple_redistribute_cards")
+            self.say("apply self.simple_redistribute_cards")
 
             self.simple_redistribute_cards(copy_game, copy_remaining_cards)
+
+
+class MonteCarloPlayer3(MonteCarloPlayer2):
+    def __init__(self, verbose=False):
+        super(MonteCarloPlayer2, self).__init__(verbose=verbose)
+
+
+    def score_func(self, scores):
+        for idx, (player_idx, second_score) in enumerate(sorted(zip(range(4), scores), key=lambda x: x[1])):
+            if idx == 1:
+                break
+
+        min_score, self_score = min(scores), scores[self.position]
+        if self_score == min_score:
+            return self_score-second_score
+        else:
+            return self_score-min_score

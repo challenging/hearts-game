@@ -16,7 +16,7 @@ from rules import is_card_valid
 from simulated_player import MonteCarloPlayer2
 from player import SimplePlayer, StupidPlayer
 
-TIMEOUT_SECOND = 8
+TIMEOUT_SECOND = 0.9
 COUNT_CPU = mp.cpu_count()
 
 
@@ -189,9 +189,6 @@ class MCTS(object):
             state.step()
             winners = state.get_game_winners()
 
-        #return 1 if state.current_player_idx in winners else -1
-
-        #return -state.player_scores[state.current_player_idx]
         return state.player_scores
 
 
@@ -242,7 +239,7 @@ class MCTS(object):
 
 class MCTSPlayer(MonteCarloPlayer2):
     """AI player based on MCTS"""
-    def __init__(self, verbose=False, c_puct=5, n_playout=512):
+    def __init__(self, verbose=False, c_puct=2, n_playout=512):
         super(MCTSPlayer, self).__init__(verbose)
 
         self.mcts = MCTS(policy_value_fn, c_puct, n_playout)

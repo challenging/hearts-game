@@ -13,19 +13,18 @@ from random import shuffle, choice
 from card import Suit, Rank, Card, Deck
 from rules import is_card_valid
 
-from simulated_player import MonteCarloPlayer2
+from simulated_player import MonteCarloPlayer3
 from player import SimplePlayer, StupidPlayer
 
 TIMEOUT_SECOND = 0.9
-COUNT_CPU = 1#mp.cpu_count()
+COUNT_CPU = mp.cpu_count()
 
 
-class MCTSPlayer(MonteCarloPlayer2):
+class MCTSPlayer(MonteCarloPlayer3):
     def __init__(self, verbose=False):
         super(MCTSPlayer, self).__init__(verbose=verbose)
 
         self.C = 1.4
-        self.max_moves = 128
 
 
     def play_card(self, hand_cards, game, simulation_time_limit=TIMEOUT_SECOND):
@@ -35,86 +34,59 @@ class MCTSPlayer(MonteCarloPlayer2):
         if len(valid_cards) > 1:
             stime = time.time()
 
-            count_simulation = 0
-            wins, plays, scores = defaultdict(int), defaultdict(int), defaultdict(int)
+            plays, scores = defaultdict(int), defaultdict(int)
             pool = mp.Pool(processes=self.num_of_cpu)
-            while True:
+            while time.time() - stime < simulation_time_limit:
                 mul_result = [pool.apply_async(self.run_simulation, args=(game, wins, plays, scores)) for _ in range(self.num_of_cpu)]
                 results = [res.get() for res in mul_result]
 
-                for tmp_wins, tmp_plays, tmp_scores in results:
-                    for k, v in tmp_wins.items():
-                        wins[k] += v
-
+                for tmp_plays, tmp_scores in results:
                     for k, v in tmp_plays.items():
                         plays[k] += v
 
                     for k, v in tmp_scores.items():
                         scores[k] += v
 
-                count_simulation += self.num_of_cpu
-
-                if time.time() - stime >= simulation_time_limit:
-                    break
-
             pool.close()
 
             moves_states = []
             for card in valid_cards:
-                seen_cards = [c for c in self.seen_cards[:]]
-                seen_cards.append(card)
-
+                seen_cards = [c for c in self.seen_cards[:]] + [card]
                 moves_states.append((card, tuple(seen_cards)))
 
-            tmp_wins = []
-            percent_wins, average_score, played_rank_card, played_score_card = -sys.maxsize, sys.maxsize, None, None
+            average_score, played_card = sys.maxsize, None
             for card, states in moves_states:
                 k = (game.current_player_idx, states)
 
-                avg_score =  scores[k] / plays[k]
-                if avg_score < average_score:
-                    average_score = avg_score
-                    played_score_card = card
-
-                win_rate = -1
-                if k in wins:
-                    win_rate = wins[k] / max(plays[k], 1)
-                    tmp_wins.append(win_rate)
-
-                    if win_rate > percent_wins:
-                        percent_wins = win_rate
-                        played_rank_card = card
-                else:
-                    print("not found", k, "current win_rate is", percent_wins)
-
-                print("{}: ranking ---> {:.2f}, score ---> {:.2f}".format(card, win_rate, avg_score))
-
-            played_card = played_rank_card
-
-            sum_win_rate = sum(tmp_wins)
-            if sum_win_rate == 0:
-                """
-                percent_wins, played_card = sys.maxsize, None
-                for card, states in moves_states:
-                    k = (game.current_player_idx, states)
-
-                    avg_score = scores[k] / plays[k]
-                    #print(card, "score --->", k, avg_score)
-                    if avg_score < percent_wins:
-                        percent_wins = avg_score
+                if k in plays:
+                    avg_score =  scores.get(k, 0) / plays[k]
+                    if avg_score < average_score:
+                        average_score = avg_score
                         played_card = card
-                """
-                played_card = played_score_card
 
-            print("(is_ranking_mode, count_simulation, wins, plays, scores, played_rank_card, played_score_card, valid_cards) = ({}, {}, {}, {}, {}, {}({:.2f}), {}({:.2f}), {})".format(\
-                sum_win_rate > 0, count_simulation, len(wins), len(plays), len(scores), played_rank_card, percent_wins, played_score_card, average_score, valid_cards))
+                    self.say("{}, pick {}: score ---> {}/{}={:.2f}", valid_cards, card, scores[k], plays[k], avg_score)
+                else:
+                    self.say("not found {} in {}", k, plays)
+
+            self.say("(plays, scores, played_score_card, valid_cards) = ({}, {}, {}, {}({:.2f}), {})",
+                len(plays), len(scores), played_card, average_score, valid_cards)
         else:
             played_card = valid_cards[0]
-
-            if self.verbose:
-                print("don't need simulation, can only play {} card".format(played_card))
+            self.say("don't need simulation, can only play {} card", played_card)
 
         return played_card
+
+
+    def score_func(self, scores):
+        for idx, (player_idx, second_score) in enumerate(sorted(zip(range(4), scores), key=lambda x: x[1])):
+            if idx == 1:
+                break
+
+        min_score, self_score = min(scores), scores[self.position]
+        if self_score == min_score:
+            return self_score-second_score
+        else:
+            return self_score-min_score
 
 
     def run_simulation(self, game, wins, plays, scores):
@@ -132,17 +104,16 @@ class MCTSPlayer(MonteCarloPlayer2):
         visited_states = set()
 
         expand  = True
-        winners = None
-        tmp_plays, tmp_wins, tmp_scores = {}, {}, {}
+        tmp_plays, tmp_scores = {}, {}
 
-        init_card = None
-        for t in range(self.max_moves):
+        is_first = True
+        winners = game.get_game_winners()
+        while not winners:
             player_idx = game.current_player_idx
             player = game.players[player_idx]
 
             played_card, state = None, None
             if player_idx == self.position:
-                #stime = time.time()
                 valid_cards = player.get_valid_cards(game._player_hands[game.current_player_idx], game.trick, game.trick_nr, game.is_heart_broken)
 
                 is_all_pass, log_total = True, 0
@@ -153,55 +124,49 @@ class MCTSPlayer(MonteCarloPlayer2):
                     key = (card, tuple(seen_cards))
                     moves_states.append(key)
 
-                    is_all_pass &= key in plays
+                    try:
+                        is_all_pass &= (key in plays)
+                    except:
+                        print(key)
+                        print(plays)
+
+                        raise
+
                     if is_all_pass:
                         log_total += plays[key]
 
                 if is_all_pass:
-                    log_total = np.log(log_total) #np.log(sum(plays[(player_idx, state)] for card, state in moves_states))
+                    log_total = np.log(log_total)
 
                     value, played_card, state = max(
-                        ((wins[(player_idx, state)] / plays[(player_idx, state)]) + self.C * np.sqrt(log_total / plays[(player_idx, state)]),
+                        ((scores[(player_idx, state)] / plays[(player_idx, state)]) + self.C * np.sqrt(log_total / plays[(player_idx, state)]),
                           card,
                           state)
                         for card, state in moves_states)
                 else:
-                    if t == 0:
+                    if is_first:
                         played_card = choice(valid_cards)
+
+                        is_first = False
                     else:
                         played_card = player.play_card(game._player_hands[player_idx], game)
 
                     state = tuple(game.players[0].seen_cards[:]) + (played_card,)
-
-                #if played_card in [Card(Suit.spades, Rank.two), Card(Suit.spades, Rank.seven), Card(Suit.spades, Rank.ten)]:
-                #    print(played_card, state)
-                #print(time.time()-stime, len(moves_states))
             else:
                 played_card = player.play_card(game._player_hands[player_idx], game)
-
-            if t == 0:
-                init_card = played_card
 
             game.step(played_card)
 
             if player_idx == self.position:
-                if expand and (player_idx, state) not in plays:
+                if expand and (player_idx, state) not in plays and (player_idx, state) not in tmp_plays:
                     expand = False
 
                     tmp_plays[(player_idx, state)] = 0
-                    tmp_wins[(player_idx, state)] = 0
                     tmp_scores[(player_idx, state)] = 0
 
                 visited_states.add(state)
 
             winners = game.get_game_winners()
-            if winners:
-                #if self.position in winners:
-                #    print(init_card, "get winners", winners, game.player_scores)
-                #else:
-                #    print(init_card, "not winners", winners, game.player_scores)
-
-                break
 
         for state in visited_states:
             key = (self.position, state)
@@ -210,14 +175,6 @@ class MCTSPlayer(MonteCarloPlayer2):
                 tmp_plays[key] += 1
 
                 tmp_scores.setdefault(key, 0)
-                tmp_scores[key] += game.player_scores[self.position]
+                tmp_scores[key] += self.score_func(game.player_scores)#game.player_scores[self.position]
 
-                if self.position in winners:
-                    tmp_wins.setdefault(key, 0)
-                    tmp_wins[key] += 1
-
-                    #print("key >>>>>>", key, tmp_wins[key], winners)
-            #else:
-            #    print("not found", key, init_card)
-
-        return tmp_wins, tmp_plays, tmp_scores
+        return tmp_plays, tmp_scores

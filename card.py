@@ -72,7 +72,14 @@ class Card:
         return (self.suit, self.rank) < (other.suit, other.rank)
 
     def __eq__(self, other):
-        return (self.suit, self.rank) == (other.suit, other.rank)
+        try:
+            is_equal = (self.suit, self.rank) == (other.suit, other.rank)
+
+            return is_equal
+        except:
+            print(self, other)
+
+            raise
 
     def __hash__(self):
         return hash(self.rank) + hash(self.suit)

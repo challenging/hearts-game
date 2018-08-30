@@ -15,7 +15,7 @@ from rules import get_setting_cards
 
 from player import StupidPlayer, SimplePlayer
 from heuristic_player import GreedyHeusisticPlayer, DynamicRankPlayer
-from simulated_player import MonteCarloPlayer, MonteCarloPlayer2
+from simulated_player import MonteCarloPlayer, MonteCarloPlayer2, MonteCarloPlayer3
 
 import mcts_player
 import alpha_player
@@ -25,18 +25,26 @@ nr_of_games = int(sys.argv[1])
 print('We are playing {} game in total.'.format(nr_of_games))
 
 player = SimplePlayer()
+other_players = []
+
 player_ai = sys.argv[2]
-if player_ai.lower() == "mc2":
+if player_ai.lower() == "mc3":
+    player = MonteCarloPlayer3(verbose=True)
+    other_players = [MonteCarloPlayer2(verbose=False) for _ in range(3)]
+elif player_ai.lower() == "mc2":
     player = MonteCarloPlayer2(verbose=True)
+    other_players = [MonteCarloPlayer(verbose=False) for _ in range(3)]
 elif player_ai.lower() == "mc":
     player = MonteCarloPlayer(verbose=True)
+    other_players = [SimplePlayer(verbose=False) for _ in range(3)]
 elif player_ai.lower() == "mcts":
-    player = alpha_player.MCTSPlayer(verbose=True)
+    player = mcts_player.MCTSPlayer(verbose=True)
+    other_players = [MonteCarloPlayer3(verbose=False) for _ in range(3)]
 
 setting_cards = read_card_games("game/game_0008/game_1534672484.pkl")
 #setting_cards = get_setting_cards()
 
-players = [player, MonteCarloPlayer2(verbose=False), MonteCarloPlayer2(verbose=False), MonteCarloPlayer2(verbose=False)]
+players = [player] + other_players
 shuffle(players)
 
 final_scores = [[], [], [], []]
