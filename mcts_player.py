@@ -13,14 +13,14 @@ from random import shuffle, choice
 from card import Suit, Rank, Card, Deck
 from rules import is_card_valid
 
-from simulated_player import MonteCarloPlayer3
-from player import SimplePlayer, StupidPlayer
+from simulated_player import MonteCarloPlayer4
+from player import StupidPlayer
 
-TIMEOUT_SECOND = 0.95
+TIMEOUT_SECOND = 16
 COUNT_CPU = mp.cpu_count()
 
 
-class MCTSPlayer(MonteCarloPlayer3):
+class MCTSPlayer(MonteCarloPlayer4):
     def __init__(self, verbose=False):
         super(MCTSPlayer, self).__init__(verbose=verbose)
 
@@ -97,9 +97,11 @@ class MCTSPlayer(MonteCarloPlayer3):
 
         seen_cards = copy.deepcopy(game.players[0].seen_cards)
         game.verbose = False
-        game.players = [SimplePlayer() for idx in range(4)]
+        game.players = [StupidPlayer() for idx in range(4)]
         for player in game.players:
             player.seen_cards = copy.deepcopy(seen_cards)
+
+        trick_nr = game.trick_nr
 
         self.redistribute_cards(game, remaining_cards[:])
 
@@ -162,6 +164,9 @@ class MCTSPlayer(MonteCarloPlayer3):
                 visited_states.add(state)
 
             winners = game.get_game_winners()
+
+        if trick_nr < 6:
+            self.overwrite_game_score_func(game)
 
         for state in visited_states:
             key = (self.position, state)

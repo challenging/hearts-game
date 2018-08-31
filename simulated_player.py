@@ -245,19 +245,15 @@ class MonteCarloPlayer4(MonteCarloPlayer2):
                     else:
                         self.player_scores[i] = max_score
             else:
-                #is_debugging = False
                 for i in range(4):
                     self.player_scores[i] = self.count_points(self._cards_taken[i])
                     if self.player_scores[i] == 0:
                         for card in self._cards_taken[i]:
                             if card == Card(Suit.clubs, Rank.ten):
-                                self.player_scores[i] = -2
+                                self.player_scores[i] = 2
                                 #is_debugging = True
 
                                 break
-
-                #if is_debugging:
-                #    print("------->", self.player_scores, self._cards_taken)
 
         game.score = types.MethodType(score, game)
 

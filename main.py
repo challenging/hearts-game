@@ -30,7 +30,7 @@ other_players = []
 player_ai = sys.argv[2]
 if player_ai.lower() == "mc4":
     player = MonteCarloPlayer4(verbose=True)
-    other_players = [MonteCarloPlayer2(verbose=False) for _ in range(3)]
+    other_players = [MonteCarloPlayer3(verbose=False) for _ in range(3)]
 elif player_ai.lower() == "mc3":
     player = MonteCarloPlayer3(verbose=True)
     other_players = [MonteCarloPlayer2(verbose=False) for _ in range(3)]
@@ -42,7 +42,7 @@ elif player_ai.lower() == "mc":
     other_players = [SimplePlayer(verbose=False) for _ in range(3)]
 elif player_ai.lower() == "mcts":
     player = mcts_player.MCTSPlayer(verbose=True)
-    other_players = [MonteCarloPlayer3(verbose=False) for _ in range(3)]
+    other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
 
 setting_cards = read_card_games("game/game_0008/game_1534672484.pkl")
 #setting_cards = get_setting_cards()

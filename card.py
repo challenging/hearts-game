@@ -85,6 +85,9 @@ class Card:
         return hash(self.rank) + hash(self.suit)
 
 
+SPADES_Q, SPADES_K, SPADES_A = Card(Suit.spades, Rank.queen), Card(Suit.spades, Rank.king), Card(Suit.spades, Rank.ace)
+
+
 class Deck:
 
     def __init__(self):
