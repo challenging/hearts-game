@@ -4,8 +4,7 @@ from card import Suit, Rank, Card, Deck
 from rules import is_card_valid, is_score_card, card_points, reversed_score
 
 
-class Game:
-
+class Game(object):
     def __init__(self, players, verbose=False):
         """
         players is a list of four players

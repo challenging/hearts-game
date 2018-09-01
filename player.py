@@ -134,10 +134,14 @@ class SimplePlayer(Player):
 
 
     def undesirability(self, card):
-        return (
-            card.rank.value
-            + (10 if card.suit == Suit.spades and card.rank >= Rank.queen else 0)
-        )
+        additional_rank = 0
+        if card.suit == Suit.spades:
+            if card.rank == Rank.queen:
+                additional_rank = 15
+            elif card.rank > Rank.queen:
+                additional_rank = 10
+
+        return card.rank.value + additional_rank
 
 
     def pass_cards(self, hand):

@@ -14,7 +14,7 @@ from sample_bot import Log, PokerSocket, PokerBot
 
 from game import Game
 from player import SimplePlayer
-from simulated_player import MonteCarloPlayer, MonteCarloPlayer2
+from simulated_player import MonteCarloPlayer4 as Player
 
 from card import Card, Suit, Rank, Deck
 from rules import transform
@@ -29,7 +29,7 @@ class MonteCarloBot(PokerBot):
     def __init__(self,name):
         super(MonteCarloBot, self).__init__(name)
 
-        self.player = MonteCarloPlayer2(verbose=True)
+        self.player = Player(verbose=False)
         self.player_names = []
 
         self.game = None
@@ -241,7 +241,7 @@ class MonteCarloBot(PokerBot):
 
                 p = None
                 if self.player_names[-1] == self.player_name:
-                    p = MonteCarloPlayer2(verbose=True)
+                    p = Player(verbose=False)
                     self.player = p
                 else:
                     p = SimplePlayer(verbose=False)

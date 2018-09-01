@@ -5,8 +5,12 @@ This module contains a few functions comprising the rules of the game.
 import sys
 import copy
 
+import numpy as np
+from scipy.stats import describe
+
 from random import shuffle, randint
 from card import Suit, Rank, Card
+
 
 def is_card_valid(hand, trick, card, trick_nr, are_hearts_broken):
     """
@@ -258,6 +262,58 @@ def redistribute_card(copy_cards, info):
                break
 
     print(cards, new_cards)
+
+
+def evaluate_players(nr_of_games, players, setting_cards, verbose=True, early_stop=False):
+    from game import Game
+
+    if early_stop:
+        nr_of_games = 1
+        setting_cards = setting_cards[:1]
+
+    final_scores = [[], [], [], []]
+    for game_idx in range(nr_of_games):
+        game = Game(players, verbose=True)
+
+        for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
+            scores = [0, 0, 0, 0]
+            for round_idx in range(4):
+                cards_copy = copy.deepcopy(cards)
+
+                cards_copy[0], cards_copy[1], cards_copy[2], cards_copy[3] = \
+                    cards_copy[round_idx], cards_copy[(round_idx+1)%4], cards_copy[(round_idx+2)%4], cards_copy[(round_idx+3)%4],
+
+                game._player_hands = cards_copy
+                game.pass_cards()
+
+                game.play()
+                game.score()
+                game.reset()
+
+                tscores = game.player_scores
+
+                for idx, ts in enumerate(tscores):
+                    scores[idx] += ts
+
+                if early_stop:
+                    break
+
+            if verbose:
+                for player_idx, (player, score) in enumerate(zip(players, scores)):
+                    print("{:04d} --> {:16s}({}): {:4d} points".format(game_idx+1, type(player).__name__, player_idx, score))
+
+            for player_idx in range(4):
+                final_scores[player_idx].append(scores[player_idx])
+
+    statss = []
+    for player_idx, scores in enumerate(final_scores):
+        stats = describe(scores)
+        statss.append(stats)
+
+        print("Player-{}({}): n_game, avg_score, minmax_score, std = ({}, {:.2f}, {}, {:.2f})".format(\
+            player_idx, type(game.players[player_idx]).__name__, stats.nobs, stats.mean, stats.minmax, np.sqrt(stats.variance)))
+
+    return statss
 
 
 if __name__ == "__main__":

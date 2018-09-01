@@ -251,7 +251,6 @@ class MonteCarloPlayer4(MonteCarloPlayer2):
                         for card in self._cards_taken[i]:
                             if card == Card(Suit.clubs, Rank.ten):
                                 self.player_scores[i] = 2
-                                #is_debugging = True
 
                                 break
 

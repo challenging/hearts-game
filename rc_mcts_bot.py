@@ -14,7 +14,7 @@ from sample_bot import Log, PokerSocket, PokerBot
 
 from game import Game
 from player import SimplePlayer
-from alpha_player import MCTSPlayer
+from mcts_player import MCTSPlayer
 
 from card import Card, Suit, Rank, Deck
 from rules import transform
@@ -29,7 +29,7 @@ class MCTSBot(PokerBot):
     def __init__(self,name):
         super(MCTSBot, self).__init__(name)
 
-        self.player = MCTSPlayer(verbose=True, n_playout=64)
+        self.player = MCTSPlayer(verbose=True)
         self.player_names = []
 
         self.game = None
@@ -343,13 +343,12 @@ def main():
     if argv_count>2:
         player_name = sys.argv[1]
         player_number = sys.argv[2]
-        token= sys.argv[3]
-        connect_url = sys.argv[4]
     else:
         player_name = "RungChiChen-MCTS"
         player_number = 4
-        token = "12345678"
-        connect_url = "ws://localhost:8080/"
+
+    token = "12345678"
+    connect_url = "ws://localhost:8080/"
 
     bot = MCTSBot(player_name)
     myPokerSocket = PokerSocket(player_name, player_number, token, connect_url, bot)

@@ -1,16 +1,29 @@
 import sys
 
 from card import Suit, Rank, Card, Deck
+from card import SPADES_Q, SPADES_K, SPADES_A
 
 from rules import is_card_valid, is_score_card, card_points, reversed_score
 from game import Game
 
+from nn_utils import card2v, played_prob_to_v
+
 
 class AlphaGame(Game):
     def __init__(self, players, buffer_size=2**15, verbose=False):
-        super(Game, self).__init__(players, verbose)
+        super(AlphaGame, self).__init__(players, verbose)
 
-        self.memory = []
+        self._memory = []
+
+
+    def reset(self):
+        super(AlphaGame, self).reset()
+
+        self._memory = []
+
+
+    def get_memory(self):
+        return self._memory
 
 
     def score_func(self, scores, position):
@@ -57,7 +70,7 @@ class AlphaGame(Game):
         player_hand = self._player_hands[self.current_player_idx]
 
         if played_card is None:
-            played_card, played_probs = self.players[self.current_player_idx].play_card(player_hand, self)
+            played_card, played_probs = self.players[self.current_player_idx].play_card(player_hand, self, return_prob=True)
 
         if not is_card_valid(player_hand, self.trick, played_card, self.trick_nr, self.is_heart_broken):
             raise ValueError('Player {} ({}) played an invalid card {} to the trick {}.'.format(\
@@ -68,7 +81,7 @@ class AlphaGame(Game):
                 played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
 
         # store the self-play data: (state, mcts_probs, z) for training
-        self.memory.append(self.current_status(), played_probs, self.current_player_idx)
+        self._memory.append([self.current_status(), played_prob_to_v(played_probs), self.current_player_idx])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
@@ -84,5 +97,5 @@ class AlphaGame(Game):
             self.score()
             scores = self.player_scores
 
-            for idx, memory in enumerate(self.memory):
+            for idx, memory in enumerate(self._memory):
                 memory[2] = self.score_func(scores, memory[2])
