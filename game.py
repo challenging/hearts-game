@@ -26,6 +26,7 @@ class Game(object):
         self.current_player_idx = 0
         self.trick = []
 
+        self.take_pig_card = False
         self.is_heart_broken = False
         self.is_shootmoon = False
 
@@ -88,9 +89,13 @@ class Game(object):
         Return True if the hearts are broken yet, otherwise return False.
         """
         for cards in self._cards_taken:
-            if any(card.suit == Suit.hearts for card in cards):
+            if not self.is_heart_broken and any(card.suit == Suit.hearts for card in cards):
                 self.is_heart_broken = True
 
+            if not self.take_pig_card and any(card.suit == Suit.spades and card.rank == Rank.queen for card in cards):
+                self.take_pig_card = True
+
+            if self.is_heart_broken and self.take_pig_card:
                 break
 
 

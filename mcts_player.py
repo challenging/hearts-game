@@ -29,8 +29,7 @@ class MCTSPlayer(MonteCarloPlayer4):
 
     def play_card(self, hand_cards, game, simulation_time_limit=TIMEOUT_SECOND):
         game.are_hearts_broken()
-        valid_cards = self.get_valid_cards(hand_cards, game.trick, game.trick_nr, game.is_heart_broken)
-        print("debug", hand_cards, game.trick, game.trick_nr, game.is_heart_broken, valid_cards)
+        valid_cards = self.get_valid_cards(hand_cards, game)
 
         card = None
         if len(valid_cards) > 1:
@@ -52,7 +51,7 @@ class MCTSPlayer(MonteCarloPlayer4):
             pool.close()
 
             moves_states = []
-            for card in valid_cards:
+            for card in sorted(valid_cards, key=lambda x: -(x.suit.value*13+x.rank.value)):
                 seen_cards = [c for c in self.seen_cards[:]] + [card]
                 moves_states.append((card, tuple(seen_cards)))
 
@@ -83,7 +82,7 @@ class MCTSPlayer(MonteCarloPlayer4):
 
         seen_cards = copy.deepcopy(game.players[0].seen_cards)
         game.verbose = False
-        game.players = [SimplePlayer() for idx in range(4)]
+        game.players = [StupidPlayer() for idx in range(4)]
         for player in game.players:
             player.seen_cards = copy.deepcopy(seen_cards)
 
@@ -96,7 +95,7 @@ class MCTSPlayer(MonteCarloPlayer4):
         player = game.players[self.position]
 
         played_card = None
-        valid_cards = player.get_valid_cards(game._player_hands[self.position], game.trick, game.trick_nr, game.is_heart_broken)
+        valid_cards = player.get_valid_cards(game._player_hands[self.position], game)
 
         is_all_pass, log_total = True, 0
         moves_states = []
@@ -118,7 +117,7 @@ class MCTSPlayer(MonteCarloPlayer4):
 
             played_card = state[0]
         else:
-            played_card = choice(valid_cards)#player.play_card(game._player_hands[self.position], game)
+            played_card = player.play_card(game._player_hands[self.position], game)
 
         state = (played_card, tuple(game.players[0].seen_cards[:]) + (played_card,))
 

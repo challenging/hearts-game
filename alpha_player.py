@@ -42,7 +42,7 @@ class AlphaPlayer(MCTSPlayer):
 
     def play_card(self, hand_cards, game, simulation_time_limit=TIMEOUT_SECOND, temp_value=1e-3, return_prob=False):
         game.are_hearts_broken()
-        valid_cards = self.get_valid_cards(hand_cards, game.trick, game.trick_nr, game.is_heart_broken)
+        valid_cards = self.get_valid_cards(hand_cards, game)
 
         played_card, played_prob = None, []
         plays, scores = defaultdict(int), defaultdict(int)
@@ -110,7 +110,7 @@ class AlphaPlayer(MCTSPlayer):
 
         player = game.players[self.position]
 
-        valid_cards = player.get_valid_cards(game._player_hands[self.position], game.trick, game.trick_nr, game.is_heart_broken)
+        valid_cards = player.get_valid_cards(game._player_hands[self.position], game)
 
         played_card, is_all_pass, total_visits = None, True, 0
         moves_states = []

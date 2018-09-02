@@ -11,9 +11,8 @@ from collections import defaultdict
 from random import shuffle, choice, randint, choice
 
 from card import Suit, Rank, Card, Deck
-from rules import is_card_valid
+from player import StupidPlayer, SimplePlayer
 
-from player import SimplePlayer
 
 TIMEOUT_SECOND = 0.9
 COUNT_CPU = mp.cpu_count()
@@ -27,7 +26,7 @@ class MonteCarloPlayer(SimplePlayer):
 
     def play_card(self, hand_cards, game, simulation_time_limit=TIMEOUT_SECOND):
         game.are_hearts_broken()
-        valid_cards = self.get_valid_cards(hand_cards, game.trick, game.trick_nr, game.is_heart_broken)
+        valid_cards = self.get_valid_cards(hand_cards, game)
 
         card = None
         if len(valid_cards) > 1:
@@ -100,7 +99,7 @@ class MonteCarloPlayer(SimplePlayer):
         remaining_cards = self.get_remaining_cards(hand_cards)
 
         game.verbose = False
-        game.players = [SimplePlayer() for _ in range(4)]
+        game.players = [StupidPlayer() for _ in range(4)]
 
         self.redistribute_cards(game, remaining_cards[:])
 

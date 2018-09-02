@@ -41,6 +41,8 @@ class PokerBot(object):
         self.player_name = player_name
         self.players_current_picked_cards = []
 
+        self.verbose = True
+
         self.game_score_cards = {Card(Suit.spades, Rank.queen), Card(Suit.clubs, Rank.ten)}
         for idx in range(2, 15):
             rank = None
@@ -73,6 +75,11 @@ class PokerBot(object):
                 rank = Rank.ace
 
             self.game_score_cards.add(Card(Suit.hearts, rank))
+
+
+    def say(self, message, *formatargs):
+        if self.verbose:
+            print(message.format(*formatargs))
 
 
     def receive_cards(self,data):

@@ -78,8 +78,24 @@ class Player(object):
         return leading_suit, max_rank_in_leading_suit
 
 
-    def get_valid_cards(self, hand, trick, trick_nr, is_broken):
-        return [card for card in hand if is_card_valid(hand, trick, card, trick_nr, is_broken)]
+    def undesirability(self, card, take_pig_card=False):
+        additional_rank = 0
+        if not take_pig_card and card.suit == Suit.spades:
+            if card.rank == Rank.queen:
+                additional_rank = 15
+            elif card.rank > Rank.queen:
+                additional_rank = 10
+        elif card.suit == Suit.hearts:
+            additional_rank = 2
+
+        return card.rank.value + additional_rank
+
+
+    def get_valid_cards(self, hand, game):
+        cards = [card for card in hand if is_card_valid(hand, game.trick, card, game.trick_nr, game.is_heart_broken)]
+        cards.sort(key=lambda x: self.undesirability(x, game.take_pig_card), reverse=True)
+
+        return cards
 
 
     def reset(self):
@@ -133,19 +149,6 @@ class SimplePlayer(Player):
         super(SimplePlayer, self).__init__(verbose=verbose)
 
 
-    def undesirability(self, card):
-        additional_rank = 0
-        if card.suit == Suit.spades:
-            if card.rank == Rank.queen:
-                additional_rank = 15
-            elif card.rank > Rank.queen:
-                additional_rank = 10
-        elif card.suit == Suit.hearts:
-            additional_rank = 2
-
-        return card.rank.value + additional_rank
-
-
     def pass_cards(self, hand):
         hand.sort(key=self.undesirability, reverse=True)
 
@@ -189,7 +192,7 @@ class SimplePlayer(Player):
         # Safe cards are cards which will not result in winning the trick
         leading_suit, max_rank_in_leading_suit = self.get_leading_suit_and_rank(game.trick)
 
-        valid_cards = self.get_valid_cards(hand, game.trick, game.trick_nr, game.is_heart_broken)
+        valid_cards = self.get_valid_cards(hand, game)
 
         safe_cards = [card for card in valid_cards
                       if card.suit != leading_suit or card.rank <= max_rank_in_leading_suit]
