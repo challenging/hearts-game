@@ -156,7 +156,9 @@ class Game(object):
         Simulate a single trick.
         leading_index contains the index of the player that must begin.
         """
-        self.are_hearts_broken()
+        if self.is_heart_broken:
+            self.are_hearts_broken()
+
         for _ in range(4):
             self.step()
 

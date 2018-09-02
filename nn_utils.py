@@ -6,10 +6,7 @@ from card import Suit, Rank
 
 
 def card2v(card):
-    v = [0, 0, 0, 0]
-    v[card.suit.value] = card.rank.value
-
-    return v
+    return card.suit.value*13+card.rank.value
 
 
 def played_prob_to_v(played_prob, n_slot=12):
@@ -19,6 +16,11 @@ def played_prob_to_v(played_prob, n_slot=12):
         v.append([card2v(card), prob])
 
     for _ in range(n_slot-len(v)):
-        v.append([[0, 0, 0, 0], 0])
+        v.append([0, 0])
 
-    return v
+    cards, probs = [], []
+    for card, prob in v:
+        cards.append(card)
+        probs.append(prob)
+
+    return cards, probs

@@ -41,6 +41,7 @@ class AlphaPlayer(MCTSPlayer):
 
 
     def play_card(self, hand_cards, game, simulation_time_limit=TIMEOUT_SECOND, temp_value=1e-3, return_prob=False):
+        game.are_hearts_broken()
         valid_cards = self.get_valid_cards(hand_cards, game.trick, game.trick_nr, game.is_heart_broken)
 
         played_card, played_prob = None, []

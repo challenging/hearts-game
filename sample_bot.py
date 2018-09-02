@@ -279,7 +279,7 @@ class PokerSocket(object):
         self.token=token
 
     def takeAction(self,action, data):
-       print(action)
+       #print(action)
 
        if action=="new_deal":
            self.poker_bot.receive_cards(data)

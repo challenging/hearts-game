@@ -80,18 +80,21 @@ class TrainPipeline():
 
     def policy_update(self):
         """update the policy-value net"""
-        mini_batch = random.sample(self.data_buffer, self.batch_size)
-        state_batch = [data[0] for data in mini_batch]
-        mcts_probs_batch = [data[1] for data in mini_batch]
-        winner_batch = [data[2] for data in mini_batch]
+        states_batch, cards_batch, probs_batch, scores_batch = [], [], [], []
+        for states, cards, probs, scores in random.sample(self.data_buffer, self.batch_size):
+            states_batch.append(states)
+            cards_batch.append(cards)
+            probs_batch.append(probs)
+            scores_batch.append(scores)
 
         #old_probs, old_v = self.policy_value_net.policy_value(state_batch)
         for i in range(self.epochs):
             loss, entropy = self.policy_value_net.train_step(
-                    state_batch,
-                    mcts_probs_batch,
-                    winner_batch,
-                    self.learn_rate*self.lr_multiplier)
+                    states_batch,
+                    cards_batch,
+                    probs_batch,
+                    scores_batch,
+                    self.learn_rate)#*self.lr_multiplier)
 
             """
             new_probs, new_v = self.policy_value_net.policy_value(state_batch)

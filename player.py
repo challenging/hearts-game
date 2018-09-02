@@ -78,8 +78,8 @@ class Player(object):
         return leading_suit, max_rank_in_leading_suit
 
 
-    def get_valid_cards(self, hand, trick, trick_nr, are_hearts_broken):
-        return [card for card in hand if is_card_valid(hand, trick, card, trick_nr, are_hearts_broken)]
+    def get_valid_cards(self, hand, trick, trick_nr, is_broken):
+        return [card for card in hand if is_card_valid(hand, trick, card, trick_nr, is_broken)]
 
 
     def reset(self):
@@ -140,6 +140,8 @@ class SimplePlayer(Player):
                 additional_rank = 15
             elif card.rank > Rank.queen:
                 additional_rank = 10
+        elif card.suit == Suit.hearts:
+            additional_rank = 2
 
         return card.rank.value + additional_rank
 

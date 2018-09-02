@@ -122,12 +122,14 @@ class MonteCarloBot(PokerBot):
         else:
             print("found empty self.round_cards_history", self.round_cards_history)
 
+        """
         if is_lacking:
             print("---------  information about 'turn_end' -----------")
             print("trick, leading_suit, played_suit = {}, {}".format(self.game.trick, self.round_cards_history[leading_idx], self.round_cards_history[-1]))
             for player_idx, lacking_info in enumerate(self.game.lacking_cards):
                 print(player_idx, self.game.players[player_idx].name, lacking_info)
             print("---------------------------------------------------")
+        """
 
         #print(self.round_cards_history)
         #print(self.pick_history)
@@ -299,10 +301,12 @@ class MonteCarloBot(PokerBot):
                 if player_name == data["roundPlayer"]:
                     break
 
+            """
             print("---------  information about 'round_end' ----------")
             print("          status of game: trick_nr={}, trick={}".format(self.game.trick_nr, self.game.trick))
             print("the winner of this trick: {}({})".format(player_name, player_idx))
             print("---------------------------------------------------")
+            """
 
             self.game._cards_taken[player_idx].extend([card for _, card in self.round_cards_history[self.game.trick_nr*4:(self.game.trick_nr+1)*4]])
 

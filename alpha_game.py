@@ -1,12 +1,14 @@
 import sys
 
+from pprint import pprint
+
 from card import Suit, Rank, Card, Deck
 from card import SPADES_Q, SPADES_K, SPADES_A
 
 from rules import is_card_valid, is_score_card, card_points, reversed_score
 from game import Game
 
-from nn_utils import card2v, played_prob_to_v
+from nn_utils import played_prob_to_v
 
 
 class AlphaGame(Game):
@@ -81,7 +83,10 @@ class AlphaGame(Game):
                 played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
 
         # store the self-play data: (state, mcts_probs, z) for training
-        self._memory.append([self.current_status(), played_prob_to_v(played_probs), self.current_player_idx])
+        cards, probs = played_prob_to_v(played_probs)
+        self._memory.append([self.current_status(), cards, probs, self.current_player_idx])
+        pprint(self._memory[-1])
+
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
@@ -98,4 +103,4 @@ class AlphaGame(Game):
             scores = self.player_scores
 
             for idx, memory in enumerate(self._memory):
-                memory[2] = self.score_func(scores, memory[2])
+                memory[3] = self.score_func(scores, memory[3])

@@ -14,9 +14,9 @@ from card import Suit, Rank, Card, Deck
 from rules import is_card_valid
 
 from simulated_player import MonteCarloPlayer4
-from player import StupidPlayer
+from player import StupidPlayer, SimplePlayer
 
-TIMEOUT_SECOND = 0.95
+TIMEOUT_SECOND = 0.9
 COUNT_CPU = mp.cpu_count()
 
 
@@ -28,7 +28,9 @@ class MCTSPlayer(MonteCarloPlayer4):
 
 
     def play_card(self, hand_cards, game, simulation_time_limit=TIMEOUT_SECOND):
+        game.are_hearts_broken()
         valid_cards = self.get_valid_cards(hand_cards, game.trick, game.trick_nr, game.is_heart_broken)
+        print("debug", hand_cards, game.trick, game.trick_nr, game.is_heart_broken, valid_cards)
 
         card = None
         if len(valid_cards) > 1:
@@ -81,7 +83,7 @@ class MCTSPlayer(MonteCarloPlayer4):
 
         seen_cards = copy.deepcopy(game.players[0].seen_cards)
         game.verbose = False
-        game.players = [StupidPlayer() for idx in range(4)]
+        game.players = [SimplePlayer() for idx in range(4)]
         for player in game.players:
             player.seen_cards = copy.deepcopy(seen_cards)
 
@@ -99,9 +101,9 @@ class MCTSPlayer(MonteCarloPlayer4):
         is_all_pass, log_total = True, 0
         moves_states = []
         for card in valid_cards:
-            seen_cards = [c for c in player.seen_cards[:]] + [card]
+            tmp_seen_cards = [c for c in seen_cards[:]] + [card]
 
-            key = (card, tuple(seen_cards))
+            key = (card, tuple(tmp_seen_cards))
             moves_states.append(key)
 
             is_all_pass &= (key in plays)
@@ -116,7 +118,7 @@ class MCTSPlayer(MonteCarloPlayer4):
 
             played_card = state[0]
         else:
-            played_card = player.play_card(game._player_hands[self.position], game)
+            played_card = choice(valid_cards)#player.play_card(game._player_hands[self.position], game)
 
         state = (played_card, tuple(game.players[0].seen_cards[:]) + (played_card,))
 

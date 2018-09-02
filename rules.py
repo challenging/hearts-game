@@ -12,7 +12,7 @@ from random import shuffle, randint
 from card import Suit, Rank, Card
 
 
-def is_card_valid(hand, trick, card, trick_nr, are_hearts_broken):
+def is_card_valid(hand, trick, card, trick_nr, is_broken):
     """
     Return True if the given card is valid to play in given context, False otherwise.
     """
@@ -29,9 +29,8 @@ def is_card_valid(hand, trick, card, trick_nr, are_hearts_broken):
 
     # No hearts can be led until hearts are broken
     if not trick:
-        return are_hearts_broken or (
-            not are_hearts_broken and (card.suit != Suit.hearts
-                                       or all([card.suit == Suit.hearts for card in hand]))
+        return is_broken or (
+            not is_broken and (card.suit != Suit.hearts or all([card.suit == Suit.hearts for card in hand]))
         )
 
     # Suit must be followed unless player has none of that suit
@@ -325,7 +324,8 @@ if __name__ == "__main__":
              "AS, KS, KC, QD, JS, TS, 9D, 2H",
              "KD, KH, QH, JD, 8H, 7H, 6C, 3H"]
     """
-    #cards = ["JH", "4C", "6D", "8D"]
+
+    """
     cards = ["4C,7H", "AD", "JH", "4S,7S"]
     cards = transform_cards(cards)
 
@@ -336,3 +336,8 @@ if __name__ == "__main__":
 
     for _ in range(32):
         redistribute_card(cards, info)
+    """
+
+    hand = transform_cards(["8C, TC, 3S, QS, 4H, 5H, 9H, AH"])
+    for card in hand[0]:
+        print(card, is_card_valid(hand[0], trick=(), card=card, trick_nr=4, is_broken=False))
