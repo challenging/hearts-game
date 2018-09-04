@@ -15,7 +15,7 @@ from player import StupidPlayer, SimplePlayer
 
 
 TIMEOUT_SECOND = 0.9
-COUNT_CPU = mp.cpu_count()
+COUNT_CPU = 1#mp.cpu_count()
 
 class MonteCarloPlayer(SimplePlayer):
     def __init__(self, num_of_cpu=COUNT_CPU, verbose=False):
@@ -36,7 +36,7 @@ class MonteCarloPlayer(SimplePlayer):
 
             pool = mp.Pool(processes=self.num_of_cpu)
             while time.time() - stime < simulation_time_limit:
-                mul_result = [pool.apply_async(self.run_simulation, args=(copy.deepcopy(game), hand_cards, card)) for card in valid_cards]
+                mul_result = [pool.apply_async(self.run_simulation, args=(game, hand_cards, card)) for card in valid_cards]
                 results = [res.get() for res in mul_result]
 
                 for card, score in results:
@@ -88,8 +88,11 @@ class MonteCarloPlayer(SimplePlayer):
             print("error", type(self).__name__, remaining_cards, [len(v) for v in game._player_hands])
             raise
 
+        return game
+
+
     def redistribute_cards(self, game, remaining_cards):
-        self.simple_redistribute_cards(game, remaining_cards)
+        return self.simple_redistribute_cards(game, remaining_cards)
 
 
     def score_func(self, scores):
@@ -102,7 +105,7 @@ class MonteCarloPlayer(SimplePlayer):
         game.verbose = False
         game.players = [SimplePlayer() for _ in range(4)]
 
-        self.redistribute_cards(game, remaining_cards[:])
+        game = self.redistribute_cards(game, remaining_cards[:])
 
         game.step(played_card)
 
@@ -202,6 +205,8 @@ class MonteCarloPlayer2(MonteCarloPlayer):
 
             self.simple_redistribute_cards(copy_game, copy_remaining_cards)
 
+        return copy_game
+
 
 class MonteCarloPlayer3(MonteCarloPlayer2):
     def __init__(self, verbose=False):
@@ -266,8 +271,7 @@ class MonteCarloPlayer4(MonteCarloPlayer3):
         game.verbose = False
         game.players = [SimplePlayer() for _ in range(4)]
 
-        self.redistribute_cards(game, remaining_cards[:])
-
+        game = self.redistribute_cards(game, remaining_cards)
         game.step(played_card)
 
         for _ in range(4-len(game.trick)):

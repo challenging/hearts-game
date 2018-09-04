@@ -94,7 +94,7 @@ class MCTSPlayer(MonteCarloPlayer4):
 
         trick_nr = game.trick_nr
 
-        self.redistribute_cards(game, remaining_cards[:])
+        game = self.redistribute_cards(game, remaining_cards[:])
 
         tmp_plays, tmp_scores = {}, {}
 
