@@ -84,9 +84,7 @@ class AlphaGame(Game):
 
         # store the self-play data: (state, mcts_probs, z) for training
         cards, probs = played_prob_to_v(played_probs)
-        self._memory.append([self.current_status(), cards, probs, self.current_player_idx])
-        pprint(self._memory[-1])
-
+        self._memory.append([self.current_status(), cards, probs, played_card, self.current_player_idx])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
@@ -103,4 +101,4 @@ class AlphaGame(Game):
             scores = self.player_scores
 
             for idx, memory in enumerate(self._memory):
-                memory[3] = self.score_func(scores, memory[3])
+                memory[-1] = self.score_func(scores, memory[-1])

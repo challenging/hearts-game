@@ -15,7 +15,9 @@ from rules import is_card_valid
 from game import Game
 
 from mcts_player import MCTSPlayer
-from player import StupidPlayer
+from player import SimplePlayer
+
+from nn_utils import card2v
 
 TIMEOUT_SECOND = 0.9
 COUNT_CPU = 1#mp.cpu_count()
@@ -28,12 +30,12 @@ def softmax(x):
 
 
 class AlphaPlayer(MCTSPlayer):
-    def __init__(self, policy_value_network, verbose=False):
+    def __init__(self, policy, verbose=False):
         super(AlphaPlayer, self).__init__(verbose=verbose)
 
         self.C = 1.4
         self._is_selfplay = False
-        self.policy_value_network = policy_value_network
+        self.policy = policy
 
 
     def set_selfplay(self, selfplay):
@@ -49,13 +51,30 @@ class AlphaPlayer(MCTSPlayer):
         if len(valid_cards) > 1:
             stime = time.time()
 
+            local_game = Game([SimplePlayer(verbose=False) for idx in range(4)], verbose=False)
+            for player in local_game.players:
+                player.seen_cards = copy.deepcopy(self.seen_cards)
+            local_game.trick = game.trick[:]
+            local_game.trick_nr = game.trick_nr
+            local_game.current_player_idx = game.current_player_idx
+
+            local_game.take_pig_card = game.take_pig_card
+            local_game.is_heart_broken = game.is_heart_broken
+            local_game.is_shootmoon = game.is_shootmoon
+
+            local_game._player_hands = game._player_hands[:]
+            local_game._cards_taken = game._cards_taken[:]
+
+            cards = [card2v(card) for card in valid_cards] + [0 for _ in range(12-len(valid_cards))]
+
+            action_probs, network_value = self.policy([game.current_status()], [cards])
+            print(cards, network_value.shape)
+
             pool = mp.Pool(processes=self.num_of_cpu)
             while time.time() - stime < simulation_time_limit:
-                base_game = copy.deepcopy(game)
-                base_game.__class__ = Game
-
-                mul_result = [pool.apply_async(self.run_simulation, args=(base_game, plays, scores)) for _ in range(self.num_of_cpu)]
-                results = [res.get() for res in mul_result]
+                #mul_result = [pool.apply_async(self.run_simulation, args=(local_game, plays, scores)) for _ in range(self.num_of_cpu)]
+                #results = [res.get() for res in mul_result]
+                results = [self.run_simulation(copy.deepcopy(local_game), plays, scores, network_value)]
 
                 for tmp_plays, tmp_scores in results:
                     for k, v in tmp_plays.items():
@@ -92,24 +111,15 @@ class AlphaPlayer(MCTSPlayer):
             return move
 
 
-    def run_simulation(self, game, plays, scores):
+    def run_simulation(self, game, plays, scores, network_value=0):
         hand_cards = game._player_hands[game.current_player_idx]
         remaining_cards = self.get_remaining_cards(hand_cards)
-
-        seen_cards = copy.deepcopy(game.players[0].seen_cards)
-        game.verbose = False
-        game.players = [StupidPlayer() for idx in range(4)]
-        for player in game.players:
-            player.seen_cards = copy.deepcopy(seen_cards)
-
-        trick_nr = game.trick_nr
-
         self.redistribute_cards(game, remaining_cards[:])
 
+        trick_nr = game.trick_nr
         tmp_plays, tmp_scores = {}, {}
 
         player = game.players[self.position]
-
         valid_cards = player.get_valid_cards(game._player_hands[self.position], game)
 
         played_card, is_all_pass, total_visits = None, True, 0
@@ -125,10 +135,8 @@ class AlphaPlayer(MCTSPlayer):
                 total_visits += plays[key]
 
         if is_all_pass:
-            network_value = 0
-
             value, state = max(
-                (network_value -(scores[state] / plays[state]) + self.C * np.sqrt(np.log(total_visits) / plays[state]), state) for state in moves_states)
+                (network_value - (scores[state] / plays[state]) + self.C * np.sqrt(np.log(total_visits) / plays[state]), state) for state in moves_states)
 
             played_card = state[0]
         else:

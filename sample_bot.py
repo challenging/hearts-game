@@ -4,6 +4,8 @@ import sys
 import json
 import logging
 
+from scipy.stats import describe
+
 from abc import abstractmethod
 from websocket import create_connection
 
@@ -177,7 +179,7 @@ class PokerBot(object):
         self.round_cards_history.append((turnPlayer, turnCard))
         self.pick_history(data, is_timeout, opp_pick)
 
-    def get_cards(self,data):
+    def get_cards(self, data):
         try:
             receive_cards = []
             players = data['players']
@@ -185,7 +187,7 @@ class PokerBot(object):
                 if player['playerName'] == self.player_name:
                     cards = player['cards']
                     for card in cards:
-                        receive_cards.append(transform(card[0], transform[1]))
+                        receive_cards.append(transform(card[0], card[1]))
                     break
             return receive_cards
         except Exception as e:
@@ -356,8 +358,7 @@ class PokerSocket(object):
            self.ws.close()
 
     def doListen(self):
-        if True:
-        #try:
+        try:
             self.ws = create_connection(self.connect_url)
             self.ws.send(json.dumps({
                 "eventName": "join",
@@ -377,9 +378,9 @@ class PokerSocket(object):
                 system_log.show_message(data)
                 system_log.save_logs(data)
                 self.takeAction(event_name, data)
-        #except Exception as e:
-        #    system_log.show_message(e)
-        #    self.doListen()
+        except Exception as e:
+            system_log.show_message(e)
+            self.doListen()
 
 class LowPlayBot(PokerBot):
 
@@ -524,18 +525,22 @@ class LowPlayBot(PokerBot):
             system_log.show_message(message)
             system_log.save_logs(message)
 
+
     def game_over(self,data):
         game_scores = self.get_game_scores(data)
         for key in game_scores.keys():
             message = "Player name:{}, Game score:{}".format(key, game_scores.get(key))
+
             system_log.show_message(message)
             system_log.save_logs(message)
+
 
     def pick_history(self,data,is_timeout,pick_his):
         for key in pick_his.keys():
             message = "Player name:{}, Pick card:{}, Is timeout:{}".format(key,pick_his.get(key),is_timeout)
             system_log.show_message(message)
             system_log.save_logs(message)
+
 
 def main():
     argv_count=len(sys.argv)

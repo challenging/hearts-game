@@ -87,13 +87,15 @@ class Player(object):
                 additional_rank = 10
         elif card.suit == Suit.hearts:
             additional_rank = 2
+        elif card == Card(Suit.clubs, Rank.ten):
+            additional_rank += 2
 
         return card.rank.value + additional_rank
 
 
     def get_valid_cards(self, hand, game):
         cards = [card for card in hand if is_card_valid(hand, game.trick, card, game.trick_nr, game.is_heart_broken)]
-        cards.sort(key=lambda x: self.undesirability(x, game.take_pig_card), reverse=True)
+        cards.sort(key=lambda x: self.undesirability(x, game.take_pig_card), reverse=(True if game.trick else False))
 
         return cards
 

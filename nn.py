@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 
-class PolicyValueNet():
+class PolicyValueNet(object):
     def __init__(self, model_file=None):
         # 1. input:
         self.states = tf.placeholder(tf.float32, shape=[None, 9], name="game_status")
@@ -15,18 +15,20 @@ class PolicyValueNet():
 
         # Define the tensorflow neural network
         cards_embeddings = tf.Variable(tf.random_uniform([53, 16], -1.0, 1.0))
-        cards_embed = tf.nn.embedding_lookup(cards_embeddings, self.cards)
-        cards_flat = tf.reshape(cards_embed, [-1, 1])
+        self.cards_embed = tf.nn.embedding_lookup(cards_embeddings, self.cards)
+        cards_flat = tf.reshape(self.cards_embed, [-1, 1])
 
 
         # 2. Common Networks Layers
-        self.input = tf.
+        input = tf.reshape(tf.multiply(cards_flat, self.states), [-1, 12*16*9])
+        input1 = tf.layers.dense(input, units=128, activation=tf.nn.relu)
+        input2 = tf.layers.dense(input1, units=64, activation=tf.nn.relu)
 
         # 3. Policy Networks
-        self.action_fc = tf.layers.dense(inputs=self.input, units=12, activation=tf.nn.softmax)
+        self.action_fc = tf.layers.dense(inputs=input2, units=12, activation=tf.nn.softmax)
 
         # 4 Value Networks
-        self.evaluation_fc1 = tf.layers.dense(inputs=self.input, units=64, activation=tf.nn.relu)
+        self.evaluation_fc1 = tf.layers.dense(inputs=input2, units=64, activation=tf.nn.relu)
         self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=1, activation=tf.nn.tanh)
 
         # Define the Loss function
@@ -35,7 +37,6 @@ class PolicyValueNet():
         # which is self.evaluation_fc2
         # 3-1. Value Loss function
         self.value_loss = tf.losses.mean_squared_error(self.scores, self.evaluation_fc2)
-
         self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))
 
         # 3-3. L2 penalty (regularization)
@@ -43,7 +44,7 @@ class PolicyValueNet():
         vars = tf.trainable_variables()
         l2_penalty = l2_penalty_beta * tf.add_n([tf.nn.l2_loss(v) for v in vars if 'bias' not in v.name.lower()])
         # 3-4 Add up to be the Loss function
-        self.loss = self.value_loss + self.policy_loss + l2_penalty
+        self.loss = self.value_loss + l2_penalty + self.policy_loss
 
         # Define the optimizer we use for training
         self.learning_rate = tf.placeholder(tf.float32)
@@ -54,8 +55,8 @@ class PolicyValueNet():
         self.session = tf.Session()
 
         # calc policy entropy, for monitoring only
-        self.entropy = tf.negative(tf.reduce_mean(
-                tf.reduce_sum(tf.exp(self.action_fc) * self.action_fc, 1)))
+        #self.entropy = tf.negative(tf.reduce_mean(
+        #        tf.reduce_sum(tf.exp(self.action_fc) * self.action_fc, 1)))
 
         # Initialize variables
         init = tf.global_variables_initializer()
@@ -67,30 +68,37 @@ class PolicyValueNet():
             self.restore_model(model_file)
 
 
-    def policy_value(self, state_batch):
+    def policy_value(self, states, cards):
         """
         input: a batch of states
         output: a batch of action probabilities and state values
         """
-        log_act_probs, value = self.session.run(
-                [self.action_fc, self.evaluation_fc2],
-                feed_dict={self.input_states: state_batch}
-                )
+
+        log_act_probs, value = self.session.run([self.action_fc, self.evaluation_fc2],
+                                                feed_dict={self.states: states,
+                                                           self.cards: cards})
+
         act_probs = np.exp(log_act_probs)
+        #value = self.session.run(self.evaluation_fc2,
+        #                         feed_dict={self.states: states,
+        #                                    self.cards: cards})
+
         return act_probs, value
 
-
-    def policy_value_fn(self, board):
+    def policy_value_fn(self, states, cards):
         """
         input: board
         output: a list of (action, probability) tuples for each available
         action and the score of the board state
         """
+
         legal_positions = board.availables
         current_state = np.ascontiguousarray(board.current_state().reshape(
                 -1, 4, self.board_width, self.board_height))
+
         act_probs, value = self.policy_value(current_state)
         act_probs = zip(legal_positions, act_probs[0][legal_positions])
+
         return act_probs, value
 
 
@@ -98,15 +106,15 @@ class PolicyValueNet():
         """perform a training step"""
         scores = np.reshape(scores, (-1, 1))
 
-        loss, entropy, _ = self.session.run(
-                [self.loss, self.entropy, self.optimizer],
+        loss, policy_loss, value_loss = self.session.run(
+                [self.loss, self.policy_loss, self.value_loss, self.optimizer],
                 feed_dict={self.states: states,
                            self.cards: cards,
                            self.probs: probs,
                            self.scores: scores,
                            self.learning_rate: lr})
 
-        return loss, entropy
+        return loss, policy_loss, value_loss
 
 
     def save_model(self, model_path):

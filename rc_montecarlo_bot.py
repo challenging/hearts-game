@@ -7,10 +7,12 @@ import numpy as np
 
 from abc import abstractmethod
 from pprint import pprint
+from collections import defaultdict
+from scipy.stats import describe
 
 from websocket import create_connection
 
-from sample_bot import Log, PokerSocket, PokerBot
+from sample_bot import Log, LowPlayBot, PokerSocket
 
 from game import Game
 from player import SimplePlayer
@@ -21,15 +23,16 @@ from rules import transform
 
 
 IS_DEBUG = False
+ALL_SCORES = defaultdict(list)
+
 system_log = Log(IS_DEBUG)
 
 
-class MonteCarloBot(PokerBot):
-
+class MonteCarloBot(LowPlayBot):
     def __init__(self,name):
         super(MonteCarloBot, self).__init__(name)
 
-        self.player = Player(verbose=False)
+        self.player = Player(verbose=True)
         self.player_names = []
 
         self.game = None
@@ -243,7 +246,7 @@ class MonteCarloBot(PokerBot):
 
                 p = None
                 if self.player_names[-1] == self.player_name:
-                    p = Player(verbose=False)
+                    p = Player(verbose=True)
                     self.player = p
                 else:
                     p = SimplePlayer(verbose=False)
@@ -256,21 +259,27 @@ class MonteCarloBot(PokerBot):
 
         self.game = Game(players, verbose=False)
 
+        idx = None
         deal_number = data["dealNumber"]
-        if deal_number == 1:
+        if deal_number%4 == 1:
             idx = (self.player.position+1)%4
-            self.player.set_transfer_card(idx, self.given_cards)
-            print("pass card to {}, {}".format(idx, self.given_cards))
-        elif deal_number == 2:
-            idx = self.player.position-1 if self.player.position > 0 else 3
-            self.player.set_transfer_card(idx, self.given_cards)
-            print("pass card to {}, {}".format(idx, self.given_cards))
-        elif deal_number == 3:
+            #self.player.set_transfer_card(idx, self.given_cards)
+        elif deal_number%4 == 2:
+            idx = (self.player.position+3)%4
+            #self.player.set_transfer_card(idx, self.given_cards)
+        elif deal_number%4 == 3:
             idx = (self.player.position+2)%4
-            self.player.set_transfer_card(idx, self.given_cards)
-            print("pass card to {}, {}".format(idx, self.given_cards))
+            #self.player.set_transfer_card(idx, self.given_cards)
+
+        if idx is not None:
+            for card in self.given_cards:
+                self.game.players[idx].freeze_pass_card(card)
+
+            print("pass card to {}, {}".format(idx, self.game.players[idx].freeze_cards))
         else:
             print("not passing card")
+
+
 
 
         if expose_player is not None and expose_card is not None:
@@ -324,11 +333,9 @@ class MonteCarloBot(PokerBot):
 
 
     def deal_end(self,data):
+        global ALL_SCORES
+
         self.game.score()
-        print("---------  current status of game -----------")
-        for player_idx, (taken_cards, score) in enumerate(zip(self.game._cards_taken, self.game.player_scores)):
-            print(player_idx, taken_cards, score)
-        print("---------------------------------------------")
 
         self.my_hand_cards = []
         self.given_cards = []
@@ -345,25 +352,15 @@ class MonteCarloBot(PokerBot):
             system_log.show_message(message)
             system_log.save_logs(message)
 
+            ALL_SCORES[key].append(deal_scores.get(key))
+
         for key in initial_cards.keys():
             message = "Player name:{}, Initial cards:{}, Receive cards:{}, Picked cards:{}".format(key, initial_cards.get(key),receive_cards.get(key),picked_cards.get(key))
             system_log.show_message(message)
             system_log.save_logs(message)
 
-
-    def game_over(self,data):
-        game_scores = self.get_game_scores(data)
-        for key in game_scores.keys():
-            message = "Player name:{}, Game score:{}".format(key, game_scores.get(key))
-            system_log.show_message(message)
-            system_log.save_logs(message)
-
-
-    def pick_history(self,data,is_timeout,pick_his):
-        for key in pick_his.keys():
-            message = "Player name:{}, Pick card:{}, Is timeout:{}".format(key,pick_his.get(key),is_timeout)
-            system_log.show_message(message)
-            system_log.save_logs(message)
+        for key, scores in ALL_SCORES.items():
+            print("Player - {} gets {}".format(key, describe(scores)))
 
 
 def main():

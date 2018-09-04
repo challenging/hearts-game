@@ -25,7 +25,7 @@ class SimpleBot(PokerBot):
     def __init__(self,name):
         super(SimpleBot, self).__init__(name)
 
-        self.player = SimplePlayer(verbose=True)
+        self.player = SimplePlayer(verbose=False)
         self.player_names = []
 
         self.game = None
@@ -113,7 +113,6 @@ class SimpleBot(PokerBot):
 
         played_card = self.player.play_card(candidate_cards, self.game)
         message = "Pick Card:{} ({})".format(played_card, candidate_cards)
-        print("pick_card >>>>>>", message)
 
         system_log.show_message(message)
         system_log.save_logs(message)
@@ -187,9 +186,9 @@ class SimpleBot(PokerBot):
                 hand_cards.append(transform(card_str[0], card_str[1]))
 
             self.game._player_hands = [hand_cards if idx == self_player_idx else [] for idx in range(4)]
-            print("---------  current status of game -----------")
-            print(self.game)
-            print("---------------------------------------------")
+            #print("---------  current status of game -----------")
+            #print(self.game)
+            #print("---------------------------------------------")
         except Exception as e:
             system_log.show_message(e)
 
@@ -201,7 +200,7 @@ class SimpleBot(PokerBot):
                     break
 
             self.game._cards_taken[player_idx].extend([card for _, card in self.round_cards_history[self.game.trick_nr*4:(self.game.trick_nr+1)*4]])
-            print("trick_nr, taken_cards = ({}, {})".format(self.game.trick_nr, self.game._cards_taken))
+            #print("trick_nr, taken_cards = ({}, {})".format(self.game.trick_nr, self.game._cards_taken))
 
             self.game.trick_nr += 1
             self.game.trick = []

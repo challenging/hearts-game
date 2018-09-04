@@ -51,16 +51,22 @@ class MCTSPlayer(MonteCarloPlayer4):
             pool.close()
 
             moves_states = []
-            for card in sorted(valid_cards, key=lambda x: -(x.suit.value*13+x.rank.value)):
+            for card in valid_cards:
                 seen_cards = [c for c in self.seen_cards[:]] + [card]
                 moves_states.append((card, tuple(seen_cards)))
 
-            average_score, played_card = sys.maxsize, None
+            average_score, most_visit, played_card = sys.maxsize, -sys.maxsize, None
             for state in moves_states:
                 if state in plays:
                     avg_score = scores.get(state, 0) / plays[state]
+                    n_visit = plays[state]
+                    """
                     if avg_score < average_score:
                         average_score = avg_score
+                        played_card = state[0]
+                    """
+                    if n_visit > most_visit:
+                        most_visit = n_visit
                         played_card = state[0]
 
                     self.say("{}, pick {}: score ---> {}/{}={:.2f}", valid_cards, state[0], scores[state], plays[state], avg_score)
@@ -68,7 +74,7 @@ class MCTSPlayer(MonteCarloPlayer4):
                     self.say("not found {} in {}", state, plays)
 
             self.say("(plays, scores, played_card, valid_cards) = ({}, {}, {}({:.2f}), {})",
-                len(plays), len(scores), played_card, average_score, valid_cards)
+                len(plays), len(scores), played_card, most_visit, valid_cards)
         else:
             played_card = valid_cards[0]
             self.say("don't need simulation, can only play {} card", played_card)
@@ -82,7 +88,7 @@ class MCTSPlayer(MonteCarloPlayer4):
 
         seen_cards = copy.deepcopy(game.players[0].seen_cards)
         game.verbose = False
-        game.players = [StupidPlayer() for idx in range(4)]
+        game.players = [SimplePlayer() for idx in range(4)]
         for player in game.players:
             player.seen_cards = copy.deepcopy(seen_cards)
 
@@ -117,7 +123,7 @@ class MCTSPlayer(MonteCarloPlayer4):
 
             played_card = state[0]
         else:
-            played_card = player.play_card(game._player_hands[self.position], game)
+            played_card = choice(valid_cards)#player.play_card(game._player_hands[self.position], game)
 
         state = (played_card, tuple(game.players[0].seen_cards[:]) + (played_card,))
 

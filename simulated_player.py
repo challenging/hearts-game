@@ -30,33 +30,34 @@ class MonteCarloPlayer(SimplePlayer):
 
         card = None
         if len(valid_cards) > 1:
-            winning_score = defaultdict(int)
-
             stime = time.time()
 
-            count_simulation = defaultdict(int)
+            count_simulation, winning_score = defaultdict(int), defaultdict(int)
 
             pool = mp.Pool(processes=self.num_of_cpu)
             while time.time() - stime < simulation_time_limit:
-                mul_result = [pool.apply_async(self.run_simulation, args=(idx, copy.deepcopy(game), hand_cards, card)) for idx, card in enumerate(valid_cards)]
+                mul_result = [pool.apply_async(self.run_simulation, args=(copy.deepcopy(game), hand_cards, card)) for card in valid_cards]
                 results = [res.get() for res in mul_result]
 
-                for idx, score in results:
-                    winning_score[idx] += score
-                    count_simulation[idx] += 1
-
+                for card, score in results:
+                    winning_score[card] += score
+                    count_simulation[card] += 1
             pool.close()
 
-            for card_idx, c in sorted(winning_score.items(), key=lambda x: -x[1]/count_simulation[x[0]]):
-                card = valid_cards[card_idx]
-                winning_rate = c/count_simulation[card_idx]
+            min_score, card = sys.maxsize, None
+            for card in valid_cards:#sorted(valid_cards, key=lambda x: -(x.suit.value*13+x.rank.value)):#sorted(winning_score.items(), key=lambda x: -x[1]/count_simulation[x[0]]):
+                score = winning_score[card]/count_simulation[card]
 
-                self.say("{}, simulation: {} round --> valid_cards: {}, simulate {} card --> {:3d} score /{:4d} average_score {:.4f}".format(\
-                    type(self).__name__, game.trick_nr, valid_cards, card, c, count_simulation[card_idx], winning_rate))
+                if score < min_score:
+                    min_score = score
+                    played_card = card
+
+                self.say("{}, simulation: {} round --> valid_cards: {}, simulate {} card --> {:4d} score /{:4d} average_score {:.4f}".format(\
+                    type(self).__name__, game.trick_nr, valid_cards, card, winning_score[card], count_simulation[card], score))
         else:
-            card = valid_cards[0]
+            played_card = valid_cards[0]
 
-        return card
+        return played_card
 
 
     def get_remaining_cards(self, hand_cards):
@@ -95,11 +96,11 @@ class MonteCarloPlayer(SimplePlayer):
         return scores[self.position]
 
 
-    def run_simulation(self, idx, game, hand_cards, played_card):
+    def run_simulation(self, game, hand_cards, played_card):
         remaining_cards = self.get_remaining_cards(hand_cards)
 
         game.verbose = False
-        game.players = [StupidPlayer() for _ in range(4)]
+        game.players = [SimplePlayer() for _ in range(4)]
 
         self.redistribute_cards(game, remaining_cards[:])
 
@@ -113,7 +114,7 @@ class MonteCarloPlayer(SimplePlayer):
 
         game.score()
 
-        return idx, self.score_func(game.player_scores)
+        return played_card, self.score_func(game.player_scores)
 
 
 class MonteCarloPlayer2(MonteCarloPlayer):
@@ -223,7 +224,7 @@ class MonteCarloPlayer3(MonteCarloPlayer2):
             return self_score-min_score
 
 
-class MonteCarloPlayer4(MonteCarloPlayer2):
+class MonteCarloPlayer4(MonteCarloPlayer3):
     def __init__(self, verbose=False):
         super(MonteCarloPlayer4, self).__init__(verbose=verbose)
 
@@ -257,7 +258,7 @@ class MonteCarloPlayer4(MonteCarloPlayer2):
         game.score = types.MethodType(score, game)
 
 
-    def run_simulation(self, idx, game, hand_cards, played_card):
+    def run_simulation(self, game, hand_cards, played_card):
         remaining_cards = self.get_remaining_cards(hand_cards)
 
         trick_nr = game.trick_nr
@@ -280,4 +281,4 @@ class MonteCarloPlayer4(MonteCarloPlayer2):
 
         game.score()
 
-        return idx, self.score_func(game.player_scores)
+        return played_card, self.score_func(game.player_scores)

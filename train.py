@@ -23,7 +23,7 @@ from alpha_game import AlphaGame as Game
 from alpha_player import AlphaPlayer
 from simulated_player import MonteCarloPlayer4 as MonteCarloPlayer
 
-#from policy_value_net_tensorflow import PolicyValueNet
+from nn import PolicyValueNet
 
 
 class TrainPipeline():
@@ -45,19 +45,14 @@ class TrainPipeline():
         # num of simulations used for the pure mcts, which is used as
         # the opponent to evaluate the trained policy
 
-        """
         if init_model:
             # start training from an initial policy-value net
-            self.policy_value_net = PolicyValueNet(self.board_width,
-                                                   self.board_height,
-                                                   model_file=init_model)
+            self.policy_value_net = PolicyValueNet(model_file=init_model)
         else:
             # start training from a new policy-value net
-            self.policy_value_net = PolicyValueNet(self.board_width,
-                                                   self.board_height)
-        """
+            self.policy_value_net = PolicyValueNet()
 
-        players = [AlphaPlayer(policy_value_network=None, verbose=False) for _ in range(4)]
+        players = [AlphaPlayer(policy=self.policy_value_net.policy_value, verbose=False) for _ in range(4)]
         for player in players:
             player.set_selfplay(True)
 
@@ -80,33 +75,32 @@ class TrainPipeline():
 
     def policy_update(self):
         """update the policy-value net"""
-        states_batch, cards_batch, probs_batch, scores_batch = [], [], [], []
-        for states, cards, probs, scores in random.sample(self.data_buffer, self.batch_size):
+        states_batch, cards_batch, probs_batch, played_cards_batch, scores_batch = [], [], [], [], []
+        for states, cards, probs, played_card, scores in random.sample(self.data_buffer, self.batch_size):
             states_batch.append(states)
             cards_batch.append(cards)
             probs_batch.append(probs)
+            played_cards_batch.append(played_card)
             scores_batch.append(scores)
 
         #old_probs, old_v = self.policy_value_net.policy_value(state_batch)
         for i in range(self.epochs):
-            loss, entropy = self.policy_value_net.train_step(
+            loss, policy_loss, value_loss = self.policy_value_net.train_step(
                     states_batch,
                     cards_batch,
+                    played_cards_batch,
                     probs_batch,
                     scores_batch,
-                    self.learn_rate)#*self.lr_multiplier)
+                    self.learn_rate*self.lr_multiplier)
 
-            """
-            new_probs, new_v = self.policy_value_net.policy_value(state_batch)
+            new_probs, new_v = self.policy_value_net.policy_value(state_batch, cards_batch)
 
             kl = np.mean(np.sum(old_probs * (
                     np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)),
-                    axis=1)
-            )
+                    axis=1))
 
             if kl > self.kl_targ * 4:  # early stopping if D_KL diverges badly
                 break
-            """
 
         # adaptively adjust the learning rate
         if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
@@ -114,27 +108,18 @@ class TrainPipeline():
         elif kl < self.kl_targ / 2 and self.lr_multiplier < 10:
             self.lr_multiplier *= 1.5
 
+        """
         explained_var_old = (1 -
                              np.var(np.array(winner_batch) - old_v.flatten()) /
                              np.var(np.array(winner_batch)))
         explained_var_new = (1 -
                              np.var(np.array(winner_batch) - new_v.flatten()) /
                              np.var(np.array(winner_batch)))
+        """
 
-        print(("kl:{:.5f},"
-               "lr_multiplier:{:.3f},"
-               "loss:{},"
-               "entropy:{},"
-               "explained_var_old:{:.3f},"
-               "explained_var_new:{:.3f}"
-               ).format(kl,
-                        self.lr_multiplier,
-                        loss,
-                        entropy,
-                        explained_var_old,
-                        explained_var_new))
+        print(("kl:{:.5f}, lr_multiplier:{:.3f}, loss:{},").format(kl, self.lr_multiplier, loss))
 
-        return loss, entropy
+        return loss
 
 
     def policy_evaluate(self, n_games=8):
@@ -142,7 +127,7 @@ class TrainPipeline():
         Evaluate the trained policy by playing against the pure MCTS player
         Note: this is only for monitoring the progress of training
         """
-        current_mcts_player = AlphaPlayer(policy_value_network=None)
+        current_mcts_player = AlphaPlayer(policy=self.policy_value_net.policy_value)
         players = [current_mcts_player] + [MonteCarloPlayer(verbose=False) for _ in range(3)]
 
         setting_cards = read_card_games("game/game_0008/game_1534672484.pkl")
@@ -169,7 +154,7 @@ class TrainPipeline():
                     i+1, self.episode_len, len(self.data_buffer)))
 
                 if len(self.data_buffer) > self.batch_size:
-                    loss, entropy = self.policy_update()
+                    loss  = self.policy_update()
 
                 if (i+1) % self.check_freq == 0:
                     score = self.policy_evaluate()
