@@ -32,7 +32,7 @@ if __name__ == "__main__":
     player_ai = sys.argv[2]
     if player_ai.lower() == "mc4":
         player = MonteCarloPlayer4(verbose=True)
-        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
+        other_players = [MonteCarloPlayer3(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mc3":
         player = MonteCarloPlayer3(verbose=True)
         other_players = [MonteCarloPlayer2(verbose=False) for _ in range(3)]
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mcts":
         player = mcts_player.MCTSPlayer(verbose=True)
-        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
+        other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
     else:
         player = SimplePlayer(verbose=False)
         other_players = [StupidPlayer() for _ in range(3)]
