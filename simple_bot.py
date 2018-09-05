@@ -54,7 +54,6 @@ class SimpleBot(PokerBot):
             return_values.append(str(card))
 
         message="Pass Cards:{}".format(return_values)
-        #print("pass_cards >>>>>> {} from {}".format(message, self.my_hand_cards))
 
         system_log.show_message(message)
         system_log.save_logs(message)
@@ -75,7 +74,6 @@ class SimpleBot(PokerBot):
                 receive_cards = player['receivedCards']
 
                 message = "User Name:{}, Picked Cards:{}, Receive Cards:{}".format(player_name, picked_cards, receive_cards)
-                #print("receive_opponent_cards >>>>>>", message)
 
                 system_log.show_message(message)
                 system_log.save_logs(message)
@@ -87,10 +85,6 @@ class SimpleBot(PokerBot):
         super(SimpleBot, self).turn_end(data)
 
         self.game.trick.append(self.round_cards_history[-1][1])
-        #print(">>>>>>", self.game.trick_nr, self.game.trick)
-
-        #print(self.round_cards_history)
-        #print(self.pick_history)
 
 
     def pick_card(self,data):
@@ -186,9 +180,6 @@ class SimpleBot(PokerBot):
                 hand_cards.append(transform(card_str[0], card_str[1]))
 
             self.game._player_hands = [hand_cards if idx == self_player_idx else [] for idx in range(4)]
-            #print("---------  current status of game -----------")
-            #print(self.game)
-            #print("---------------------------------------------")
         except Exception as e:
             system_log.show_message(e)
 
@@ -200,7 +191,6 @@ class SimpleBot(PokerBot):
                     break
 
             self.game._cards_taken[player_idx].extend([card for _, card in self.round_cards_history[self.game.trick_nr*4:(self.game.trick_nr+1)*4]])
-            #print("trick_nr, taken_cards = ({}, {})".format(self.game.trick_nr, self.game._cards_taken))
 
             self.game.trick_nr += 1
             self.game.trick = []
@@ -211,7 +201,6 @@ class SimpleBot(PokerBot):
                 system_log.show_message(message)
                 system_log.save_logs(message)
         except Exception as e:
-            print("!!!!", e)
             system_log.show_message(e)
 
 
@@ -257,12 +246,15 @@ def main():
     if argv_count>2:
         player_name = sys.argv[1]
         player_number = sys.argv[2]
+
+        token = "12345678"
+        connect_url = "ws://localhost:8080/"
     else:
         player_name = "RungChiChen-Simple"
         player_number = 1
 
-    token = "12345678"
-    connect_url = "ws://localhost:8080/"
+        token = "12345678"
+        connect_url = "ws://localhost:8080/"
 
     sample_bot = SimpleBot(player_name)
     myPokerSocket = PokerSocket(player_name, player_number, token, connect_url, sample_bot)

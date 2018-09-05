@@ -369,12 +369,14 @@ def main():
     if argv_count>2:
         player_name = sys.argv[1]
         player_number = sys.argv[2]
+        token = sys.argv[3]
+        connect_url = sys.argv[4]
     else:
         player_name = "RungChiChen-MonteCarlo-{}".format(int(time.time()))
         player_number = 3
 
-    token = "12345678"
-    connect_url = "ws://localhost:8080/"
+        token = "12345678"
+        connect_url = "ws://localhost:8080/"
 
     bot = MonteCarloBot(player_name)
     myPokerSocket = PokerSocket(player_name, player_number, token, connect_url, bot)
