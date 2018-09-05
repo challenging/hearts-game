@@ -20,7 +20,7 @@ from mcts_player import MCTSPlayer
 from card import Card, Suit, Rank, Deck
 from rules import transform
 
-from rc_montecarlo_bot import MonteCarloBot
+from montecarlo_bot import MonteCarloBot
 
 
 IS_DEBUG = False

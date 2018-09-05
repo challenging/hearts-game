@@ -21,14 +21,14 @@ def main():
         token = "12345678"
         connect_url = "ws://localhost:8080/"
 
-    bot = SimpleBot(player_name)
+    bot = MonteCarloBot(player_name)
     if len(sys.argv) == 6:
         if sys.argv[5] == "mcts":
             bot = MCTSBot(player_name)
-        elif sys.argv[5] == "mc":
-            bot = MonteCarloBot(player_name)
-        else:
-            print("use the default player - SimpleBot")
+        elif sys.argv[5] == "simple":
+            bot = SimpleBot(player_name)
+
+    print("use the player - {}".format(type(bot).__name__))
 
     myPokerSocket = PokerSocket(player_name, player_number, token, connect_url, bot)
     myPokerSocket.doListen()

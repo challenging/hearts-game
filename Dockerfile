@@ -12,4 +12,4 @@ ADD . /app
  
 # Run sample_bot.py when the container launches, you should replace it with your program
 # The parameters of the program should be "[player_name] [player_number] [token] [connect_url]"
-ENTRYPOINT ["python", "rc_montecarlo_bot.py"]
+ENTRYPOINT ["python", "fight.py"]
