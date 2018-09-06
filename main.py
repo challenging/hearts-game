@@ -14,7 +14,6 @@ from game import Game
 from rules import get_setting_cards, evaluate_players
 
 from player import StupidPlayer, SimplePlayer
-from heuristic_player import GreedyHeusisticPlayer, DynamicRankPlayer
 from simulated_player import MonteCarloPlayer, MonteCarloPlayer2, MonteCarloPlayer3, MonteCarloPlayer4
 
 import mcts_player

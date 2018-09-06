@@ -15,7 +15,7 @@ from player import StupidPlayer, SimplePlayer
 
 
 TIMEOUT_SECOND = 0.9
-COUNT_CPU = 1#mp.cpu_count()
+COUNT_CPU = mp.cpu_count()
 
 class MonteCarloPlayer(SimplePlayer):
     def __init__(self, num_of_cpu=COUNT_CPU, verbose=False):
@@ -272,6 +272,7 @@ class MonteCarloPlayer4(MonteCarloPlayer3):
         game.players = [SimplePlayer() for _ in range(4)]
 
         game = self.redistribute_cards(game, remaining_cards)
+
         game.step(played_card)
 
         for _ in range(4-len(game.trick)):

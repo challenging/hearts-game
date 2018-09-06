@@ -75,6 +75,9 @@ class MonteCarloBot(LowPlayBot):
     def receive_opponent_cards(self, data):
         self.my_hand_cards = self.get_cards(data)
 
+        self.given_cards = []
+        self.received_cards = []
+
         players = data['players']
         for player in players:
             player_name = player['playerName']
@@ -263,23 +266,18 @@ class MonteCarloBot(LowPlayBot):
         deal_number = data["dealNumber"]
         if deal_number%4 == 1:
             idx = (self.player.position+1)%4
-            #self.player.set_transfer_card(idx, self.given_cards)
+            self.player.set_transfer_card(idx, self.given_cards)
         elif deal_number%4 == 2:
             idx = (self.player.position+3)%4
-            #self.player.set_transfer_card(idx, self.given_cards)
+            self.player.set_transfer_card(idx, self.given_cards)
         elif deal_number%4 == 3:
             idx = (self.player.position+2)%4
-            #self.player.set_transfer_card(idx, self.given_cards)
+            self.player.set_transfer_card(idx, self.given_cards)
 
         if idx is not None:
-            for card in self.given_cards:
-                self.game.players[idx].freeze_pass_card(card)
-
-            print("pass card to {}, {}".format(idx, self.game.players[idx].freeze_cards))
+            print("pass card to {}, {}".format(idx, self.game.players[idx].transfer_cards))
         else:
             print("not passing card")
-
-
 
 
         if expose_player is not None and expose_card is not None:

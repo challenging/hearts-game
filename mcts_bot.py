@@ -67,7 +67,7 @@ class MCTSBot(MonteCarloBot):
             self.player.set_transfer_card(idx, self.given_cards)
             print("pass card to {}, {}".format(idx, self.given_cards))
         elif deal_number == 2:
-            idx = self.player.position-1 if self.player.position > 0 else 3
+            idx = (self.player.position+3)%4
             self.player.set_transfer_card(idx, self.given_cards)
             print("pass card to {}, {}".format(idx, self.given_cards))
         elif deal_number == 3:
