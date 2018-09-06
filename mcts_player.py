@@ -13,14 +13,14 @@ from random import shuffle, choice
 from card import Suit, Rank, Card, Deck
 from rules import is_card_valid
 
-from simulated_player import MonteCarloPlayer4
+from simulated_player import MonteCarloPlayer5
 from player import StupidPlayer, SimplePlayer
 
 TIMEOUT_SECOND = 0.9
 COUNT_CPU = mp.cpu_count()
 
 
-class MCTSPlayer(MonteCarloPlayer4):
+class MCTSPlayer(MonteCarloPlayer5):
     def __init__(self, verbose=False):
         super(MCTSPlayer, self).__init__(verbose=verbose)
 

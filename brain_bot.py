@@ -235,7 +235,7 @@ class BrainBot(LowPlayBot):
             try:
                 if player['exposedCards'] != [] and len(player['exposedCards']) > 0 and player['exposedCards'] is not None:
                     expose_player = player['playerName']
-                    expose_card = player['exposedCards']
+                    expose_card = player['exposedCards'][0]
 
                 self.player_names.append(player["playerName"])
 
@@ -255,14 +255,12 @@ class BrainBot(LowPlayBot):
 
         self.game = Game(players, verbose=False)
         self.player = self.game.players[current_player_idx]
-        print(self.player, players)
 
         idx = None
         deal_number = data["dealNumber"]
         if deal_number%4 == 1:
             idx = (self.player.position+1)%4
             self.player.set_transfer_card(idx, self.given_cards)
-            #print(1111, self.game.players[idx].transfer_cards)
         elif deal_number%4 == 2:
             idx = (self.player.position+3)%4
             self.player.set_transfer_card(idx, self.given_cards)
@@ -278,11 +276,16 @@ class BrainBot(LowPlayBot):
 
         if expose_player is not None and expose_card is not None:
             message="Player:{}, Expose card:{}".format(expose_player, expose_card)
+            self.game.expose_heart_ace = True
+            self.player.set_transfer_card([idx for idx in range(4) if self.player_names[idx] == expose_player][0], transform(expose_card[0], expose_card[1]))
+            print("expose", message, self.player.transfer_cards)
+
             system_log.show_message(message)
             system_log.save_logs(message)
             self.expose_card = True
         else:
             message="No player expose card!"
+
             system_log.show_message(message)
             system_log.save_logs(message)
             self.expose_card=False

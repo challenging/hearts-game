@@ -37,7 +37,9 @@ class Player(object):
             if OUT_FILE is None:
                 OUT_FILE = open("log/game.log", "w")
 
-            OUT_FILE.write("{}\n".format(message.format(*formatargs)))
+            message = message.format(*formatargs)
+            print(message)
+            OUT_FILE.write("{}\n".format(message))
 
 
     def set_transfer_card(self, received_player, card):

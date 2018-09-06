@@ -24,6 +24,10 @@ class MonteCarloPlayer(SimplePlayer):
         self.num_of_cpu = num_of_cpu
 
 
+    def winning_score_func(self, scores):
+        return np.mean(scores)
+
+
     def play_card(self, hand_cards, game, simulation_time_limit=TIMEOUT_SECOND):
         game.are_hearts_broken()
         valid_cards = self.get_valid_cards(hand_cards, game)
@@ -32,31 +36,39 @@ class MonteCarloPlayer(SimplePlayer):
         if len(valid_cards) > 1:
             stime = time.time()
 
-            count_simulation, winning_score = defaultdict(int), defaultdict(int)
-
+            winning_score = defaultdict(list)
             pool = mp.Pool(processes=self.num_of_cpu)
             while time.time() - stime < simulation_time_limit:
                 mul_result = [pool.apply_async(self.run_simulation, args=(game, hand_cards, card)) for card in valid_cards]
                 results = [res.get() for res in mul_result]
 
                 for card, score in results:
-                    winning_score[card] += score
-                    count_simulation[card] += 1
+                    winning_score[card].append(score)
             pool.close()
 
-            min_score, card = sys.maxsize, None
+            min_score = sys.maxsize
             for card in valid_cards:
-                score = winning_score[card]/count_simulation[card]
+                score = self.winning_score_func(winning_score[card])
 
                 if score < min_score:
                     min_score = score
                     played_card = card
 
-                self.say("{}, simulation: {} round --> valid_cards: {}, simulate {} card --> {:4d} score /{:4d} average_score {:.4f}".format(\
-                    type(self).__name__, game.trick_nr, valid_cards, card, winning_score[card], count_simulation[card], score))
+                self.say("{}, simulation: {} round --> valid_cards: {}, simulate {} card --> {:4d} score /{:4d} average_score {:.4f}, (std={:.4f}, min={:3d}, max={:3d})",
+                    type(self).__name__,
+                    game.trick_nr,
+                    valid_cards,
+                    card,
+                    np.sum(winning_score[card]),
+                    len(winning_score[card]),
+                    score,
+                    np.std(winning_score[card]),
+                    np.min(winning_score[card]),
+                    np.max(winning_score[card]))
         else:
             played_card = valid_cards[0]
 
+        self.say("pick {} card", played_card)
         return played_card
 
 
@@ -287,3 +299,12 @@ class MonteCarloPlayer4(MonteCarloPlayer3):
         game.score()
 
         return played_card, self.score_func(game.player_scores)
+
+
+class MonteCarloPlayer5(MonteCarloPlayer4):
+    def __init__(self, verbose=False):
+        super(MonteCarloPlayer5, self).__init__(verbose=verbose)
+
+
+    def winning_score_func(self, scores):
+        return np.mean(scores) - np.std(scores)*0.01

@@ -14,7 +14,7 @@ from game import Game
 from rules import get_setting_cards, evaluate_players
 
 from player import StupidPlayer, SimplePlayer
-from simulated_player import MonteCarloPlayer, MonteCarloPlayer2, MonteCarloPlayer3, MonteCarloPlayer4
+from simulated_player import MonteCarloPlayer, MonteCarloPlayer2, MonteCarloPlayer3, MonteCarloPlayer4, MonteCarloPlayer5
 
 import mcts_player
 import alpha_player
@@ -29,7 +29,10 @@ if __name__ == "__main__":
     other_players = []
 
     player_ai = sys.argv[2]
-    if player_ai.lower() == "mc4":
+    if player_ai.lower() == "mc5":
+        player = MonteCarloPlayer5(verbose=True)
+        other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
+    elif player_ai.lower() == "mc4":
         player = MonteCarloPlayer4(verbose=True)
         other_players = [MonteCarloPlayer3(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mc3":

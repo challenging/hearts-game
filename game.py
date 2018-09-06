@@ -6,16 +6,12 @@ from rules import is_card_valid, is_score_card, card_points, reversed_score
 
 class Game(object):
     def __init__(self, players, verbose=False):
-        """
-        players is a list of four players
-        """
         self.verbose = verbose
 
         if len(players) != 4:
             raise ValueError('There must be four players')
 
         self.players = players
-        self.player_scores = [0, 0, 0, 0]
 
         self.reset()
 
@@ -26,9 +22,13 @@ class Game(object):
         self.current_player_idx = 0
         self.trick = []
 
+        self.player_scores = [0, 0, 0, 0]
+
+        self.expose_heart_ace = False
         self.take_pig_card = False
         self.is_heart_broken = False
         self.is_shootmoon = False
+        self.expose_heart_ace = False
 
         for i in range(4):
             self.players[i].set_position(i)
@@ -266,9 +266,9 @@ class Game(object):
 
         point, is_double = 0, 1
         for card in cards:
-            point += card_points(card)
+            point += card_points(card)*(2 if self.expose_heart_ace and card.suit == Suit.hearts else 1)
 
-            if is_double == 1 and card == Card(Suit.clubs, Rank.ten):
+            if card == Card(Suit.clubs, Rank.ten):
                 is_double = 2
 
         return point*is_double
