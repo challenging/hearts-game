@@ -18,7 +18,6 @@ from sample_bot import Log, LowPlayBot, PokerSocket
 
 from game import Game
 from player import SimplePlayer
-#from simulated_player import MonteCarloPlayer4 as Player
 
 from card import Card, Suit, Rank, Deck
 from rules import transform
@@ -96,7 +95,7 @@ class BrainBot(LowPlayBot):
                     card = transform(card_str[0], card_str[1])
                     self.received_cards.append(card)
 
-                message = "User Name:{}, Picked Cards:{}, Receive Cards:{}".format(player_name, picked_cards, receive_cards)
+                message = "User Name:{}, Given Cards:{}, Receive Cards:{}".format(player_name, self.given_cards, receive_cards)
                 self.say(message)
 
                 system_log.show_message(message)
@@ -231,8 +230,8 @@ class BrainBot(LowPlayBot):
     def expose_cards_end(self, data):
         expose_player, expose_card = None, None
 
-        self.player_names, players = [], []
-        for player in data['players']:
+        self.player_names, current_player_idx, players = [], None, []
+        for player_idx, player in enumerate(data['players']):
             try:
                 if player['exposedCards'] != [] and len(player['exposedCards']) > 0 and player['exposedCards'] is not None:
                     expose_player = player['playerName']
@@ -243,7 +242,8 @@ class BrainBot(LowPlayBot):
                 p = None
                 if self.player_names[-1] == self.player_name:
                     p = copy.deepcopy(self.pure_player)
-                    self.player = p
+
+                    current_player_idx = player_idx
                 else:
                     p = SimplePlayer(verbose=False)
 
@@ -254,12 +254,15 @@ class BrainBot(LowPlayBot):
                 system_log.save_logs(e)
 
         self.game = Game(players, verbose=False)
+        self.player = self.game.players[current_player_idx]
+        print(self.player, players)
 
         idx = None
         deal_number = data["dealNumber"]
         if deal_number%4 == 1:
             idx = (self.player.position+1)%4
             self.player.set_transfer_card(idx, self.given_cards)
+            #print(1111, self.game.players[idx].transfer_cards)
         elif deal_number%4 == 2:
             idx = (self.player.position+3)%4
             self.player.set_transfer_card(idx, self.given_cards)
@@ -268,7 +271,7 @@ class BrainBot(LowPlayBot):
             self.player.set_transfer_card(idx, self.given_cards)
 
         if idx is not None:
-            self.say("pass card to {}, {}", idx, self.game.players[idx].transfer_cards)
+            self.say("pass card to {}, {}, {}", idx, self.player.transfer_cards, self.given_cards)
         else:
             self.say("not passing card")
 
@@ -347,26 +350,3 @@ class BrainBot(LowPlayBot):
 
         for key, scores in ALL_SCORES.items():
             self.say("Player - {} gets {}", key, describe(scores))
-
-
-def main():
-    argv_count=len(sys.argv)
-
-    if argv_count>2:
-        player_name = sys.argv[1]
-        player_number = sys.argv[2]
-        token = sys.argv[3]
-        connect_url = sys.argv[4]
-    else:
-        player_name = "RungChiChen-MonteCarlo-{}".format(int(time.time()))
-        player_number = 3
-
-        token = "12345678"
-        connect_url = "ws://localhost:8080/"
-
-    bot = MonteCarloBot(player_name)
-    myPokerSocket = PokerSocket(player_name, player_number, token, connect_url, bot)
-    myPokerSocket.doListen()
-
-if __name__ == "__main__":
-    main()
