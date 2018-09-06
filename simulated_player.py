@@ -68,7 +68,7 @@ class MonteCarloPlayer(SimplePlayer):
         else:
             played_card = valid_cards[0]
 
-        self.say("pick {} card", played_card)
+        self.say("pick {} card, {}", played_card, game.expose_heart_ace)
         return played_card
 
 

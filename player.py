@@ -38,7 +38,7 @@ class Player(object):
                 OUT_FILE = open("log/game.log", "w")
 
             message = message.format(*formatargs)
-            print(message)
+            #print(message)
             OUT_FILE.write("{}\n".format(message))
 
 
