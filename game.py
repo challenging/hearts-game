@@ -28,7 +28,6 @@ class Game(object):
         self.take_pig_card = False
         self.is_heart_broken = False
         self.is_shootmoon = False
-        self.expose_heart_ace = False
 
         for i in range(4):
             self.players[i].set_position(i)
