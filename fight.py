@@ -4,7 +4,7 @@ from sample_bot import PokerSocket
 from brain_bot import BrainBot
 
 from player import SimplePlayer
-from simulated_player import MonteCarloPlayer4
+from simulated_player import MonteCarloPlayer4, MonteCarloPlayer5
 from mcts_player import MCTSPlayer
 
 def main():
@@ -23,9 +23,11 @@ def main():
         token = "12345678"
         connect_url = "ws://localhost:8080/"
 
-    bot = BrainBot(player_name, MonteCarloPlayer4(verbose=True))
+    bot = BrainBot(player_name, MonteCarloPlayer5(verbose=True))
     if len(sys.argv) == 6:
-        if sys.argv[5] == "mcts":
+        if sys.argv[5] == "mc4":
+            bot = BrainBot(player_name, MonteCarloPlayer4(verbose=True))
+        elif sys.argv[5] == "mcts":
             bot = BrainBot(player_name, MCTSPlayer(verbose=True))
         elif sys.argv[5] == "simple":
             bot = BrainBot(player_name, SimplePlayer(verbose=True))
