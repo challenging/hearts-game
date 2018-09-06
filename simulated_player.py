@@ -45,7 +45,7 @@ class MonteCarloPlayer(SimplePlayer):
             pool.close()
 
             min_score, card = sys.maxsize, None
-            for card in valid_cards:#sorted(valid_cards, key=lambda x: -(x.suit.value*13+x.rank.value)):#sorted(winning_score.items(), key=lambda x: -x[1]/count_simulation[x[0]]):
+            for card in valid_cards:
                 score = winning_score[card]/count_simulation[card]
 
                 if score < min_score:
@@ -85,7 +85,7 @@ class MonteCarloPlayer(SimplePlayer):
                     remaining_cards.remove(used_card)
 
         if remaining_cards:
-            print("error", type(self).__name__, remaining_cards, [len(v) for v in game._player_hands])
+            self.say("Error in redistributing cards, {}, {}, {}", type(self).__name__, remaining_cards, [len(v) for v in game._player_hands])
             raise
 
         return game

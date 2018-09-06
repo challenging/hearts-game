@@ -28,7 +28,7 @@ system_log = Log(IS_DEBUG)
 
 
 class MCTSBot(MonteCarloBot):
-    def __init__(self,name):
+    def __init__(self, name):
         super(MCTSBot, self).__init__(name)
 
         self.player = MCTSPlayer(verbose=True)
@@ -61,21 +61,19 @@ class MCTSBot(MonteCarloBot):
 
         self.game = Game(players, verbose=False)
 
-        deal_number = data["dealNumber"]
+        idx, deal_number = None, data["dealNumber"]
         if deal_number == 1:
             idx = (self.player.position+1)%4
             self.player.set_transfer_card(idx, self.given_cards)
-            print("pass card to {}, {}".format(idx, self.given_cards))
         elif deal_number == 2:
             idx = (self.player.position+3)%4
             self.player.set_transfer_card(idx, self.given_cards)
-            print("pass card to {}, {}".format(idx, self.given_cards))
         elif deal_number == 3:
             idx = (self.player.position+2)%4
             self.player.set_transfer_card(idx, self.given_cards)
-            print("pass card to {}, {}".format(idx, self.given_cards))
-        else:
-            print("not passing card")
+
+        if idx is not None:
+            self.
 
 
         if expose_player is not None and expose_card is not None:

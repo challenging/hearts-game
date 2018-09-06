@@ -60,11 +60,7 @@ class MCTSPlayer(MonteCarloPlayer4):
                 if state in plays:
                     avg_score = scores.get(state, 0) / plays[state]
                     n_visit = plays[state]
-                    """
-                    if avg_score < average_score:
-                        average_score = avg_score
-                        played_card = state[0]
-                    """
+
                     if n_visit > most_visit:
                         most_visit = n_visit
                         played_card = state[0]
@@ -123,7 +119,7 @@ class MCTSPlayer(MonteCarloPlayer4):
 
             played_card = state[0]
         else:
-            played_card = choice(valid_cards)#player.play_card(game._player_hands[self.position], game)
+            played_card = choice(valid_cards)
 
         state = (played_card, tuple(game.players[0].seen_cards[:]) + (played_card,))
 

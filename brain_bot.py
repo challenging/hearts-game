@@ -2,6 +2,8 @@
 import sys
 
 import json
+import copy
+
 import logging
 import numpy as np
 
@@ -16,7 +18,7 @@ from sample_bot import Log, LowPlayBot, PokerSocket
 
 from game import Game
 from player import SimplePlayer
-from simulated_player import MonteCarloPlayer4 as Player
+#from simulated_player import MonteCarloPlayer4 as Player
 
 from card import Card, Suit, Rank, Deck
 from rules import transform
@@ -28,12 +30,12 @@ ALL_SCORES = defaultdict(list)
 system_log = Log(IS_DEBUG)
 
 
-class MonteCarloBot(LowPlayBot):
-    def __init__(self, name):
-        super(MonteCarloBot, self).__init__(name)
+class BrainBot(LowPlayBot):
+    def __init__(self, name, brain):
+        super(BrainBot, self).__init__(name)
 
-        self.player = Player(verbose=True)
-        self.pure_player = copy.deepcopy(self.player)
+        self.player = brain
+        self.pure_player = copy.deepcopy(brain)
 
         self.player_names = []
 
@@ -104,7 +106,7 @@ class MonteCarloBot(LowPlayBot):
 
 
     def turn_end(self, data):
-        super(MonteCarloBot, self).turn_end(data)
+        super(BrainBot, self).turn_end(data)
 
         def find_leading_suit():
             leading_idx = int(len(self.round_cards_history)/4)*4
