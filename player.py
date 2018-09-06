@@ -1,10 +1,14 @@
 """This module containts the abstract class Player and some implementations."""
+import os
+
 from random import shuffle
 from collections import defaultdict
 
 from card import Suit, Rank, Card, Deck
 from rules import is_card_valid
 
+
+OUT_FILE = None
 
 class Player(object):
 
@@ -25,7 +29,15 @@ class Player(object):
 
     def say(self, message, *formatargs):
         if self.verbose:
-            print(message.format(*formatargs))
+            global OUT_FILE
+
+            if not os.path.exists("log"):
+                os.makedirs("log")
+
+            if OUT_FILE is None:
+                OUT_FILE = open("log/game.log", "w")
+
+            OUT_FILE.write("{}\n".format(message.format(*formatargs)))
 
 
     def set_transfer_card(self, received_player, card):
