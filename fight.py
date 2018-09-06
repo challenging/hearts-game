@@ -1,10 +1,7 @@
 import sys
 
 from sample_bot import PokerSocket
-#from simple_bot import SimpleBot
 from brain_bot import BrainBot
-#from mcts_bot import MCTSBot
-#from montecarlo_bot import MonteCarloBot
 
 from player import SimplePlayer
 from simulated_player import MonteCarloPlayer4
