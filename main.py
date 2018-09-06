@@ -1,16 +1,8 @@
 import os
 import sys
 
-import glob
-import copy
-import time
-
-from random import shuffle
-from scipy.stats import describe
-
 from card import read_card_games
-from card import Rank, Suit, Card
-from game import Game
+from card import Suit, Rank, Card
 from rules import get_setting_cards, evaluate_players
 
 from player import StupidPlayer, SimplePlayer
@@ -51,7 +43,8 @@ if __name__ == "__main__":
         player = SimplePlayer(verbose=False)
         other_players = [StupidPlayer() for _ in range(3)]
 
-    setting_cards = read_card_games("game/game_0032/game_1534664313.pkl")
+    setting_cards = read_card_games("game/game_0008/game_1534672486.pkl")
+    #setting_cards = read_card_games("game/game_0032/game_1534664313.pkl")
     #setting_cards = get_setting_cards()
 
-    evaluate_players(nr_of_games, [player] + other_players, setting_cards)
+    evaluate_players(nr_of_games, [player] + other_players, setting_cards, is_expose=True)

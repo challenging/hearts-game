@@ -263,7 +263,7 @@ def redistribute_card(copy_cards, info):
     print(cards, new_cards)
 
 
-def evaluate_players(nr_of_games, players, setting_cards, verbose=True, early_stop=False):
+def evaluate_players(nr_of_games, players, setting_cards, verbose=True, early_stop=False, is_expose=False):
     from game import Game
 
     if early_stop:
@@ -273,10 +273,11 @@ def evaluate_players(nr_of_games, players, setting_cards, verbose=True, early_st
     final_scores = [[], [], [], []]
     for game_idx in range(nr_of_games):
         game = Game(players, verbose=True)
+        game.expose_heart_ace = is_expose
 
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
             scores = [0, 0, 0, 0]
-            for round_idx in range(4):
+            for round_idx in range(1):
                 cards_copy = copy.deepcopy(cards)
 
                 cards_copy[0], cards_copy[1], cards_copy[2], cards_copy[3] = \
@@ -287,12 +288,13 @@ def evaluate_players(nr_of_games, players, setting_cards, verbose=True, early_st
 
                 game.play()
                 game.score()
-                game.reset()
 
                 tscores = game.player_scores
 
                 for idx, ts in enumerate(tscores):
                     scores[idx] += ts
+
+                game.reset()
 
                 if early_stop:
                     break

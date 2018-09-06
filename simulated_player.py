@@ -7,6 +7,7 @@ import time
 import numpy as np
 import multiprocessing as mp
 
+from scipy.stats import describe
 from collections import defaultdict
 from random import shuffle, choice, randint, choice
 
@@ -54,17 +55,15 @@ class MonteCarloPlayer(SimplePlayer):
                     min_score = score
                     played_card = card
 
-                self.say("{}, simulation: {} round --> valid_cards: {}, simulate {} card --> {:4d} score /{:4d} average_score {:.4f}, (std={:.4f}, min={:3d}, max={:3d})",
-                    type(self).__name__,
+                self.say("{} {}, simulation: {} round --> valid_cards: {}, simulate {} card --> average_score {:.4f} --> {:.4f}, ({})",
                     game.trick_nr,
+                    type(self).__name__,
+                    len(winning_score[card]),
                     valid_cards,
                     card,
-                    np.sum(winning_score[card]),
-                    len(winning_score[card]),
+                    np.mean(winning_score[card]),
                     score,
-                    np.std(winning_score[card]),
-                    np.min(winning_score[card]),
-                    np.max(winning_score[card]))
+                    describe(winning_score[card]))
         else:
             played_card = valid_cards[0]
 
@@ -307,4 +306,4 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
 
 
     def winning_score_func(self, scores):
-        return np.mean(scores) - np.std(scores)*0.01
+        return np.mean(scores)+np.std(scores)
