@@ -21,7 +21,10 @@ if __name__ == "__main__":
     other_players = []
 
     player_ai = sys.argv[2]
-    if player_ai.lower() == "mc5":
+    if player_ai.lower() == "mc6":
+        player = MonteCarloPlayer6(verbose=True)
+        other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
+    elif player_ai.lower() == "mc5":
         player = MonteCarloPlayer5(verbose=True)
         other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mc4":

@@ -9,7 +9,7 @@ import multiprocessing as mp
 
 from scipy.stats import describe
 from collections import defaultdict
-from random import shuffle, choice, randint, choice
+from random import shuffle, choice
 
 from card import Suit, Rank, Card, Deck
 from player import StupidPlayer, SimplePlayer
@@ -23,6 +23,57 @@ class MonteCarloPlayer(SimplePlayer):
         super(MonteCarloPlayer, self).__init__(verbose=verbose)
 
         self.num_of_cpu = num_of_cpu
+
+
+    def pass_cards(self, hand, round_idx):
+        hand.sort(key=lambda x: self.undesirability(x), reverse=True)
+
+        hand_cards = {Suit.spades: [], Suit.hearts: [], Suit.diamonds: [], Suit.clubs: []}
+        for card in hand:
+            hand_cards[card.suit].append(max(card.rank.value-10, 0))
+
+        proactive_mode, proactive_suit = False, None
+        for suit, cards in hand_cards.items():
+            if suit == Suit.hearts:
+                if np.sum(cards) >= 8 and len(cards) >= 4:
+                    proactive_mode = True
+                elif np.sum(cards) >= 7 and len(cards) >= 5:
+                    proactive_mode = True
+            else:
+                if np.sum(cards) >= 6 and len(cards) >=5:
+                    if len(hand_cards[Suit.hearts]) >= 3 and np.sum(hand_cards[Suit.hearts]) >= 1:
+                        proactive_mode = True
+                        proactive_suit = suit
+
+        pass_cards = []
+        if proactive_mode:
+            for card in hand:
+                if card.suit not in [Suit.hearts, proactive_suit]:
+                    pass_cards.append(card)
+            pass_cards.sort(key=lambda x: self.undesirability(x), reverse=False)
+
+            self.say("{} ----> proactive_mode: {}".format(type(self).__name__, proactive_mode), pass_cards[:3], sorted(hand))
+        else:
+            pass_cards = []
+            if Card(Suit.spades, Rank.queen) in hand:
+                num_spades = 0
+                for card in hand:
+                    if card.suit == Suit.spades:
+                        if card.rank < Rank.queen:
+                            num_spades += 1
+
+                if num_spades > 2:
+                    for card in hand:
+                        if card.suit != Suit.spades:
+                            pass_cards.append(card)
+
+            if not pass_cards:
+                pass_cards = hand
+                pass_cards.sort(key=lambda x: self.undesirability(x), reverse=True)
+
+        self.say("pass card is {}", pass_cards[:3])
+
+        return pass_cards[:3]
 
 
     def winning_score_func(self, scores):
@@ -128,7 +179,10 @@ class MonteCarloPlayer(SimplePlayer):
 
         game.score()
 
-        return played_card, self.score_func(game.player_scores)
+        self_score = self.score_func(game.player_scores)
+        #print(played_card, self_score, game.player_scores)
+
+        return played_card, self_score
 
 
 class MonteCarloPlayer2(MonteCarloPlayer):
@@ -225,17 +279,16 @@ class MonteCarloPlayer3(MonteCarloPlayer2):
 
 
     def score_func(self, scores):
-        min_score, second_score = None, None
+        min_score, other_score = None, 0
         for idx, score in enumerate(sorted(scores)):
             if idx == 0:
                 min_score = score
-            elif idx == 1:
-                second_score = score
-                break
+            else:
+                other_score += score
 
         self_score = scores[self.position]
         if self_score == min_score:
-            return self_score-second_score
+            return self_score-other_score/3
         else:
             return self_score-min_score
 
@@ -297,7 +350,10 @@ class MonteCarloPlayer4(MonteCarloPlayer3):
 
         game.score()
 
-        return played_card, self.score_func(game.player_scores)
+        self_score = self.score_func(game.player_scores)
+        #print(played_card, self_score, game.player_scores)
+
+        return played_card, self_score
 
 
 class MonteCarloPlayer5(MonteCarloPlayer4):
@@ -305,5 +361,42 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
         super(MonteCarloPlayer5, self).__init__(verbose=verbose)
 
 
+    def run_simulation(self, game, hand_cards, played_card):
+        remaining_cards = self.get_remaining_cards(hand_cards)
+
+        trick_nr = game.trick_nr
+
+        game.verbose = False
+        game.players = [SimplePlayer() for _ in range(4)]
+
+        game = self.redistribute_cards(game, remaining_cards)
+        #print("&&&&&&", game._player_hands)
+
+        game.step(played_card)
+
+        for _ in range(4-len(game.trick)):
+            game.step()
+
+        for _ in range(13-game.trick_nr):
+            game.play_trick()
+
+        if trick_nr < 6:
+            self.overwrite_game_score_func(game)
+
+        game.score()
+
+        self_score = self.score_func(game.player_scores)
+        #print(game.point_cards)
+        #print("******", played_card, self_score, game.player_scores, [[card for card in cards if card in game.point_cards] for cards in game._cards_taken])
+
+        return played_card, self_score
+
     def winning_score_func(self, scores):
-        return np.mean(scores)+np.std(scores)
+        stats = describe(scores)
+
+        additional_score = 0.2*stats.variance**0.5
+        #if stats.skewness+1e-16 < 0:
+        #    additional_score = 0.1*stats.variance**0.5
+        #    print("****notice****")
+
+        return np.mean(scores)+additional_score

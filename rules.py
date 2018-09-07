@@ -185,10 +185,11 @@ def get_setting_cards():
     3 SimplePlayer [AC, AD, TC, 7S, 7H, 6S, 6H, 5D, 3C, 3D, 3H, 2H] 0
     """
 
-    card_string = ["JC, KC, 6D, 8D, 9D, JD, QD, KD, 3S, JS, AS, 9H, 5C",
-                   "4C, 6C, 7C, QC, 2S, TS, QS, KS, 4H, 8H, JH, QH, 2C",
-                   "TH, 8S, 4S, KH, 9S, 7D, 2D, 5S, TD, 5H, AH, 4D, 9C",
+    card_string = ["JC, QH, 6D, 8D, 9D, JD, QD, KD, 3S, JS, AS, 9H, 5H",
+                   "4C, 6C, 7C, QC, 2S, TS, QS, KS, 4H, 8H, JH, KC, 2C",
+                   "TH, 8S, 4S, KH, 9S, 7D, 2D, 5S, TD, 5C, AH, 4D, 9C",
                    "AC, AD, TC, 7S, 7H, 6S, 6H, 5D, 3C, 3D, 3H, 2H, 8C"]
+    print(card_string)
 
     return [transform_cards(card_string)]
 
@@ -263,12 +264,8 @@ def redistribute_card(copy_cards, info):
     print(cards, new_cards)
 
 
-def evaluate_players(nr_of_games, players, setting_cards, verbose=True, early_stop=False, is_expose=False):
+def evaluate_players(nr_of_games, players, setting_cards, verbose=True, is_expose=False):
     from game import Game
-
-    if early_stop:
-        nr_of_games = 1
-        setting_cards = setting_cards[:1]
 
     final_scores = [[], [], [], []]
     for game_idx in range(nr_of_games):
@@ -277,14 +274,26 @@ def evaluate_players(nr_of_games, players, setting_cards, verbose=True, early_st
 
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
             scores = [0, 0, 0, 0]
-            for round_idx in range(1):
+            for round_idx in range(1, 5):
                 cards_copy = copy.deepcopy(cards)
 
+                if round_idx == 1:
+                    print("pass cards to left-side")
+                elif round_idx == 2:
+                    print("pass cards to cross-side")
+                elif round_idx == 3:
+                    print("pass cards to right-side")
+                else:
+                    print("no passing cards")
+
                 cards_copy[0], cards_copy[1], cards_copy[2], cards_copy[3] = \
-                    cards_copy[round_idx], cards_copy[(round_idx+1)%4], cards_copy[(round_idx+2)%4], cards_copy[(round_idx+3)%4],
+                    cards_copy[round_idx%4], cards_copy[(round_idx+1)%4], cards_copy[(round_idx+2)%4], cards_copy[(round_idx+3)%4],
+
+                for player_idx in range(4):
+                    print("Player-{}'s init_cards: {}".format(player_idx, cards_copy[player_idx]))
 
                 game._player_hands = cards_copy
-                game.pass_cards()
+                game.pass_cards(round_idx)
 
                 game.play()
                 game.score()
@@ -294,16 +303,14 @@ def evaluate_players(nr_of_games, players, setting_cards, verbose=True, early_st
                 for idx, ts in enumerate(tscores):
                     scores[idx] += ts
 
+                if verbose:
+                    for player_idx, (player, score) in enumerate(zip(players, scores)):
+                        print("{:02d}:{:04d} --> {:16s}({}): {:4d} points".format(game_idx+1, round_idx, type(player).__name__, player_idx, score))
+
                 game.reset()
 
-                if early_stop:
-                    break
-
-            if verbose:
-                for player_idx, (player, score) in enumerate(zip(players, scores)):
-                    print("{:04d} --> {:16s}({}): {:4d} points".format(game_idx+1, type(player).__name__, player_idx, score))
-
             for player_idx in range(4):
+                print("{:02d} --> {:16s}({}): {:4d} points".format(game_idx+1, type(game.players[player_idx]).__name__, player_idx, scores[player_idx]))
                 final_scores[player_idx].append(scores[player_idx])
 
     statss = []

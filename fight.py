@@ -23,7 +23,7 @@ def main():
         token = "12345678"
         connect_url = "ws://localhost:8080/"
 
-    bot = BrainBot(player_name, MonteCarloPlayer5(verbose=True))
+    bot = BrainBot(player_name, MonteCarloPlayer4(verbose=True))
     if len(sys.argv) == 6:
         if sys.argv[5] == "mc4":
             bot = BrainBot(player_name, MonteCarloPlayer4(verbose=True))

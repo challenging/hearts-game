@@ -31,11 +31,8 @@ class Player(object):
         if self.verbose:
             global OUT_FILE
 
-            if not os.path.exists("log"):
-                os.makedirs("log")
-
             if OUT_FILE is None:
-                OUT_FILE = open("log/game.log", "w")
+                OUT_FILE = open("/log/game.log", "w")
 
             message = message.format(*formatargs)
             print(message)
@@ -55,7 +52,7 @@ class Player(object):
         self.position = idx
 
 
-    def pass_cards(self, hand):
+    def pass_cards(self, hand, round_idx):
         """Must return a list of three cards from the given hand."""
         return NotImplemented
 
@@ -165,7 +162,7 @@ class SimplePlayer(Player):
         super(SimplePlayer, self).__init__(verbose=verbose)
 
 
-    def pass_cards(self, hand):
+    def pass_cards(self, hand, round_idx):
         hand.sort(key=self.undesirability, reverse=True)
 
         cards = []

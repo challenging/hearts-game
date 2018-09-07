@@ -22,6 +22,12 @@ class Game(object):
         self.current_player_idx = 0
         self.trick = []
 
+        self.point_cards = {Card(Suit.clubs, Rank.ten), Card(Suit.spades, Rank.queen), Card(Suit.hearts, Rank.ace),
+                            Card(Suit.hearts, Rank.two), Card(Suit.hearts, Rank.three), Card(Suit.hearts, Rank.four),
+                            Card(Suit.hearts, Rank.five), Card(Suit.hearts, Rank.six), Card(Suit.hearts, Rank.seven),
+                            Card(Suit.hearts, Rank.eight), Card(Suit.hearts, Rank.nine), Card(Suit.hearts, Rank.ten),
+                            Card(Suit.hearts, Rank.jack), Card(Suit.hearts, Rank.queen), Card(Suit.hearts, Rank.king)}
+
         self.player_scores = [0, 0, 0, 0]
 
         self.expose_heart_ace = False
@@ -47,7 +53,8 @@ class Game(object):
             self.lacking_cards.append(suits)
 
 
-    def add_lacking_cards_info(self, winning_index, winning_player_index):
+    def post_round_over(self, winning_index, winning_player_index):
+        # Add the information for lacking cards
         leading_suit = self.trick[winning_index].suit
 
         indexs = [0, 0, 0, 0]
@@ -61,6 +68,11 @@ class Game(object):
             if card.suit != leading_suit:
                 self.lacking_cards[i][leading_suit] = True
 
+        # remove the point_cards
+        for card in self.trick:
+            if card in self.point_cards:
+                self.point_cards.remove(card)
+
 
     def say(self, message, *formatargs):
         if self.verbose:
@@ -70,16 +82,16 @@ class Game(object):
     def print_game_status(self):
         for player_idx, (player, hand_cards, taken_cards, lacking_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken, self.lacking_cards)):
             self.say("trick_nr: {:2d}, current_trick: {}, leading_position: {}", self.trick_nr, self.trick, self.current_player_idx)
-            self.say("lacking_info: {}", lacking_cards)
+            self.say("lacking_info: {}, is_heart_broken: {}", lacking_cards, self.is_heart_broken)
             self.say("position: {}, name:{:18s}, hand_cards: {}, score: {:3d}, taken_cards: {}",\
-                player_idx, type(player).__name__, hand_cards, self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)]))
+                player_idx, type(player).__name__, sorted(hand_cards), self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)]))
 
 
     def print_hand_cards(self):
         if self.verbose:
             for player_idx, (player, hand_cards, taken_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken)):
                 self.say("position: {}, name:{:18s}, hand_cards: {}, score: {:3d}, taken_cards: {}".format(\
-                    player_idx, type(player).__name__, hand_cards, self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)])))
+                    player_idx, type(player).__name__, sorted(hand_cards), self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)])))
             print()
 
 
@@ -98,9 +110,9 @@ class Game(object):
                 break
 
 
-    def pass_cards(self):
+    def pass_cards(self, round_idx):
         for i in range(4):
-            for card in self.players[i].pass_cards(self._player_hands[i]):
+            for card in self.players[i].pass_cards(self._player_hands[i], round_idx):
                 next_idx = (i + 1) % 4
 
                 self._player_hands[i].remove(card)
@@ -109,7 +121,7 @@ class Game(object):
 
                 self.players[next_idx].freeze_pass_card(card)
 
-                self.say("Player {}({}) give Player {}({}) {} card", i, type(self.players[i]).__name__, next_idx, type(self.players[next_idx]).__name__, card)
+                #self.say("Player {}({}) give Player {}({}) {} card", i, type(self.players[i]).__name__, next_idx, type(self.players[next_idx]).__name__, card)
 
         self.print_hand_cards()
 
@@ -138,7 +150,7 @@ class Game(object):
                 if s > 0:
                     self.player_scores[i] = 0
                 else:
-                    self.player_scores[i] = max_score
+                    self.player_scores[i] = max_score*4
         else:
             for i in range(4):
                 self.player_scores[i] = self.count_points(self._cards_taken[i])
@@ -160,7 +172,7 @@ class Game(object):
         Simulate a single trick.
         leading_index contains the index of the player that must begin.
         """
-        if self.is_heart_broken:
+        if not self.is_heart_broken:
             self.are_hearts_broken()
 
         for _ in range(4):
@@ -180,7 +192,7 @@ class Game(object):
 
         self._cards_taken[winning_player_index].extend(self.trick)
 
-        self.add_lacking_cards_info(winning_index, winning_player_index)
+        self.post_round_over(winning_index, winning_player_index)
 
         self.trick_nr += 1
 
@@ -189,7 +201,7 @@ class Game(object):
             print("the information about lacking cards are")
             print(self.lacking_cards)
             print()
-            print("the winning_player_index is {}({}, {})".format(winning_player_index, self.current_player_idx, winning_index))
+            print("the winning_player_index is {}({}, {}), is_heart_broken: {}".format(winning_player_index, self.current_player_idx, winning_index, self.is_heart_broken))
             print("player {}({}) win this {:2d} trick by {} card based on {}".format(\
                 winning_player_index, type(self.players[winning_player_index]).__name__, self.trick_nr, winning_card, self.trick))
             print("after {:3d} round, status of every players' hand cards".format(self.trick_nr))
@@ -200,6 +212,13 @@ class Game(object):
         self.trick = []
 
         return winning_card
+
+
+    def early_stop(self):
+        if self.point_cards:
+            return False
+        else:
+            return True
 
 
     def step(self, played_card=None):
@@ -234,7 +253,7 @@ class Game(object):
                 return i
 
         for player_idx in range(4):
-            print(player_idx, self._player_hands[player_idx])
+            self.say("Player - {}'s init_cards: {}", player_idx, self._player_hands[player_idx])
 
         raise AssertionError('No one has the two of clubs. This should not happen.')
 

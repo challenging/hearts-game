@@ -47,7 +47,7 @@ class SimpleBot(PokerBot):
             card = transform(card_str[0], card_str[1])
             self.my_hand_cards.append(card)
 
-        pass_cards = self.player.pass_cards(self.my_hand_cards)
+        pass_cards = self.player.pass_cards(self.my_hand_cards, data["dealNumber"])
 
         return_values = []
         for card in pass_cards:

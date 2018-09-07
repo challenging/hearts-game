@@ -93,7 +93,7 @@ class PokerBot(object):
         raise NotImplementedError(err_msg)
 
 
-    def pass_cards(self,data):
+    def pass_cards(self, data):
         err_msg = self.__build_err_msg("pass_cards")
         raise NotImplementedError(err_msg)
 

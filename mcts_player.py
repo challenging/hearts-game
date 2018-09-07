@@ -24,7 +24,7 @@ class MCTSPlayer(MonteCarloPlayer5):
     def __init__(self, verbose=False):
         super(MCTSPlayer, self).__init__(verbose=verbose)
 
-        self.C = 1.3
+        self.C = 5
 
 
     def play_card(self, hand_cards, game, simulation_time_limit=TIMEOUT_SECOND):
