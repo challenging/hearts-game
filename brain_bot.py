@@ -197,7 +197,8 @@ class BrainBot(LowPlayBot):
 
         self.game.current_player_idx = self.player.position
         self.game._player_hands[self.player.position] = self.my_hand_cards
-        played_card = self.game.players[self.player.position].play_card(self.game._player_hands[self.player.position], self.game)
+        #played_card = self.game.players[self.player.position].play_card(self.game._player_hands[self.player.position], self.game)
+        played_card = self.game.players[self.player.position].play_card(self.game)
 
         message = "Pick Card:{} ({})".format(played_card, candidate_cards)
         self.say(message)

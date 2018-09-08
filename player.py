@@ -23,6 +23,7 @@ class Player(object):
 
         self.name = None
         self.position = None
+        self.proactive_mode = set()
 
         self.verbose = verbose
 
@@ -65,7 +66,7 @@ class Player(object):
         return any([True if card == pass_card else False for pass_card in self.freeze_cards])
 
 
-    def play_card(self, hand, game):
+    def play_card(self, game):
         """
         Must return a card from the given hand.
         trick is a list of cards played so far.
@@ -116,6 +117,8 @@ class Player(object):
         self.freeze_cards = []
         self.transfer_cards = defaultdict(list)
 
+        self.proactive_mode = set()
+
 
 class StupidPlayer(Player):
 
@@ -139,7 +142,9 @@ class StupidPlayer(Player):
 
         return cards
 
-    def play_card(self, hand, game):
+    def play_card(self, game):
+        hand = game._player_hands[game.current_player_idx]
+
         # Play first card that is valid
         shuffle(hand)
         for card in hand:
@@ -177,7 +182,9 @@ class SimplePlayer(Player):
         return cards
 
 
-    def play_card(self, hand, game):
+    def play_card(self, game):
+        hand = game._player_hands[game.current_player_idx]
+
         # Lead with a low card
         if not game.trick:
             card = None
@@ -199,8 +206,8 @@ class SimplePlayer(Player):
             return card
 
         hand.sort(key=self.undesirability, reverse=True)
-        self.say('Hand: {}', hand)
-        self.say('Trick so far: {}', game.trick)
+        #self.say('Hand: {}', hand)
+        #self.say('Trick so far: {}', game.trick)
 
         # Safe cards are cards which will not result in winning the trick
         leading_suit, max_rank_in_leading_suit = self.get_leading_suit_and_rank(game.trick)
@@ -224,3 +231,80 @@ class SimplePlayer(Player):
             else:
                 return valid_cards[0]
 
+
+class MaxCardPlayer(SimplePlayer):
+    def play_card(self, game):
+        hand = game._player_hands[game.current_player_idx]
+
+        # Lead with a low card
+        if not game.trick:
+            card = None
+            if game.trick_nr == 0:
+                for card in hand:
+                    if card.suit == Suit.clubs and card.rank == Rank.two:
+                        break
+            else:
+                hand.sort(key=lambda card:
+                          100 if not game.is_heart_broken and card.suit == Suit.hearts else
+                          card.rank.value)
+
+                try:
+                    card = hand[0]
+                except IndexError:
+                    raise
+
+            return card
+
+        leading_suit, max_rank_in_leading_suit = self.get_leading_suit_and_rank(game.trick)
+
+        hand.sort(key=self.undesirability, reverse=True)
+        valid_cards = self.get_valid_cards(hand, game)
+
+        non_heart_cards = []
+        for played_card in valid_cards:
+            if played_card.suit == leading_suit and played_card.rank > max_rank_in_leading_suit:
+                played_card = valid_cards[0]
+
+                break
+            else:
+                if played_card.suit != Suit.hearts:
+                    non_heart_cards.append(played_card)
+        else:
+            if non_heart_cards:
+                played_card = non_heart_cards[-1]
+            else:
+                played_card = valid_cards[-1]
+
+        return played_card
+
+
+class MinCardPlayer(SimplePlayer):
+    def play_card(self, game):
+        hand = game._player_hands[game.current_player_idx]
+
+        # Lead with a low card
+        if not game.trick:
+            card = None
+            if game.trick_nr == 0:
+                for card in hand:
+                    if card.suit == Suit.clubs and card.rank == Rank.two:
+                        break
+            else:
+                hand.sort(key=lambda card:
+                          100 if not game.is_heart_broken and card.suit == Suit.hearts else
+                          card.rank.value)
+
+                try:
+                    card = hand[0]
+                except IndexError:
+                    print(hand)
+                    raise
+
+            return card
+
+        hand.sort(key=self.undesirability)
+
+        valid_cards = self.get_valid_cards(hand, game)
+        played_card = valid_cards[0]
+
+        return played_card

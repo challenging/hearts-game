@@ -106,165 +106,47 @@ def transform(rank, suit):
 
 
 def get_setting_cards():
-    card_string = ["JS, JH, 9C, 9D, 7S, 6H, 4D, 3D, 3S, 2S, AS, QS, KC",
-                   "KS, 10S, QH, JC, 10D, 9H, 7D, 7H, 6C, 4H, 3C, 2D, 2H",
-                   "AC, AH, QD, 10H, 8C, 8S, 7C, 6D, 6S, 4C, 4S, 3H, 2C",
-                   "KD, KH, QC, JD, AD, 10C, 9S, 8D, 8H, 5C, 5D, 5S, 5H"]
+    # shoot the moon
+    card_string = [["QS,6S,AH,KH,QH,TH,7H,6H,3H,2H,KC,AD,8D",
+                    "5S,4S,8H,5H,7C,4C,QD,TD,9D,6D,5D,4D,3D",
+                    "AS,KS,TS,9S,8S,7S,3S,JH,9H,QC,JC,TC,9C",
+                    "JS,2S,4H,AC,8C,6C,5C,3C,2C,KD,JD,7D,2D"],
+                   ["JS,AH,KH,QH,JH,TH,2H,KC,QC,TC,AD,KD,8D",
+                    "8S,7S,3S,JC,4C,3C,9D,7D,6D,5D,4D,3D,2D",
+                    "AS,KS,QS,9S,6S,4S,2S,7H,3H,AC,QD,JD,TD",
+                    "TS,5S,9H,8H,6H,5H,4H,9C,8C,7C,6C,5C,2C"],
+                   ["AS,KS,TS,9S,KH,QH,TH,7H,6H,5H,5C,KD,QD",
+                    "QS,8S,6S,5S,2S,JH,9H,8H,2H,AC,9C,7C,3D",
+                    "JS,7S,4S,3S,AH,3H,KC,QC,JC,TC,AD,TD,6D",
+                    "4H,8C,6C,4C,3C,2C,JD,9D,8D,7D,5D,4D,2D"]]
 
-    card_string = ["4C, 9C, 2D, 4D, 5D, 9D, 5S, QS, 2H, 4H, 9H, QH, JC",
-                   "3C, 6D, 8D, 10D, 10S, QD, KS, AC, AD, 5H, 8H, JH, 2C",
-                   "AS, KC, KH, JS, 10C, 7C, 7D, 7H, 4S, 3D, 3S, 3H, 5C",
-                   "AH, KD, JD, 10H, 9S, 8C, 8S, 7S, 6C, 6S, 6H, 2S, QC"]
-
-    card_string = ["QC, 3D, 4D, 5D, 8D, 9D, JD, AD, 5S, JS, KS, 10H, 10C",
-                   "2S, 4S, 7D, 9C, 9S, JC, QS, KD, 3H, 6H, 8H, JH, 2C",
-                   "AS, QD, QH, 10D, 9H, 8C, 8S, 6C, 5H, 4C, 4H, 2D, 3C",
-                   "AH, KC, KH, 10S, 7C, 7S, 7H, 6D, 6S, 5C, 3S, 2H, AC"]
-
-    card_string = ["4C, 3D, 9D, QD, KD, AD, KS, AS, 2H, 5H, QH, KH, 5C",
-                   "JC, JS, 10C, 10S, 10H, 9C, 8H, 6C, 6S, 5D, 4H, 3S, QC",
-                   "AC, KC, JD, JH, 10D, 9S, 8D, 7D, 6D, 4D, 3H, 2D, 3C",
-                   "7C, 8C, 2S, 4S, 5S, 7S, 8S, QS, 6H, 7H, 9H, AH, 2C"]
-
-    card_string = ["6C, KD, 9S, 10S, JS, QS, AS, 4H, 8H, 9H, JH, QH, 2C",
-                   "KS, AH, KH, QD, JD, 9C, 6D, 5H, 4C, 4S, 3C, 3D, 10C",
-                   "AD, 10H, 9D, 8D, 7S, 5C, 5D, 5S, 4D, 3H, 2S, 2H, 8C",
-                   "AC, KC, QC, JC, 10D, 8S, 7D, 7H, 6S, 6H, 3S, 2D, 7C"]
-
-    card_string = ["8C, 10C, AC, 4D, 3S, 4S, 9S, QS, 4H, 5H, 9H, AH, JC",
-                   "QC, JH, 10D, 10H, 8D, 6D, 6S, 6H, 5D, 3C, 2D, 2S, 2C",
-                   "AS, KS, QD, JS, 10S, 9D, 8S, 7D, 5C, 5S, 4C, 2H, KC",
-                   "AD, KD, KH, QH, JD, 9C, 8H, 7C, 7S, 7H, 3D, 3H, 6C"]
-
-    card_string = ["10C, JC, 9D, 3S, 6S, JS, KS, 8H, JH, QH, KH, AH, 5C",
-                   "3C, 6C, 8C, QC, KC, 5D, 7D, 4S, 8S, 9S, QS, 6H, 4C",
-                   "AC, AD, KD, QD, JD, 10S, 7H, 6D, 4D, 3H, 2D, 2S, 2C",
-                   "7C, 3D, 8D, 10D, 5S, 7S, AS, 2H, 4H, 5H, 9H, 10H, 9C"]
-
-    card_string = ["AC, 5D, 8D, 5S, 6S, 8S, 9S, QS, AS, 8H, 9H, JH, QC",
-                   "KH, 10C, 10H, 9D, 7D, 7H, 6C, 5C, 4C, 4H, 3C, 2S, 2C",
-                   "KS, AD, AH, QD, 7S, 6H, 4D, 4S, 3D, 3S, 2D, 2H, KC",
-                   "7C, 8C, JC, 6D, 10D, JD, KD, 10S, JS, 3H, 5H, QH, 9C"]
-    """
-    the winning_player_index is 2
-    player 2(MonteCarloPlayer) win this  1 trick by 8C card based on [2C, 8C, 5C, 7C]
-    after   1 round, status of every players' hand cards
-    ==================================================================
-    0 MonteCarloPlayer2 [6C, QC, KC, 3D, 8D, 10D, QD, KD, 4S, QS, 8H, AH] 0
-    1 SimplePlayer [3C, 4C, 10C, JC, AC, 4D, AD, 6S, 2H, 4H, 7H, 10H] 0
-    2 MonteCarloPlayer [2S, 5S, 7S, 8S, 10S, JS, KS, AS, 3H, 5H, 6H, JH] 0
-    3 SimplePlayer [KH, QH, JD, 9C, 9D, 9S, 9H, 7D, 6D, 5D, 3S, 2D] 0
-    """
-
-    """
-    player 1(SimplePlayer) win this  1 trick by JC card based on [2C, JC, 10C, 7C]
-    after   1 round, status of every players' hand cards
-    ==================================================================
-    0 MCTSPlayer [6C, 8C, 9C, 3D, 4D, QD, 2S, 7S, 10S, QS, 10H, JH] 0
-    1 SimplePlayer [KS, AD, KD, 9D, 9S, 9H, 8S, 6D, 5D, 4H, 3S, 2H] 0
-    2 SimplePlayer [AH, QC, QH, JD, 8D, 7H, 6H, 5C, 5S, 5H, 3C, 3H] 0
-    3 SimplePlayer [AS, AC, KC, KH, JS, 10D, 8H, 7D, 6S, 4C, 4S, 2D] 0
-
-    Player 1(SimplePlayer) played 3S card as the leading card
-    (count_simulation, wins, plays, percent_wins, played_card, valid_cards) = (116, 113, 113, 0.325, 2S, [2S, 7S, 10S, QS])
-
-    """
-
-    card_string = ["6C, 8C, 9C, 3D, 4D, QD, 2S, 7S, 10S, QS, 10H, JH, 2C",
-                   "KS, AD, KD, 9D, 9S, 9H, 8S, 6D, 5D, 4H, 3S, 2H, JC",
-                   "AH, QC, QH, JD, 8D, 7H, 6H, 5C, 5S, 5H, 3C, 3H, 10C",
-                   "AS, AC, KC, KH, JS, 10D, 8H, 7D, 6S, 4C, 4S, 2D, 7C"]
-
-    """
-    player 2(StupidPlayer) win this  1 trick by 9C card based on [2C, 9C, 8C, 5C]
-    after   1 round, status of every players' hand cards
-    ==================================================================
-    0 MCTSPlayer [JC, KC, 6D, 8D, 9D, JD, QD, KD, 3S, JS, AS, 9H] 0
-    1 SimplePlayer [4C, 6C, 7C, QC, 2S, TS, QS, KS, 4H, 8H, JH, QH] 0
-    2 StupidPlayer [TH, 8S, 4S, KH, 9S, 7D, 2D, 5S, TD, 5H, AH, 4D] 0
-    3 SimplePlayer [AC, AD, TC, 7S, 7H, 6S, 6H, 5D, 3C, 3D, 3H, 2H] 0
-    """
-
-    card_string = ["JC, QH, 6D, 8D, 9D, JD, QD, KD, 3S, JS, AS, 9H, 5H",
-                   "4C, 6C, 7C, QC, 2S, TS, QS, KS, 4H, 8H, JH, KC, 2C",
-                   "TH, 8S, 4S, KH, 9S, 7D, 2D, 5S, TD, 5C, AH, 4D, 9C",
-                   "AC, AD, TC, 7S, 7H, 6S, 6H, 5D, 3C, 3D, 3H, 2H, 8C"]
-    print(card_string)
-
-    return [transform_cards(card_string)]
+    return transform_cards(card_string)
 
 
-def transform_cards(card_string):
-    cards = []
-    for card_s in card_string:
-        t = []
-        for card in card_s.split(","):
-            card = card.strip()
+def transform_cards(card_strings):
+    cardss = []
 
-            rank = "".join(card[:-1])
-            suit = card[-1]
+    separator = ","
+    for card_string in card_strings:
+        cards = []
+        for card_s in card_string:
+            t = []
+            for card in card_s.split(separator):
+                card = card.strip()
 
-            t.append(transform(rank, suit))
+                rank = "".join(card[:-1])
+                suit = card[-1]
 
-        cards.append(t)
+                t.append(transform(rank, suit))
 
-    return cards
+            cards.append(t)
 
+        cardss.append(cards)
 
-def redistribute_card(copy_cards, info):
-    remaining_cards = [c for card in copy_cards for c in card]
-
-    ori_size = [len(card) for card in copy_cards]
-    new_cards = [[], [], [], []]
-
-    player_idxs = []
-    for player_idx, lacking_info in enumerate(info):
-        player_idxs.append((player_idx, sum(lacking_info.values())))
-
-    while sum([player_idx for player_idx in range(4) if len(new_cards[player_idx]) != len(copy_cards[player_idx])]):
-        cards = copy.deepcopy(copy_cards)
-        shuffle(remaining_cards)
-
-        new_cards = [[], [], [], []]
-        removed_cards = []
-        for card in remaining_cards:
-            for player_idx, _ in sorted(player_idxs, key=lambda x: -x[1]):
-                if info[player_idx][card.suit] == False and len(new_cards[player_idx]) < ori_size[player_idx]:
-                    new_cards[player_idx].append(card)
-                    removed_cards.append(card)
-
-                    break
-
-        lacking_player_idxs = [player_idx for player_idx in range(4) if len(new_cards[player_idx]) < len(cards[player_idx])]
-        print("enter re-redistribute cards", new_cards, cards, lacking_player_idxs, [len(new_cards[player_idx]) == len(cards[player_idx]) for player_idx in range(4)])
-
-        is_found = False
-        for lacking_player_idx in lacking_player_idxs:
-            for card in set(remaining_cards) - set(removed_cards):
-                for player_idx, hand_cards in enumerate(new_cards):
-                    if lacking_player_idx != player_idx and info[player_idx][card.suit] == False:
-                        for given_card in new_cards[player_idx]:
-                            if info[lacking_player_idx][given_card.suit] == False:
-                                print("{}'s {} to {}, and get {}".format(player_idx, given_card, lacking_player_idx, card))
-
-                                new_cards[lacking_player_idx].append(given_card)
-                                new_cards[player_idx].remove(given_card)
-                                new_cards[player_idx].append(card)
-
-                                is_found = True
-
-                                break
-                        if is_found:
-                            break
-                if is_found:
-                    break
-            if is_found:
-               break
-
-    print(cards, new_cards)
+    return cardss
 
 
-def evaluate_players(nr_of_games, players, setting_cards, verbose=True, is_expose=False):
+def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verbose=True, is_expose=False):
     from game import Game
 
     final_scores = [[], [], [], []]
@@ -274,7 +156,7 @@ def evaluate_players(nr_of_games, players, setting_cards, verbose=True, is_expos
 
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
             scores = [0, 0, 0, 0]
-            for round_idx in range(1, 5):
+            for round_idx in (range(0, 4 if is_rotating else 1)):
                 cards_copy = copy.deepcopy(cards)
 
                 if round_idx == 1:
@@ -310,8 +192,11 @@ def evaluate_players(nr_of_games, players, setting_cards, verbose=True, is_expos
                 game.reset()
 
             for player_idx in range(4):
-                print("{:02d} --> {:16s}({}): {:4d} points".format(game_idx+1, type(game.players[player_idx]).__name__, player_idx, scores[player_idx]))
                 final_scores[player_idx].append(scores[player_idx])
+
+                stats = describe(final_scores[player_idx])
+                print("{:02d} --> {:16s}({}): {:4d} points, (n={}, mean={:.2f}, std={:.2f}, minmax={})".format(\
+                    game_idx+1, type(game.players[player_idx]).__name__, player_idx, scores[player_idx], stats.nobs, stats.mean, stats.variance**0.5, stats.minmax))
 
     statss = []
     for player_idx, scores in enumerate(final_scores):
@@ -325,28 +210,6 @@ def evaluate_players(nr_of_games, players, setting_cards, verbose=True, is_expos
 
 
 if __name__ == "__main__":
-    #print(get_setting_cards())
-
-    """
-    cards = ["8C, TC, 3S, QS, 4H, 5H, 9H, AH",
-             "QC, JH, TD, TH, 8D, 6D, 6H, 5D",
-             "AS, KS, KC, QD, JS, TS, 9D, 2H",
-             "KD, KH, QH, JD, 8H, 7H, 6C, 3H"]
-    """
-
-    """
-    cards = ["4C,7H", "AD", "JH", "4S,7S"]
-    cards = transform_cards(cards)
-
-    info = [{Suit.spades: True, Suit.hearts: False, Suit.diamonds: True, Suit.clubs: False},
-            {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False},
-            {Suit.spades: False, Suit.hearts: False, Suit.diamonds: True, Suit.clubs: True},
-            {Suit.spades: False, Suit.hearts: True, Suit.diamonds: True, Suit.clubs: False}]
-
-    for _ in range(32):
-        redistribute_card(cards, info)
-    """
-
     hand = transform_cards(["8C, TC, 3S, QS, 4H, 5H, 9H, AH"])
     for card in hand[0]:
         print(card, is_card_valid(hand[0], trick=(), card=card, trick_nr=4, is_broken=False))

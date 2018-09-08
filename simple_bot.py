@@ -105,7 +105,8 @@ class SimpleBot(PokerBot):
         system_log.show_message(message)
         system_log.save_logs(message)
 
-        played_card = self.player.play_card(candidate_cards, self.game)
+        #played_card = self.player.play_card(candidate_cards, self.game)
+        played_card = self.player.play_card(self.game)
         message = "Pick Card:{} ({})".format(played_card, candidate_cards)
 
         system_log.show_message(message)

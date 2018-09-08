@@ -5,6 +5,7 @@ most notably the type Card.
 
 import os
 import sys
+import glob
 
 import time
 import pickle
@@ -116,13 +117,25 @@ def generate_card_games(num_of_game, filepath_out):
         pickle.dump(cards, out_file)
 
 
-def read_card_games(filepath_in):
-    cards = None
+def read_card_games(folder):
+    cards = []
 
-    with open(filepath_in, "rb") as in_file:
-        cards = pickle.load(in_file)
+    for filepath_in in glob.glob(folder):
+        print("start to read {}".format(filepath_in))
+        with open(filepath_in, "rb") as in_file:
+            cards.extend(pickle.load(in_file))
+
+    print("We read {} pre-setting cards".format(len(cards)))
 
     return cards
+
+
+POINT_CARDS = {Card(Suit.clubs, Rank.ten), Card(Suit.spades, Rank.queen), Card(Suit.hearts, Rank.ace),
+               Card(Suit.hearts, Rank.two), Card(Suit.hearts, Rank.three), Card(Suit.hearts, Rank.four),
+               Card(Suit.hearts, Rank.five), Card(Suit.hearts, Rank.six), Card(Suit.hearts, Rank.seven),
+               Card(Suit.hearts, Rank.eight), Card(Suit.hearts, Rank.nine), Card(Suit.hearts, Rank.ten),
+               Card(Suit.hearts, Rank.jack), Card(Suit.hearts, Rank.queen), Card(Suit.hearts, Rank.king)}
+
 
 
 if __name__ == "__main__":

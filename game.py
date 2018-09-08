@@ -1,6 +1,6 @@
 import sys
 
-from card import Suit, Rank, Card, Deck
+from card import Suit, Rank, Card, Deck, POINT_CARDS
 from rules import is_card_valid, is_score_card, card_points, reversed_score
 
 
@@ -22,12 +22,6 @@ class Game(object):
         self.current_player_idx = 0
         self.trick = []
 
-        self.point_cards = {Card(Suit.clubs, Rank.ten), Card(Suit.spades, Rank.queen), Card(Suit.hearts, Rank.ace),
-                            Card(Suit.hearts, Rank.two), Card(Suit.hearts, Rank.three), Card(Suit.hearts, Rank.four),
-                            Card(Suit.hearts, Rank.five), Card(Suit.hearts, Rank.six), Card(Suit.hearts, Rank.seven),
-                            Card(Suit.hearts, Rank.eight), Card(Suit.hearts, Rank.nine), Card(Suit.hearts, Rank.ten),
-                            Card(Suit.hearts, Rank.jack), Card(Suit.hearts, Rank.queen), Card(Suit.hearts, Rank.king)}
-
         self.player_scores = [0, 0, 0, 0]
 
         self.expose_heart_ace = False
@@ -43,6 +37,7 @@ class Game(object):
 
         self._player_hands = list(deck.deal())
         self._cards_taken = ([], [], [], [])
+        self._temp_score = [0, 0, 0, 0]
 
         self.lacking_cards = []
         for _ in range(4):
@@ -68,10 +63,14 @@ class Game(object):
             if card.suit != leading_suit:
                 self.lacking_cards[i][leading_suit] = True
 
-        # remove the point_cards
-        for card in self.trick:
-            if card in self.point_cards:
-                self.point_cards.remove(card)
+        for player_idx, cards in enumerate(self._cards_taken):
+            self._temp_score[player_idx] = (True if self.count_points(cards) > 0 else False)
+
+            if self._temp_score[player_idx]:
+                for idx in range(4):
+                    if idx != player_idx and self.players[idx].proactive_mode:
+                        self.say("set proactive_mode({}) of Player-{} to be empty", self.players[idx].proactive_mode, idx)
+                        self.players[idx].proactive_mode = set()
 
 
     def say(self, message, *formatargs):
@@ -88,11 +87,14 @@ class Game(object):
 
 
     def print_hand_cards(self):
-        if self.verbose:
-            for player_idx, (player, hand_cards, taken_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken)):
-                self.say("position: {}, name:{:18s}, hand_cards: {}, score: {:3d}, taken_cards: {}".format(\
-                    player_idx, type(player).__name__, sorted(hand_cards), self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)])))
-            print()
+        for player_idx, (player, hand_cards, taken_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken)):
+            self.say("position: {}, name:{:18s}, proactive_mode: {:5s}, hand_cards: {}, score: {:3d}, taken_cards: {}",
+                player_idx,\
+                type(player).__name__,\
+                str(player.proactive_mode) if player.proactive_mode else "",\
+                sorted(hand_cards),\
+                self.count_points(taken_cards),\
+                sorted([card for card in taken_cards if is_score_card(card)]))
 
 
     def are_hearts_broken(self):
@@ -111,6 +113,7 @@ class Game(object):
 
 
     def pass_cards(self, round_idx):
+        """
         for i in range(4):
             for card in self.players[i].pass_cards(self._player_hands[i], round_idx):
                 next_idx = (i + 1) % 4
@@ -121,7 +124,52 @@ class Game(object):
 
                 self.players[next_idx].freeze_pass_card(card)
 
-                #self.say("Player {}({}) give Player {}({}) {} card", i, type(self.players[i]).__name__, next_idx, type(self.players[next_idx]).__name__, card)
+                self.say("Player {}({}) give Player {}({}) {} card", i, type(self.players[i]).__name__, next_idx, type(self.players[next_idx]).__name__, card)
+        """
+
+        pass_cards = [[], [], [], []]
+        for player_idx in range(4):
+            pass_cards[player_idx] = self.players[player_idx].pass_cards(self._player_hands[player_idx], round_idx)
+
+        if round_idx%4 == 1:
+            for player_idx, cards in enumerate(pass_cards):
+                next_idx = (player_idx + 1) % 4
+
+                for card in cards:
+                    self._player_hands[player_idx].remove(card)
+                    self.players[player_idx].set_transfer_card(next_idx, card)
+                    self._player_hands[next_idx].append(card)
+
+                    self.players[next_idx].freeze_pass_card(card)
+
+                self.say("Player {} gives Player {} {} cards", player_idx, next_idx, cards)
+        elif round_idx%4 == 2:
+            for player_idx, cards in enumerate(pass_cards):
+                next_idx = (player_idx + 3) % 4
+
+                for card in cards:
+                    self._player_hands[player_idx].remove(card)
+                    self.players[player_idx].set_transfer_card(next_idx, card)
+                    self._player_hands[next_idx].append(card)
+
+                    self.players[next_idx].freeze_pass_card(card)
+
+                self.say("Player {} gives Player {} {} cards", player_idx, next_idx, cards)
+        elif round_idx%4 == 3:
+            for player_idx, cards in enumerate(pass_cards):
+                next_idx = (player_idx + 2) % 4
+
+                for card in cards:
+                    self._player_hands[player_idx].remove(card)
+                    self.players[player_idx].set_transfer_card(next_idx, card)
+                    self._player_hands[next_idx].append(card)
+
+                    self.players[next_idx].freeze_pass_card(card)
+
+                self.say("Player {} gives Player {} {} cards",\
+                        player_idx, next_idx, cards)
+        else:
+            pass
 
         self.print_hand_cards()
 
@@ -157,7 +205,7 @@ class Game(object):
 
         for i in range(4):
             self.say('self.is_shootmoon={}, Player {} got {} points from the cards {}',
-                self.is_shootmoon, i, self.player_scores[i], ' '.join(str(card) for card in self._cards_taken[i]))
+                self.is_shootmoon, i, self.player_scores[i], sorted([card for card in self._cards_taken[i] if card in POINT_CARDS]))
 
 
     def check_shootmoon(self):
@@ -191,7 +239,6 @@ class Game(object):
         winning_player_index = (self.current_player_idx + winning_index) % 4
 
         self._cards_taken[winning_player_index].extend(self.trick)
-
         self.post_round_over(winning_index, winning_player_index)
 
         self.trick_nr += 1
@@ -225,7 +272,7 @@ class Game(object):
         player_hand = self._player_hands[self.current_player_idx]
 
         if played_card is None:
-            played_card = self.players[self.current_player_idx].play_card(player_hand, self)
+            played_card = self.players[self.current_player_idx].play_card(self)
 
         if not is_card_valid(player_hand, self.trick, played_card, self.trick_nr, self.is_heart_broken):
             raise ValueError('Player {} ({}) played an invalid card {} to the trick {}.'.format(\
