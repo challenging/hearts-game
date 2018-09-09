@@ -156,16 +156,10 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
     final_scores = [[], [], [], []]
     for game_idx in range(nr_of_games):
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
-            scores = [0, 0, 0, 0]
-            for round_idx in (range(0, 4 if is_rotating else 1)):
-                #cards_copy = copy.deepcopy(cards)
-
-                #cards_copy[0], cards_copy[1], cards_copy[2], cards_copy[3] = \
-                #    cards_copy[round_idx%4], cards_copy[(round_idx+1)%4], cards_copy[(round_idx+2)%4], cards_copy[(round_idx+3)%4],
-
+            for round_idx in range(0, 4):
                 cards[0], cards[1], cards[2], cards[3] = cards[1], cards[2], cards[3], cards[0]
 
-                for passing_direction in range(1, 5):
+                for passing_direction in range(1 if is_rotating else 4, 5):
                     if passing_direction == 1:
                         print("pass cards to left-side")
                     elif passing_direction == 2:
@@ -195,34 +189,27 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                     game.play()
                     game.score()
 
-                    tscores = game.player_scores
-
-                    for idx, ts in enumerate(tscores):
-                        scores[idx] += ts
+                    for player_idx, score in enumerate(game.player_scores):
+                        final_scores[player_idx].append(score)
 
                     if verbose:
-                        for player_idx, (player, score) in enumerate(zip(players, scores)):
-                            print("{:02d}:{}:{} --> {:16s}({}): {:4d} points".format(\
-                                game_idx+1, round_idx, passing_direction, type(player).__name__, player_idx, score))
+                        for player_idx, (player, scores) in enumerate(zip(players, final_scores)):
+                            stats = describe(scores)
+
+                            print("{:02d}:{}:{} --> {:16s}({}): {:3d} points, stats: (n={:d}, mean={:.2f}, std={:.2f}, minmax={})".format(\
+                                game_idx+1, round_idx, passing_direction, type(player).__name__, player_idx, scores[-1],\
+                                stats.nobs, stats.mean, stats.variance**0.5, stats.minmax))
 
                     game.reset()
 
-            for player_idx in range(4):
-                final_scores[player_idx].append(scores[player_idx])
-
-                stats = describe(final_scores[player_idx])
-                print("{:02d} --> {:16s}({}): {:4d} points, (n={}, mean={:.2f}, std={:.2f}, minmax={})".format(\
-                    game_idx+1, type(game.players[player_idx]).__name__, player_idx, scores[player_idx], stats.nobs, stats.mean, stats.variance**0.5, stats.minmax))
-
-    statss = []
+    stats = []
     for player_idx, scores in enumerate(final_scores):
-        stats = describe(scores)
-        statss.append(stats)
+        stats.append(describe(scores))
 
         print("Player-{}({}): n_game, avg_score, minmax_score, std = ({}, {:.2f}, {}, {:.2f})".format(\
-            player_idx, type(game.players[player_idx]).__name__, stats.nobs, stats.mean, stats.minmax, np.sqrt(stats.variance)))
+            player_idx, type(game.players[player_idx]).__name__, stats[-1].nobs, stats[-1].mean, stats[-1].minmax, stats[-1].variance**0.5))
 
-    return statss
+    return stats
 
 
 if __name__ == "__main__":

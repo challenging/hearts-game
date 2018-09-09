@@ -391,8 +391,7 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
         played_card = None
         valid_cards = sorted(valid_cards)
 
-
-        if game.trick_nr > 2:
+        if not game.trick and game.trick_nr > 2 and self.proactive_mode:
             deck = Deck()
 
             remaining_cards = {}
@@ -422,7 +421,7 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
                     if card.suit == Suit.hearts:
                         is_point_card_in_trick = True
 
-            if valid_cards[-1].rank > current_max_rank:
+            if valid_cards[-1].suit == leading_suit and valid_cards[-1].rank > current_max_rank:
                 self.say("2. force to get this card - {} from {} because of {}", valid_cards[-1], valid_cards, game.trick)
 
                 return valid_cards[-1]
