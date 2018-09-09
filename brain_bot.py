@@ -35,6 +35,7 @@ class BrainBot(LowPlayBot):
 
         self.player = brain
         self.pure_player = copy.deepcopy(brain)
+        self.proactive_mode = set()
 
         self.player_names = []
 
@@ -61,6 +62,7 @@ class BrainBot(LowPlayBot):
             self.my_hand_cards.append(card)
 
         pass_cards = self.player.pass_cards(self.my_hand_cards, data["dealNumber"])
+        self.proactive_mode = self.player.proactive_mode
 
         return_values = []
         for card in pass_cards:
@@ -126,8 +128,8 @@ class BrainBot(LowPlayBot):
                             break
 
             self.game.trick.append(self.round_cards_history[-1][1])
-            for player in self.game.players:
-                player.seen_cards.append(self.round_cards_history[-1][1])
+            #for player in self.game.players:
+            self.player.seen_cards.append(self.round_cards_history[-1][1])
         else:
             self.say("found empty self.round_cards_history", self.round_cards_history)
 
@@ -144,8 +146,9 @@ class BrainBot(LowPlayBot):
         for card_str in data['self']['cards']:
             card = transform(card_str[0], card_str[1])
             self.my_hand_cards.append(card)
+        self.game._player_hands[self.player.position] = self.my_hand_cards
 
-        message = "My Cards:{}".format(self.my_hand_cards)
+        message = "My Cards:{}".format(self.game._player_hands[self.player.position])
         system_log.show_message(message)
 
         message = "Pick Card Event Content:{}".format(data)
@@ -155,49 +158,21 @@ class BrainBot(LowPlayBot):
         system_log.show_message(message)
         system_log.save_logs(message)
 
+        #print("players's position", self.player.position, self.player.proactive_mode, self.player.seen_cards)
+        #print("current trick", self.game.trick)
+        #print("current hand cards", self.game._player_hands[self.player.position])
+
         deck = Deck()
-        remaining_cards = []
-        for c in deck.cards:
-            for pc in self.my_hand_cards + self.game.players[self.player.position].seen_cards:
-                if c == pc:
-                    break
-            else:
-                remaining_cards.append(c)
+        for idx in range(1, len(self.game.trick)+1):
+            player_idx = (self.player.position+(4-idx))%4
+            self.game._player_hands[player_idx] = np.random.choice(deck.cards, len(self.my_hand_cards)-1, replace=False).tolist()
 
-        if remaining_cards:
-            if len(self.game.trick) > 0:
-                for idx in range(1, len(self.game.trick)+1):
-                    player_idx = self.player.position-idx
-                    if player_idx >= 0:
-                        self.game._player_hands[player_idx] = np.random.choice(remaining_cards, len(self.my_hand_cards)-1, replace=False).tolist()
-                    else:
-                        player_idx = 4-abs(player_idx)
-                        self.game._player_hands[player_idx] = np.random.choice(remaining_cards, len(self.my_hand_cards)-1, replace=False).tolist()
-
-                    for used_card in self.game._player_hands[player_idx]:
-                        remaining_cards.remove(used_card)
-
-                    #print(self.player.position, idx, player_idx, ">>>>>", self.game._player_hands[player_idx], len(self.game._player_hands[player_idx]))
-
-        #print("remaining_cards", remaining_cards, len(remaining_cards))
-        if remaining_cards:
-            if len(self.game.trick) < 3:
-                for idx in range(1, 4-len(self.game.trick)):
-                    player_idx = self.player.position+idx
-                    if player_idx <= 3:
-                        self.game._player_hands[player_idx] = np.random.choice(remaining_cards, len(self.my_hand_cards), replace=False).tolist()
-                    else:
-                        player_idx = player_idx-4
-                        self.game._player_hands[player_idx] = np.random.choice(remaining_cards, len(self.my_hand_cards), replace=False).tolist()
-
-                    for used_card in self.game._player_hands[player_idx]:
-                        remaining_cards.remove(used_card)
-
-                    #print(self.player.position, idx, player_idx, "<<<<<", self.game._player_hands[player_idx])
+        for idx in range(1, 4-len(self.game.trick)):
+            player_idx = (self.player.position+idx)%4
+            self.game._player_hands[player_idx] = np.random.choice(deck.cards, len(self.my_hand_cards), replace=False).tolist()
 
         self.game.current_player_idx = self.player.position
         self.game._player_hands[self.player.position] = self.my_hand_cards
-        #played_card = self.game.players[self.player.position].play_card(self.game._player_hands[self.player.position], self.game)
         played_card = self.game.players[self.player.position].play_card(self.game)
 
         message = "Pick Card:{} ({})".format(played_card, candidate_cards)
@@ -215,13 +190,11 @@ class BrainBot(LowPlayBot):
             self.my_hand_cards.append(transform(card[0], card[1]))
 
         expose_card = []
-        """
         for card in self.my_hand_cards:
             if card == Card(Suit.hearts, Rank.ace):
                 expose_card.append(str(card))
 
                 break
-        """
 
         message = "Expose Cards:{}".format(expose_card)
         system_log.show_message(message)
@@ -236,16 +209,15 @@ class BrainBot(LowPlayBot):
         self.player_names, current_player_idx, players = [], None, []
         for player_idx, player in enumerate(data['players']):
             try:
-                if player['exposedCards'] != [] and len(player['exposedCards']) > 0 and player['exposedCards'] is not None:
-                    expose_player = player['playerName']
-                    expose_card = player['exposedCards'][0]
+                #if player['exposedCards'] != [] and len(player['exposedCards']) > 0 and player['exposedCards'] is not None:
+                #    expose_player = player['playerName']
+                #    expose_card = player['exposedCards'][0]
 
                 self.player_names.append(player["playerName"])
 
                 p = None
                 if self.player_names[-1] == self.player_name:
                     p = copy.deepcopy(self.pure_player)
-
                     current_player_idx = player_idx
                 else:
                     p = SimplePlayer(verbose=False)
@@ -258,6 +230,8 @@ class BrainBot(LowPlayBot):
 
         self.game = Game(players, verbose=False)
         self.player = self.game.players[current_player_idx]
+
+        self.player.proactive_mode = self.proactive_mode
 
         idx = None
         deal_number = data["dealNumber"]
@@ -312,6 +286,18 @@ class BrainBot(LowPlayBot):
 
             self.game._cards_taken[player_idx].extend([card for _, card in self.round_cards_history[self.game.trick_nr*4:(self.game.trick_nr+1)*4]])
 
+            if self.player.proactive_mode:
+                for player_idx, player in enumerate(data["players"]):
+                    if player["playerName"] != self.player_name:
+                        score = self.game.count_points(self.game._cards_taken[player_idx])
+                        print(player_idx, score, self.game._cards_taken[player_idx])
+
+                        if score > 0:
+                            self.say("turn off the proactive mode from {}, {}", self.player.proactive_mode, score)
+                            self.player.proactive_mode = set()
+
+                            break
+
             self.game.trick_nr += 1
             self.game.trick = []
 
@@ -330,12 +316,8 @@ class BrainBot(LowPlayBot):
         global ALL_SCORES
 
         self.game.score()
+        self.reset_status()
 
-        self.my_hand_cards = []
-        self.given_cards = []
-        self.received_cards = []
-
-        self.expose_card = False
         deal_scores,initial_cards,receive_cards,picked_cards=self.get_deal_scores(data)
 
         message = "Player name:{}, Pass Cards:{}".format(self.player_name, self.my_pass_card)
@@ -356,3 +338,13 @@ class BrainBot(LowPlayBot):
 
         for key, scores in ALL_SCORES.items():
             self.say("Player - {} gets {}", key, describe(scores))
+
+
+    def reset_status(self):
+        self.proactive_mode = set()
+
+        self.my_hand_cards = []
+        self.given_cards = []
+        self.received_cards = []
+
+        self.expose_card = False

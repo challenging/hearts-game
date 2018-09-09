@@ -43,10 +43,10 @@ if __name__ == "__main__":
         player = SimplePlayer(verbose=False)
         other_players = [StupidPlayer() for _ in range(3)]
 
-    #setting_cards = read_card_games("game/game_0008/game_1534672486.pkl")
-    #setting_cards = read_card_games("game/game_0032/game_1534664313.pkl")
-    setting_cards = read_card_games("game/game_0008/game_153467248*.pkl")
+    setting_cards = read_card_games("game/game_0008/game_1534672486.pkl")
+    #setting_cards = read_card_games("game/game_0032/game_153466431*.pkl")
+    #setting_cards = read_card_games("game/game_0008/game_153467248*.pkl")
     evaluate_players(nr_of_games, [player] + other_players, setting_cards, is_rotating=True, is_expose=False)
 
     #setting_cards = get_setting_cards()
-    #evaluate_players(nr_of_games, [player] + other_players, setting_cards, is_rotating=True, is_expose=False)
+    #evaluate_players(nr_of_games, [player] + other_players, setting_cards, is_rotating=False, is_expose=False)

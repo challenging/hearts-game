@@ -107,7 +107,11 @@ def transform(rank, suit):
 
 def get_setting_cards():
     # shoot the moon
-    card_string = [["QS,6S,AH,KH,QH,TH,7H,6H,3H,2H,KC,AD,8D",
+    card_string = [["AS,KS,TS,9S,8S,7S,3S,JH,KH,QC,JC,TC,9C",
+                    "QS,6S,AH,9H,QH,TH,7H,6H,3H,2H,KC,AD,8D",
+                    "5S,4S,8H,5H,7C,4C,QD,TD,9D,6D,5D,4D,3D",
+                    "JS,2S,4H,AC,8C,6C,5C,3C,2C,KD,JD,7D,2D"],
+                   ["QS,6S,AH,KH,QH,TH,7H,6H,3H,2H,KC,AD,8D",
                     "5S,4S,8H,5H,7C,4C,QD,TD,9D,6D,5D,4D,3D",
                     "AS,KS,TS,9S,8S,7S,3S,JH,9H,QC,JC,TC,9C",
                     "JS,2S,4H,AC,8C,6C,5C,3C,2C,KD,JD,7D,2D"],
@@ -151,45 +155,57 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
     final_scores = [[], [], [], []]
     for game_idx in range(nr_of_games):
-        game = Game(players, verbose=True)
-        game.expose_heart_ace = is_expose
-
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
             scores = [0, 0, 0, 0]
             for round_idx in (range(0, 4 if is_rotating else 1)):
-                cards_copy = copy.deepcopy(cards)
+                #cards_copy = copy.deepcopy(cards)
 
-                if round_idx == 1:
-                    print("pass cards to left-side")
-                elif round_idx == 2:
-                    print("pass cards to cross-side")
-                elif round_idx == 3:
-                    print("pass cards to right-side")
-                else:
-                    print("no passing cards")
+                #cards_copy[0], cards_copy[1], cards_copy[2], cards_copy[3] = \
+                #    cards_copy[round_idx%4], cards_copy[(round_idx+1)%4], cards_copy[(round_idx+2)%4], cards_copy[(round_idx+3)%4],
 
-                cards_copy[0], cards_copy[1], cards_copy[2], cards_copy[3] = \
-                    cards_copy[round_idx%4], cards_copy[(round_idx+1)%4], cards_copy[(round_idx+2)%4], cards_copy[(round_idx+3)%4],
+                cards[0], cards[1], cards[2], cards[3] = cards[1], cards[2], cards[3], cards[0]
 
-                for player_idx in range(4):
-                    print("Player-{}'s init_cards: {}".format(player_idx, cards_copy[player_idx]))
+                for passing_direction in range(1, 5):
+                    if passing_direction == 1:
+                        print("pass cards to left-side")
+                    elif passing_direction == 2:
+                        print("pass cards to cross-side")
+                    elif passing_direction == 3:
+                        print("pass cards to right-side")
+                    else:
+                        print("no passing cards")
 
-                game._player_hands = cards_copy
-                game.pass_cards(round_idx)
+                    before_info = []
+                    for player_idx in range(4):
+                        before_info.append(cards[player_idx])
 
-                game.play()
-                game.score()
+                    game = Game(copy.deepcopy(players), verbose=True)
+                    game.expose_heart_ace = is_expose
 
-                tscores = game.player_scores
+                    game._player_hands = copy.deepcopy(cards)
+                    game.pass_cards(passing_direction)
 
-                for idx, ts in enumerate(tscores):
-                    scores[idx] += ts
+                    after_info = []
+                    for player_idx in range(4):
+                        after_info.append(game._player_hands[player_idx])
 
-                if verbose:
-                    for player_idx, (player, score) in enumerate(zip(players, scores)):
-                        print("{:02d}:{:04d} --> {:16s}({}): {:4d} points".format(game_idx+1, round_idx, type(player).__name__, player_idx, score))
+                    for player_idx, (before_cards, after_cards) in enumerate(zip(before_info, after_info)):
+                        print("Player-{}'s init_cards: {} to {}".format(player_idx, before_cards, after_cards))
 
-                game.reset()
+                    game.play()
+                    game.score()
+
+                    tscores = game.player_scores
+
+                    for idx, ts in enumerate(tscores):
+                        scores[idx] += ts
+
+                    if verbose:
+                        for player_idx, (player, score) in enumerate(zip(players, scores)):
+                            print("{:02d}:{}:{} --> {:16s}({}): {:4d} points".format(\
+                                game_idx+1, round_idx, passing_direction, type(player).__name__, player_idx, score))
+
+                    game.reset()
 
             for player_idx in range(4):
                 final_scores[player_idx].append(scores[player_idx])

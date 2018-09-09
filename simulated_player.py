@@ -15,8 +15,9 @@ from card import Suit, Rank, Card, Deck, POINT_CARDS
 from player import StupidPlayer, SimplePlayer, MinCardPlayer, MaxCardPlayer
 
 
-TIMEOUT_SECOND = 0.9
+TIMEOUT_SECOND = 0.92
 COUNT_CPU = mp.cpu_count()
+
 
 class MonteCarloPlayer(SimplePlayer):
     def __init__(self, num_of_cpu=COUNT_CPU, verbose=False):
@@ -41,7 +42,7 @@ class MonteCarloPlayer(SimplePlayer):
                 played_card = card
 
             stats = describe(winning_score[card])
-            self.say("{} {}, simulation: {} round --> valid_cards: {}, simulate {} card --> average_score {:.4f} --> {:.4f}, (mean={:.2f}, std={:.2}, minmax={})",
+            self.say("{} {}, simulation: {} round --> valid_cards: {}, simulate {} card --> average_score {:.3f} --> {:.3f}, (mean={:.2f}, std={:.2}, minmax={})",
                 game.trick_nr,
                 type(self).__name__,
                 len(winning_score[card]),
@@ -49,7 +50,6 @@ class MonteCarloPlayer(SimplePlayer):
                 card,
                 np.mean(winning_score[card]),
                 score,
-                stats.nobs,
                 stats.mean,
                 stats.variance**0.5,
                 stats.minmax)
@@ -58,6 +58,7 @@ class MonteCarloPlayer(SimplePlayer):
 
 
     def play_card(self, game, simulation_time_limit=TIMEOUT_SECOND):
+        btime = time.time()
         game.are_hearts_broken()
 
         hand_cards = game._player_hands[self.position]
@@ -81,7 +82,7 @@ class MonteCarloPlayer(SimplePlayer):
         else:
             played_card = valid_cards[0]
 
-        self.say("pick {} card", played_card)
+        self.say("pick {} card, cost {:.8} seconds", played_card, time.time()-btime)
 
         return played_card
 
@@ -225,13 +226,17 @@ class MonteCarloPlayer2(MonteCarloPlayer):
 
                 for player_idx, size in enumerate(ori_size):
                     if len(game._player_hands[player_idx]) > size:
-                        remaining_cards.extend(game._player_hands[player_idx][size:])
-                        game._player_hands[player_idx] = game._player_hands[player_idx][:size]
+                        for idx in range(len(game._player_hands[player_idx])-size):
+                            candidated_cards = [card for card in game._player_hands[player_idx] if card not in fixed_cards]
+                            if candidated_cards:
+                                card = choice(candidated_cards)
+                                game._player_hands[player_idx].remove(card)
+                                remaining_cards.append(card)
 
                 retry2 -= 1
 
             if remaining_cards or any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
-                self.say("error --> remaining_cards: {}, ori_size:{}, simulated_hand_cards: {}", remaining_cards, ori_size, game._player_hands)
+                #self.say("error --> remaining_cards: {}, ori_size:{}, simulated_hand_cards: {}", remaining_cards, ori_size, game._player_hands)
 
                 retry -= 1
             else:
@@ -309,24 +314,39 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
         super(MonteCarloPlayer5, self).__init__(verbose=verbose)
 
 
-    def pass_cards(self, hand, round_idx):
+    def set_proactive_mode(self, hand, round_idx):
         hand.sort(key=lambda x: self.undesirability(x), reverse=True)
 
         hand_cards = {Suit.spades: [], Suit.hearts: [], Suit.diamonds: [], Suit.clubs: []}
         for card in hand:
             hand_cards[card.suit].append(max(card.rank.value-10, 0))
 
-        proactive_suit = False
+        proactive_suit, point_of_suit = False, 0
         for suit, cards in hand_cards.items():
             point_of_suit = np.sum(cards)
             if suit == Suit.hearts:
                 if (point_of_suit > 6 and len(cards) > 3) or (point_of_suit > 5 and len(cards) > 4) or (point_of_suit > 4 and len(cards) > 5):
                     self.proactive_mode.add(suit)
             else:
-                if (point_of_suit > 5 and len(cards) > 4) or (point_of_suit > 6 and len(cards) > 5):
-                    if len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 2:
-                        self.proactive_mode.add(suit)
-                        proactive_suit = suit
+                flag = False
+                if (point_of_suit > 6 and len(cards) > 3) and (len(hand_cards[Suit.hearts]) > 1 and np.sum(hand_cards[Suit.hearts]) > 2):
+                    flag = True
+                elif (point_of_suit > 5 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 2):
+                    flag = True
+
+                #print(suit, point_of_suit, len(cards), len(hand_cards[Suit.hearts]), np.sum(hand_cards[Suit.hearts]))
+                if flag:
+                    self.proactive_mode.add(suit)
+                    self.proactive_mode.add(Suit.hearts)
+
+                    proactive_suit = suit
+
+        #self.proactive_mode.add(Suit.hearts)
+        return hand_cards, proactive_suit
+
+
+    def pass_cards(self, hand, round_idx):
+        hand_cards, proactive_suit = self.set_proactive_mode(hand, round_idx)
 
         pass_cards, keeping_cards = [], []
         if self.proactive_mode:
@@ -340,10 +360,8 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
         else:
             pass_cards = []
 
-            if len(hand_cards[Suit.hearts]) > 1:
+            if len(hand_cards[Suit.hearts]) > 1 and len(hand_cards[Suit.hearts]) < 5:
                 keeping_cards.append(Card(Suit.hearts, Rank.ace))
-
-            self.say("keeping cards are {}", keeping_cards)
 
             num_spades = 0
             for card in hand:
@@ -371,23 +389,26 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
 
     def select_card(self, game, valid_cards, winning_score):
         played_card = None
-
         valid_cards = sorted(valid_cards)
-        #is_others_get_point_cards = any([game._temp_score[player_idx] for player_idx in range(4) if player_idx != self.position])
-        if Suit.hearts in self.proactive_mode:
-            is_hearts_high_card = False
+
+
+        if game.trick_nr > 2:
+            deck = Deck()
+
+            remaining_cards = {}
+            for card in deck.cards:
+                if card not in self.seen_cards and card not in game.trick and card not in game._player_hands[self.position]:
+                    remaining_cards.setdefault(card.suit, card)
+                    if card.rank > remaining_cards[card.suit].rank:
+                        remaining_cards[card.suit] = card
+
             for card in valid_cards:
-                if card.suit == Suit.hearts:
-                    is_hearts_high_card = True
+                for suit in sorted(self.proactive_mode):
+                    if card.suit in remaining_cards:
+                        if card.suit == suit and card > remaining_cards[suit]:
+                            self.say("1. force to get this card - {} from {} because of {}", card, valid_cards, game.trick)
 
-                    break
-
-            if is_hearts_high_card:
-                played_card = valid_cards[-1]
-
-                self.say("force to play this card - {} from {}", played_card, valid_cards)
-                return played_card
-
+                            return card
 
         if game.trick and self.proactive_mode:
             is_point_card_in_trick, leading_suit, current_max_rank = False, game.trick[0].suit, None
@@ -402,30 +423,12 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
                         is_point_card_in_trick = True
 
             if valid_cards[-1].rank > current_max_rank:
-                self.say("force to get this card - {} from {} because of {}", played_card, valid_cards, game.trick)
+                self.say("2. force to get this card - {} from {} because of {}", valid_cards[-1], valid_cards, game.trick)
 
                 return valid_cards[-1]
 
 
-        min_score = sys.maxsize
-        for card in valid_cards:
-            score = self.winning_score_func(winning_score[card])
-
-            if score < min_score:
-                min_score = score
-                played_card = card
-
-            self.say("{} {}, simulation: {} round --> valid_cards: {}, simulate {} card --> average_score {:.4f} --> {:.4f}, ({})",
-                game.trick_nr,
-                type(self).__name__,
-                len(winning_score[card]),
-                valid_cards,
-                card,
-                np.mean(winning_score[card]),
-                score,
-                describe(winning_score[card]))
-
-        return played_card
+        return super(MonteCarloPlayer5, self).select_card(game, valid_cards, winning_score)
 
 
     def get_players(self, game):
@@ -433,7 +436,6 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
 
         valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
 
-        #is_others_get_point_cards = any([game._temp_score[player_idx] for player_idx in range(4) if player_idx != self.position])
         if Suit.hearts in self.proactive_mode:
             contains_hearts = False
             for card in valid_cards:
