@@ -1,4 +1,5 @@
 #coding=UTF-8
+import os
 import sys
 
 import json
@@ -35,6 +36,8 @@ class Log(object):
 
 IS_DEBUG = False
 system_log = Log(IS_DEBUG)
+
+OUT_FILE = None
 
 
 class PokerBot(object):
@@ -85,7 +88,18 @@ class PokerBot(object):
 
     def say(self, message, *formatargs):
         if self.verbose:
-            print(message.format(*formatargs))
+            global OUT_FILE
+
+            if OUT_FILE is None:
+                if not os.path.exists("/log"):
+                    os.makedirs("/log")
+
+                OUT_FILE = open("/log/bot.log", "a")
+
+            message = message.format(*formatargs)
+
+            print(message)
+            OUT_FILE.write("{}\n".format(message))
 
 
     def receive_cards(self,data):

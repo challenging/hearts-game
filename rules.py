@@ -153,7 +153,7 @@ def transform_cards(card_strings):
 def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verbose=True, is_expose=False):
     from game import Game
 
-    final_scores = [[], [], [], []]
+    final_scores, num_of_shooting_moon = [[], [], [], []], [0, 0, 0, 0]
     for game_idx in range(nr_of_games):
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
             for round_idx in range(0, 4):
@@ -192,12 +192,16 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                     for player_idx, score in enumerate(game.player_scores):
                         final_scores[player_idx].append(score)
 
+                    if game.is_shootmoon:
+                        num_of_shooting_moon[[player_idx for player_idx in range(4) if game.player_scores[player_idx] == 0][0]] += 1
+
+
                     if verbose:
                         for player_idx, (player, scores) in enumerate(zip(players, final_scores)):
                             stats = describe(scores)
 
-                            print("{:02d}:{}:{} --> {:16s}({}): {:3d} points, stats: (n={:d}, mean={:.2f}, std={:.2f}, minmax={})".format(\
-                                game_idx+1, round_idx, passing_direction, type(player).__name__, player_idx, scores[-1],\
+                            print("{:02d}:{}:{} --> {:16s}({}): {:3d} points, n_shooting_mon={:d}, stats: (n={:d}, mean={:.2f}, std={:.2f}, minmax={})".format(\
+                                game_idx+1, round_idx, passing_direction, type(player).__name__, player_idx, scores[-1], num_of_shooting_moon[player_idx], \
                                 stats.nobs, stats.mean, stats.variance**0.5, stats.minmax))
 
                     game.reset()
@@ -205,9 +209,6 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
     stats = []
     for player_idx, scores in enumerate(final_scores):
         stats.append(describe(scores))
-
-        print("Player-{}({}): n_game, avg_score, minmax_score, std = ({}, {:.2f}, {}, {:.2f})".format(\
-            player_idx, type(game.players[player_idx]).__name__, stats[-1].nobs, stats[-1].mean, stats[-1].minmax, stats[-1].variance**0.5))
 
     return stats
 

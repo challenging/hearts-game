@@ -315,12 +315,6 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
         super(MonteCarloPlayer5, self).__init__(verbose=verbose)
 
 
-    def no_choice(self, played_card):
-        time.sleep(np.random.randint(4, 8)*0.1)
-
-        return played_card
-
-
     def set_proactive_mode(self, hand, round_idx):
         hand.sort(key=lambda x: self.undesirability(x), reverse=True)
 
@@ -469,6 +463,12 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
 class MonteCarloPlayer6(MonteCarloPlayer5):
     def __init__(self, verbose=False):
         super(MonteCarloPlayer6, self).__init__(verbose=verbose)
+
+
+    def no_choice(self, played_card):
+        time.sleep(np.random.randint(4, 8)*0.1)
+
+        return played_card
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):

@@ -50,7 +50,7 @@ if __name__ == "__main__":
     #setting_cards = read_card_games("game/game_0032/game_1536341876.pkl")
     #setting_cards = read_card_games("game/game_0032/game_153466431*.pkl")
     #setting_cards = read_card_games("game/game_0008/game_153467248*.pkl")
-    #evaluate_players(nr_of_games, [player] + other_players, setting_cards, is_rotating=True, is_expose=False)
+    #evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True, is_expose=False)
 
     setting_cards = get_setting_cards()
     evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True, is_expose=False)
