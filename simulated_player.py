@@ -244,7 +244,7 @@ class MonteCarloPlayer2(MonteCarloPlayer):
 
                 break
         else:
-            self.say("apply self.simple_redistribute_cards")
+            #self.say("apply self.simple_redistribute_cards")
 
             self.simple_redistribute_cards(copy_game, copy_remaining_cards)
 
