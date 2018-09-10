@@ -6,7 +6,7 @@ from card import Suit, Rank, Card
 from rules import get_setting_cards, evaluate_players
 
 from player import StupidPlayer, SimplePlayer
-from simulated_player import MonteCarloPlayer, MonteCarloPlayer2, MonteCarloPlayer3, MonteCarloPlayer4, MonteCarloPlayer5
+from simulated_player import MonteCarloPlayer, MonteCarloPlayer2, MonteCarloPlayer3, MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
 
 import mcts_player
 import alpha_player
@@ -21,6 +21,9 @@ if __name__ == "__main__":
     other_players = []
 
     player_ai = sys.argv[2]
+    #if player_ai.lower() == "mc6":
+    #    player = MonteCarloPlayer5(verbose=True)
+    #    other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
     if player_ai.lower() == "mc5":
         player = MonteCarloPlayer5(verbose=True)
         other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
@@ -50,4 +53,4 @@ if __name__ == "__main__":
     #evaluate_players(nr_of_games, [player] + other_players, setting_cards, is_rotating=True, is_expose=False)
 
     setting_cards = get_setting_cards()
-    evaluate_players(nr_of_games, [player] + other_players, setting_cards, is_rotating=True, is_expose=False)
+    evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True, is_expose=False)

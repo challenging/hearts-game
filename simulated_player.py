@@ -30,6 +30,10 @@ class MonteCarloPlayer(SimplePlayer):
         return np.mean(scores)
 
 
+    def no_choice(self, played_card):
+        return played_card
+
+
     def select_card(self, game, valid_cards, winning_score):
         played_card = None
 
@@ -57,7 +61,7 @@ class MonteCarloPlayer(SimplePlayer):
         return played_card
 
 
-    def play_card(self, game, simulation_time_limit=TIMEOUT_SECOND):
+    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
         btime = time.time()
         game.are_hearts_broken()
 
@@ -80,7 +84,7 @@ class MonteCarloPlayer(SimplePlayer):
 
             played_card = self.select_card(game, valid_cards, winning_score)
         else:
-            played_card = valid_cards[0]
+            played_card = self.no_choice(valid_cards[0])
 
         self.say("pick {} card, cost {:.8} seconds", played_card, time.time()-btime)
 
@@ -236,7 +240,6 @@ class MonteCarloPlayer2(MonteCarloPlayer):
                 retry2 -= 1
 
             if remaining_cards or any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
-                #self.say("error --> remaining_cards: {}, ori_size:{}, simulated_hand_cards: {}", remaining_cards, ori_size, game._player_hands)
 
                 retry -= 1
             else:
@@ -244,8 +247,6 @@ class MonteCarloPlayer2(MonteCarloPlayer):
 
                 break
         else:
-            #self.say("apply self.simple_redistribute_cards")
-
             self.simple_redistribute_cards(copy_game, copy_remaining_cards)
 
         return copy_game
@@ -314,6 +315,12 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
         super(MonteCarloPlayer5, self).__init__(verbose=verbose)
 
 
+    def no_choice(self, played_card):
+        time.sleep(np.random.randint(4, 8)*0.1)
+
+        return played_card
+
+
     def set_proactive_mode(self, hand, round_idx):
         hand.sort(key=lambda x: self.undesirability(x), reverse=True)
 
@@ -321,42 +328,52 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
         for card in hand:
             hand_cards[card.suit].append(max(card.rank.value-10, 0))
 
-        proactive_suit, point_of_suit = False, 0
+        pass_low_card = False
+
+        point_of_suit = 0
         for suit, cards in hand_cards.items():
             point_of_suit = np.sum(cards)
             if suit == Suit.hearts:
                 if (point_of_suit > 6 and len(cards) > 3) or (point_of_suit > 5 and len(cards) > 4) or (point_of_suit > 4 and len(cards) > 5):
                     self.proactive_mode.add(suit)
             else:
-                flag = False
                 if (point_of_suit > 6 and len(cards) > 3) and (len(hand_cards[Suit.hearts]) > 1 and np.sum(hand_cards[Suit.hearts]) > 2):
-                    flag = True
-                elif (point_of_suit > 5 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 2):
-                    flag = True
-
-                #print(suit, point_of_suit, len(cards), len(hand_cards[Suit.hearts]), np.sum(hand_cards[Suit.hearts]))
-                if flag:
                     self.proactive_mode.add(suit)
                     self.proactive_mode.add(Suit.hearts)
+                elif (point_of_suit > 5 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 2):
+                    self.proactive_mode.add(suit)
+                    self.proactive_mode.add(Suit.hearts)
+                elif (point_of_suit > 4 and len(cards) > 5):
+                    self.proactive_mode.add(suit)
 
-                    proactive_suit = suit
+        if not self.proactive_mode:
+            points = np.sum([v for vv in hand_cards.values() for v in vv])
+
+            if points > 13:
+                pass_low_card = True
 
         #self.proactive_mode.add(Suit.hearts)
-        return hand_cards, proactive_suit
+        return hand_cards, pass_low_card
 
 
     def pass_cards(self, hand, round_idx):
-        hand_cards, proactive_suit = self.set_proactive_mode(hand, round_idx)
+        hand_cards, pass_low_card = self.set_proactive_mode(hand, round_idx)
 
         pass_cards, keeping_cards = [], []
         if self.proactive_mode:
             for card in hand:
-                if card.suit not in [Suit.hearts, proactive_suit]:
+                if card.suit not in self.proactive_mode and card.suit != Suit.hearts:
                     pass_cards.append(card)
+
             pass_cards.sort(key=lambda x: self.undesirability(x), reverse=False)
 
             self.say("{} ----> proactive_mode: {}, pass cards are {}, hand_cards are {}",\
                  type(self).__name__, self.proactive_mode, pass_cards[:3], hand)
+        elif pass_low_card:
+            hand.sort(key=lambda x: self.undesirability(x), reverse=False)
+            pass_cards = hand
+
+            self.say("{} ----> pass low cards are {} from {}({})", type(self).__name__, pass_cards[:3], hand, hand_cards)
         else:
             pass_cards = []
 
@@ -388,9 +405,7 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
 
 
     def select_card(self, game, valid_cards, winning_score):
-        played_card = None
         valid_cards = sorted(valid_cards)
-        print("valid_cards", valid_cards)
 
         if not game.trick and game.trick_nr > 2 and self.proactive_mode:
             deck = Deck()
@@ -448,3 +463,18 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
             players = super(MonteCarloPlayer5, self).get_players(game)
 
         return players
+
+
+
+class MonteCarloPlayer6(MonteCarloPlayer5):
+    def __init__(self, verbose=False):
+        super(MonteCarloPlayer6, self).__init__(verbose=verbose)
+
+
+    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
+        for player_idx, suit in other_info.get("lacking_info", {}).items():
+            game.lacking_cards[player_idx][suit] = True
+
+            self.say("Player-{} may lack of {} suit", player_idx, suit)
+
+        return super(MonteCarloPlayer6, self).play_card(game, other_info=other_info, simulation_time_limit=simulation_time_limit)

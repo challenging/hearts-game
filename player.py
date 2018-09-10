@@ -39,7 +39,7 @@ class Player(object):
                 OUT_FILE = open("/log/game.log", "a")
 
             message = message.format(*formatargs)
-            #print(message)
+            print(message)
             OUT_FILE.write("{}\n".format(message))
 
 
@@ -220,8 +220,7 @@ class SimplePlayer(Player):
         safe_cards = [card for card in valid_cards
                       if card.suit != leading_suit or card.rank <= max_rank_in_leading_suit]
 
-        self.say('Valid cards: {}', valid_cards)
-        self.say('Safe cards: {}', safe_cards)
+        self.say('Valid cards: {}, Safe cards: {}', valid_cards, safe_cards)
 
         if len(safe_cards) > 0:
             return safe_cards[0]
