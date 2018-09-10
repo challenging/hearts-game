@@ -390,6 +390,7 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
     def select_card(self, game, valid_cards, winning_score):
         played_card = None
         valid_cards = sorted(valid_cards)
+        print("valid_cards", valid_cards)
 
         if not game.trick and game.trick_nr > 2 and self.proactive_mode:
             deck = Deck()
@@ -401,7 +402,7 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
                     if card.rank > remaining_cards[card.suit].rank:
                         remaining_cards[card.suit] = card
 
-            for card in valid_cards:
+            for card in valid_cards[::-1]:
                 for suit in sorted(self.proactive_mode):
                     if card.suit in remaining_cards:
                         if card.suit == suit and card > remaining_cards[suit]:
