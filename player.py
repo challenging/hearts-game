@@ -32,11 +32,11 @@ class Player(object):
         if self.verbose:
             global OUT_FILE
 
-            if not os.path.exists("/log"):
-                os.makedirs("/log")
+            #if not os.path.exists("/log"):
+            #    os.makedirs("/log")
 
             if OUT_FILE is None:
-                OUT_FILE = open("/log/game.log", "w")
+                OUT_FILE = open("/log/game.log", "a")
 
             message = message.format(*formatargs)
             #print(message)
