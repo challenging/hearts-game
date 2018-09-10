@@ -30,7 +30,10 @@ class Player(object):
 
     def say(self, message, *formatargs):
         if self.verbose:
-            global OUT_FILE
+            #global OUT_FILE
+
+            if not os.path.exists("/log"):
+                os.makedirs("/log")
 
             if OUT_FILE is None:
                 OUT_FILE = open("/log/game.log", "w")
