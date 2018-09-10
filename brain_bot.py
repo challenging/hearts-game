@@ -190,11 +190,13 @@ class BrainBot(LowPlayBot):
             self.my_hand_cards.append(transform(card[0], card[1]))
 
         expose_card = []
+        """
         for card in self.my_hand_cards:
             if card == Card(Suit.hearts, Rank.ace):
                 expose_card.append(str(card))
 
                 break
+        """
 
         message = "Expose Cards:{}".format(expose_card)
         system_log.show_message(message)
