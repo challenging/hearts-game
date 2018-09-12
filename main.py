@@ -1,6 +1,8 @@
 import os
 import sys
 
+from random import shuffle
+
 from card import read_card_games
 from card import Suit, Rank, Card
 from rules import get_setting_cards, evaluate_players
@@ -22,8 +24,8 @@ if __name__ == "__main__":
 
     player_ai = sys.argv[2]
     if player_ai.lower() == "mc6":
-        player = MonteCarloPlayer5(verbose=True)
-        other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
+        player = MonteCarloPlayer6(verbose=True)
+        other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mc5":
         player = MonteCarloPlayer5(verbose=True)
         other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
@@ -49,8 +51,10 @@ if __name__ == "__main__":
     #setting_cards = read_card_games("game/game_0008/game_1534672482.pkl")
     #setting_cards = read_card_games("game/game_0032/game_1536341876.pkl")
     #setting_cards = read_card_games("game/game_0032/game_153466431*.pkl")
-    #setting_cards = read_card_games("game/game_0008/game_153467248*.pkl")
-    #evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True)
+    setting_cards = read_card_games("game/game_0008/game_153467248*.pkl")
 
-    setting_cards = get_setting_cards()
+    shuffle(setting_cards)
     evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True)
+
+    #setting_cards = get_setting_cards()
+    #evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True)

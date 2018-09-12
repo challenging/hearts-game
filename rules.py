@@ -190,6 +190,9 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                     for player_idx, (before_cards, after_cards) in enumerate(zip(before_info, after_info)):
                         print("Player-{}'s init_cards: {} to {}".format(player_idx, before_cards, after_cards))
 
+                    for player_idx in range(4):
+                        game.players[player_idx].evualate_proactive_mode(game._player_hands[player_idx])
+
                     game.play()
                     game.score()
 

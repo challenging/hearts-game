@@ -280,7 +280,11 @@ class BrainBot(LowPlayBot):
         self.game = Game(players, verbose=False)
         self.player = self.game.players[current_player_idx]
 
-        self.player.proactive_mode = self.proactive_mode
+
+        if self.proactive_mode:
+            self.player.proactive_mode = self.proactive_mode
+        else:
+            self.player.evualate_proactive_mode(self.game)
 
         idx = None
         deal_number = data["dealNumber"]

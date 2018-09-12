@@ -41,7 +41,7 @@ class MonteCarloPlayer(SimplePlayer):
         for card in valid_cards:
             score = self.winning_score_func(winning_score[card])
 
-            if score < min_score:
+            if (self.proactive_mode and score <= min_score) or (not self.proactive_mode and score < min_score):
                 min_score = score
                 played_card = card
 
@@ -136,6 +136,11 @@ class MonteCarloPlayer(SimplePlayer):
 
     def overwrite_game_rule(self, current_trick_nr, game):
         pass
+
+
+    def evaluate_proactive_mode(self, hands):
+        pass
+
 
     def run_simulation(self, game, hand_cards, played_card):
         remaining_cards = self.get_remaining_cards(hand_cards)
@@ -483,16 +488,63 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
         return players
 
 
-
 class MonteCarloPlayer6(MonteCarloPlayer5):
     def __init__(self, verbose=False):
         super(MonteCarloPlayer6, self).__init__(verbose=verbose)
 
 
+    def evaluate_proactive_mode(self, hands):
+        self.say("re-evaluate the hands is suitable for the mode of shooting_the_moon, self.proactive_mode={}", self.proactive_mode)
+        super(MonteCarloPlayer6, self).set_proactive_mode(hands, 3)
+
+
     def no_choice(self, played_card):
-        time.sleep(np.random.randint(9000, 9200)*0.0001)
+        #time.sleep(np.random.randint(9000, 9200)*0.0001)
 
         return played_card
+
+
+    def select_card(self, game, valid_cards, winning_score):
+        valid_cards = sorted(valid_cards)
+
+        if Suit.hearts in self.proactive_mode:
+            if all([card.suit == Suit.hearts for card in valid_cards]):
+                deck = Deck()
+
+                remaining_cards = {}
+                for card in deck.cards:
+                    if card.suit == Suit.hearts and card not in self.seen_cards and card not in game.trick and card not in game._player_hands[self.position]:
+                        remaining_cards.setdefault(card.suit, card)
+                        if card.rank > remaining_cards[card.suit].rank:
+                            remaining_cards[card.suit] = card
+
+                for card in valid_cards[::-1]:
+                    if card.suit in remaining_cards:
+                        if card > remaining_cards[card.suit]:
+                            self.say("1. force to get this card - {} from {} because of {}", card, valid_cards, game.trick)
+
+                            return card
+
+
+        if game.trick and Suit.hearts in self.proactive_mode:
+            is_point_card_in_trick, leading_suit, current_max_rank = False, game.trick[0].suit, None
+            for card in game.trick:
+                if current_max_rank is None:
+                    current_max_rank = card.rank
+                else:
+                    if card.suit == leading_suit and card.rank > current_max_rank:
+                        current_max_rank = card.rank
+
+                    if card.suit == Suit.hearts:
+                        is_point_card_in_trick = True
+
+            if is_point_card_in_trick and valid_cards[-1].suit == leading_suit and valid_cards[-1].rank > current_max_rank:
+                self.say("2. force to get this card - {} from {} because of {}", valid_cards[-1], valid_cards, game.trick)
+
+                return valid_cards[-1]
+
+
+        return super(MonteCarloPlayer5, self).select_card(game, valid_cards, winning_score)
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
