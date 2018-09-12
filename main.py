@@ -21,10 +21,10 @@ if __name__ == "__main__":
     other_players = []
 
     player_ai = sys.argv[2]
-    #if player_ai.lower() == "mc6":
-    #    player = MonteCarloPlayer5(verbose=True)
-    #    other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
-    if player_ai.lower() == "mc5":
+    if player_ai.lower() == "mc6":
+        player = MonteCarloPlayer5(verbose=True)
+        other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
+    elif player_ai.lower() == "mc5":
         player = MonteCarloPlayer5(verbose=True)
         other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mc4":
@@ -40,8 +40,8 @@ if __name__ == "__main__":
         player = MonteCarloPlayer(verbose=True)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mcts":
-        player = mcts_player.MCTSPlayer(C=8, verbose=True)
-        other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
+        player = mcts_player.MCTSPlayer(C=32, verbose=True)
+        other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
     else:
         player = SimplePlayer(verbose=False)
         other_players = [StupidPlayer() for _ in range(3)]
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     #setting_cards = read_card_games("game/game_0032/game_1536341876.pkl")
     #setting_cards = read_card_games("game/game_0032/game_153466431*.pkl")
     #setting_cards = read_card_games("game/game_0008/game_153467248*.pkl")
-    #evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True, is_expose=False)
+    #evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True)
 
     setting_cards = get_setting_cards()
-    evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True, is_expose=False)
+    evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True)

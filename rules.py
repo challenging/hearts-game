@@ -150,7 +150,7 @@ def transform_cards(card_strings):
     return cardss
 
 
-def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verbose=True, is_expose=False):
+def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verbose=True):
     from game import Game
 
     final_scores, num_of_shooting_moon = [[], [], [], []], [0, 0, 0, 0]
@@ -174,10 +174,14 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                         before_info.append(cards[player_idx])
 
                     game = Game(copy.deepcopy(players), verbose=True)
-                    game.expose_heart_ace = is_expose
 
                     game._player_hands = copy.deepcopy(cards)
                     game.pass_cards(passing_direction)
+                    if Card(Suit.hearts, Rank.ace) in game._player_hands[-1]:
+                        game.expose_heart_ace = True
+
+                        for player in game.players[:3]:
+                            player.set_transfer_card(3, Card(Suit.hearts, Rank.ace))
 
                     after_info = []
                     for player_idx in range(4):

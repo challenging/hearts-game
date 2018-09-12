@@ -278,7 +278,6 @@ class MonteCarloPlayer4(MonteCarloPlayer3):
 
 
     def overwrite_game_rule(self, current_trick_nr, game):
-        #self.say("start to rewrite game rule - {} round", current_trick_nr)
         if current_trick_nr >= 6:
             return
 
@@ -328,13 +327,13 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
         for suit, cards in hand_cards.items():
             point_of_suit = np.sum(cards)
             if suit == Suit.hearts:
-                if (point_of_suit > 6 and len(cards) > 3) or (point_of_suit > 5 and len(cards) > 4) or (point_of_suit > 4 and len(cards) > 5):
+                if (point_of_suit > 6 and len(cards) > 3):# or (point_of_suit > 5 and len(cards) > 4) or (point_of_suit > 4 and len(cards) > 5):
                     self.proactive_mode.add(suit)
             else:
-                if (point_of_suit > 6 and len(cards) > 3) and (len(hand_cards[Suit.hearts]) > 1 and np.sum(hand_cards[Suit.hearts]) > 2):
+                if (point_of_suit > 6 and len(cards) > 3):# and (len(hand_cards[Suit.hearts]) > 1 and np.sum(hand_cards[Suit.hearts]) > 2):
                     self.proactive_mode.add(suit)
                     self.proactive_mode.add(Suit.hearts)
-                elif (point_of_suit > 5 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 2):
+                elif (point_of_suit > 5 and len(cards) > 4):# and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 2):
                     self.proactive_mode.add(suit)
                     self.proactive_mode.add(Suit.hearts)
                 elif (point_of_suit > 4 and len(cards) > 5):
@@ -356,8 +355,12 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
         pass_cards, keeping_cards = [], []
         if self.proactive_mode:
             for card in hand:
-                if card.suit not in self.proactive_mode and card.suit != Suit.hearts:
-                    pass_cards.append(card)
+                if card.suit not in self.proactive_mode:
+                    if card.suit != Suit.hearts:
+                        pass_cards.append(card)
+                    else:
+                        if card.rank < Rank.jack:
+                            pass_cards.append(card)
 
             pass_cards.sort(key=lambda x: self.undesirability(x), reverse=False)
 
@@ -401,6 +404,7 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
     def select_card(self, game, valid_cards, winning_score):
         valid_cards = sorted(valid_cards)
 
+        """
         if not game.trick and game.trick_nr > 2 and self.proactive_mode:
             deck = Deck()
 
@@ -418,8 +422,28 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
                             self.say("1. force to get this card - {} from {} because of {}", card, valid_cards, game.trick)
 
                             return card
+        """
 
-        if game.trick and self.proactive_mode:
+
+        if Suit.hearts in self.proactive_mode:
+            deck = Deck()
+
+            remaining_cards = {}
+            for card in deck.cards:
+                if card.suit == Suit.hearts and card not in self.seen_cards and card not in game.trick and card not in game._player_hands[self.position]:
+                    remaining_cards.setdefault(card.suit, card)
+                    if card.rank > remaining_cards[card.suit].rank:
+                        remaining_cards[card.suit] = card
+
+            for card in valid_cards[::-1]:
+                if card.suit in remaining_cards:
+                    if card > remaining_cards[card.suit]:
+                        self.say("1. force to get this card - {} from {} because of {}", card, valid_cards, game.trick)
+
+                        return card
+
+
+        if game.trick and Suit.hearts in self.proactive_mode:
             is_point_card_in_trick, leading_suit, current_max_rank = False, game.trick[0].suit, None
             for card in game.trick:
                 if current_max_rank is None:
@@ -431,7 +455,7 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
                     if card.suit == Suit.hearts:
                         is_point_card_in_trick = True
 
-            if valid_cards[-1].suit == leading_suit and valid_cards[-1].rank > current_max_rank:
+            if is_point_card_in_trick and valid_cards[-1].suit == leading_suit and valid_cards[-1].rank > current_max_rank:
                 self.say("2. force to get this card - {} from {} because of {}", valid_cards[-1], valid_cards, game.trick)
 
                 return valid_cards[-1]
@@ -466,15 +490,16 @@ class MonteCarloPlayer6(MonteCarloPlayer5):
 
 
     def no_choice(self, played_card):
-        time.sleep(np.random.randint(4, 8)*0.1)
+        time.sleep(np.random.randint(9000, 9200)*0.0001)
 
         return played_card
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
-        for player_idx, suit in other_info.get("lacking_info", {}).items():
-            game.lacking_cards[player_idx][suit] = True
+        for player_idx, suits in other_info.get("lacking_info", {}).items():
+            for suit in suits:
+                game.lacking_cards[player_idx][suit] = True
 
-            self.say("Player-{} may lack of {} suit", player_idx, suit)
+            self.say("Player-{} may lack of {} suit({}, {})", player_idx, suit, game.lacking_cards[player_idx], other_info)
 
         return super(MonteCarloPlayer6, self).play_card(game, other_info=other_info, simulation_time_limit=simulation_time_limit)

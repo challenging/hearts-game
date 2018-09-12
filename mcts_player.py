@@ -49,6 +49,42 @@ class MCTSPlayer(MonteCarloPlayer5):
                         scores[k].append(v)
             pool.close()
 
+            if Suit.hearts in self.proactive_mode:
+                deck = Deck()
+
+                remaining_cards = {}
+                for card in deck.cards:
+                    if card.suit == Suit.hearts and card not in self.seen_cards and card not in game.trick and card not in game._player_hands[self.position]:
+                        remaining_cards.setdefault(card.suit, card)
+                        if card.rank > remaining_cards[card.suit].rank:
+                            remaining_cards[card.suit] = card
+
+                for card in valid_cards[::-1]:
+                    if card.suit in remaining_cards:
+                        if card > remaining_cards[card.suit]:
+                            self.say("1. force to get this card - {} from {} because of {}", card, valid_cards, game.trick)
+
+                            return card
+
+
+            if game.trick and Suit.hearts in self.proactive_mode:
+                is_point_card_in_trick, leading_suit, current_max_rank = False, game.trick[0].suit, None
+                for card in game.trick:
+                    if current_max_rank is None:
+                        current_max_rank = card.rank
+                    else:
+                        if card.suit == leading_suit and card.rank > current_max_rank:
+                            current_max_rank = card.rank
+
+                        if card.suit == Suit.hearts:
+                            is_point_card_in_trick = True
+
+                if is_point_card_in_trick and valid_cards[-1].suit == leading_suit and valid_cards[-1].rank > current_max_rank:
+                    self.say("2. force to get this card - {} from {} because of {}", valid_cards[-1], valid_cards, game.trick)
+
+                    return valid_cards[-1]
+
+
             moves_states = []
             for card in valid_cards:
                 seen_cards = [c for c in self.seen_cards[:]] + [card]
@@ -72,8 +108,8 @@ class MCTSPlayer(MonteCarloPlayer5):
             self.say("(scores, played_card, valid_cards) = ({}, {}({:.2f}), {})",
                 len(scores), played_card, most_visit, valid_cards)
         else:
-            played_card = valid_cards[0]
-            self.say("don't need simulation, can only play {} card", played_card)
+            played_card = self.no_choice(valid_cards[0])
+            #self.say("don't need simulation, can only play {} card", played_card)
 
         return played_card
 
@@ -84,7 +120,7 @@ class MCTSPlayer(MonteCarloPlayer5):
 
         seen_cards = copy.deepcopy(game.players[0].seen_cards)
         game.verbose = False
-        game.players = [SimplePlayer() for idx in range(4)]
+        game.players = self.get_players(game)#[SimplePlayer() for idx in range(4)]
         for player in game.players:
             player.seen_cards = copy.deepcopy(seen_cards)
 
@@ -132,7 +168,7 @@ class MCTSPlayer(MonteCarloPlayer5):
             game.play_trick()
 
         if trick_nr < 6:
-            self.overwrite_game_score_func(game)
+            self.overwrite_game_rule(trick_nr, game)
 
         game.score()
 
