@@ -17,7 +17,7 @@ import alpha_player
 if __name__ == "__main__":
     # We are simulating n games accumulating a total score
     nr_of_games = int(sys.argv[1])
-    print('We are playing {} game in total.'.format(nr_of_games))
+    print('We will replay {} times in total.'.format(nr_of_games))
 
     player = SimplePlayer()
     other_players = []
@@ -42,7 +42,7 @@ if __name__ == "__main__":
         player = MonteCarloPlayer(verbose=True)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mcts":
-        player = mcts_player.MCTSPlayer(C=32, verbose=True)
+        player = mcts_player.MCTSPlayer(C=48, verbose=True)   # 48
         other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
     else:
         player = SimplePlayer(verbose=False)
@@ -50,11 +50,11 @@ if __name__ == "__main__":
 
     #setting_cards = read_card_games("game/game_0008/game_1534672482.pkl")
     #setting_cards = read_card_games("game/game_0032/game_1536341876.pkl")
-    #setting_cards = read_card_games("game/game_0032/game_153466431*.pkl")
-    setting_cards = read_card_games("game/game_0008/game_153467248*.pkl")
+    setting_cards = read_card_games("game/game_0032/game_*.pkl")
+    #setting_cards = read_card_games("game/game_0008/game_153467248*.pkl")
 
     shuffle(setting_cards)
-    evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True)
+    evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=False)
 
     #setting_cards = get_setting_cards()
     #evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True)

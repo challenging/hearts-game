@@ -90,23 +90,30 @@ class MCTSPlayer(MonteCarloPlayer5):
                 seen_cards = [c for c in self.seen_cards[:]] + [card]
                 moves_states.append((card, tuple(seen_cards)))
 
-            average_score, most_visit, played_card = sys.maxsize, -sys.maxsize, None
+            average_score, average_card, most_visit, played_card = sys.maxsize, None, -sys.maxsize, None
             for state in moves_states:
                 if state in scores:
                     avg_score = np.mean(scores[state])
                     n_visit = len(scores[state])
 
+                    if avg_score < average_score:
+                        average_score = avg_score
+                        average_card = state[0]
+
                     if n_visit > most_visit:
                         most_visit = n_visit
                         played_card = state[0]
+                    elif n_visit == most_visit:
+                        if avg_score < average_score:
+                            played_card = state[0]
 
                     statess = describe(scores[state])
                     self.say("{}, pick {}: (n={}, mean={:.4f}, std={:.4f}, minmax={}", valid_cards, state[0], statess.nobs, statess.mean, statess.variance**0.5, statess.minmax)
                 else:
-                    self.say("not found {} in {}", state)
+                    self.say("not found {} in {}", state, move_states)
 
-            self.say("(scores, played_card, valid_cards) = ({}, {}({:.2f}), {})",
-                len(scores), played_card, most_visit, valid_cards)
+            self.say("(scores, played_card, valid_cards) = ({}, {}({:.2f}, {:.2f}), {})",
+                len(scores), played_card, most_visit, average_score, valid_cards)
         else:
             played_card = self.no_choice(valid_cards[0])
             #self.say("don't need simulation, can only play {} card", played_card)

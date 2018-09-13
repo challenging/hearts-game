@@ -177,21 +177,23 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
                     game._player_hands = copy.deepcopy(cards)
                     game.pass_cards(passing_direction)
-                    if Card(Suit.hearts, Rank.ace) in game._player_hands[-1]:
-                        game.expose_heart_ace = True
-
-                        for player in game.players[:3]:
-                            player.set_transfer_card(3, Card(Suit.hearts, Rank.ace))
 
                     after_info = []
                     for player_idx in range(4):
+                        if game.players[player_idx].proactive_mode and Card(Suit.hearts, Rank.ace) in game._player_hands[player_idx]:
+                            game.expose_heart_ace = True
+
+                            for idx in range(4):
+                                if player_idx != idx:
+                                    game.players[idx].set_transfer_card(player_idx, Card(Suit.hearts, Rank.ace))
+
                         after_info.append(game._player_hands[player_idx])
 
                     for player_idx, (before_cards, after_cards) in enumerate(zip(before_info, after_info)):
                         print("Player-{}'s init_cards: {} to {}".format(player_idx, before_cards, after_cards))
 
                     for player_idx in range(4):
-                        game.players[player_idx].evualate_proactive_mode(game._player_hands[player_idx])
+                        game.players[player_idx].evaluate_proactive_mode(game._player_hands[player_idx])
 
                     game.play()
                     game.score()
@@ -208,7 +210,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                             stats = describe(scores)
 
                             print("{:02d}:{}:{} --> {:16s}({}): {:3d} points, n_shooting_mon={:d}, stats: (n={:d}, mean={:.2f}, std={:.2f}, minmax={})".format(\
-                                game_idx+1, round_idx, passing_direction, type(player).__name__, player_idx, scores[-1], num_of_shooting_moon[player_idx], \
+                                game_idx+1, round_idx, round_idx*(1 if is_rotating else 4)+passing_direction, type(player).__name__, player_idx, scores[-1], num_of_shooting_moon[player_idx], \
                                 stats.nobs, stats.mean, stats.variance**0.5, stats.minmax))
 
                     game.reset()

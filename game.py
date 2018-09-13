@@ -78,17 +78,19 @@ class Game(object):
             print(message.format(*formatargs))
 
 
+    """
     def print_game_status(self):
         for player_idx, (player, hand_cards, taken_cards, lacking_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken, self.lacking_cards)):
             self.say("trick_nr: {:2d}, current_trick: {}, leading_position: {}", self.trick_nr, self.trick, self.current_player_idx)
-            self.say("lacking_info: {}, is_heart_broken: {}", lacking_cards, self.is_heart_broken)
+            self.say("lacking_info: {}, is_heart_broken: {}, expose_hearts_ace: {}", lacking_cards, self.is_heart_broken, self.expose_heart_ace)
             self.say("position: {}, name:{:18s}, hand_cards: {}, score: {:3d}, taken_cards: {}",\
                 player_idx, type(player).__name__, sorted(hand_cards), self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)]))
+    """
 
 
     def print_hand_cards(self):
         for player_idx, (player, hand_cards, taken_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken)):
-            self.say("position: {}, name:{:18s}, proactive_mode: {:5s}, hand_cards: {}, score: {:3d}, taken_cards: {}",
+            self.say("position: {}, name:{:18s}, proactive_mode: {:6s}, hand_cards: {}, score: {:3d}, taken_cards: {}",
                 player_idx,\
                 type(player).__name__,\
                 str(player.proactive_mode) if player.proactive_mode else "",\
@@ -113,20 +115,6 @@ class Game(object):
 
 
     def pass_cards(self, round_idx):
-        """
-        for i in range(4):
-            for card in self.players[i].pass_cards(self._player_hands[i], round_idx):
-                next_idx = (i + 1) % 4
-
-                self._player_hands[i].remove(card)
-                self.players[i].set_transfer_card(next_idx, card)
-                self._player_hands[next_idx].append(card)
-
-                self.players[next_idx].freeze_pass_card(card)
-
-                self.say("Player {}({}) give Player {}({}) {} card", i, type(self.players[i]).__name__, next_idx, type(self.players[next_idx]).__name__, card)
-        """
-
         pass_cards = [[], [], [], []]
         for player_idx in range(4):
             pass_cards[player_idx] = self.players[player_idx].pass_cards(self._player_hands[player_idx], round_idx)
@@ -246,9 +234,13 @@ class Game(object):
         if self.verbose:
             print()
             print("the information about lacking cards are")
-            print(self.lacking_cards)
+            for player_idx in range(4):
+                is_lacking = any([l for l in self.lacking_cards[player_idx].values()])
+                if is_lacking:
+                    print("Player-{} lacks of {}".format(player_idx, [suit for suit, is_lacking in self.lacking_cards[player_idx].items() if is_lacking]))
             print()
-            print("the winning_player_index is {}({}, {}), is_heart_broken: {}".format(winning_player_index, self.current_player_idx, winning_index, self.is_heart_broken))
+            print("the winning_player_index is {}({}, {}), is_heart_broken: {}, expose_heart_ace".format(\
+                winning_player_index, self.current_player_idx, winning_index, self.is_heart_broken, self.expose_heart_ace))
             print("player {}({}) win this {:2d} trick by {} card based on {}".format(\
                 winning_player_index, type(self.players[winning_player_index]).__name__, self.trick_nr, winning_card, self.trick))
             print("after {:3d} round, status of every players' hand cards".format(self.trick_nr))

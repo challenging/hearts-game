@@ -150,17 +150,18 @@ class BrainBot(LowPlayBot):
                             break
                 else:
                     if (self.game.trick_nr != 0 and self.game.trick) and current_player_name != self.player_name and len(self.decision_time_info.get(current_player_name, [])) > 2:
-                        mean = np.mean(self.decision_time_info[current_player_name])
+                        array = np.array(self.decision_time_info[current_player_name])
+                        n = np.sum(array > 1)
 
-                        if decision_time < 0.8 and mean > 1:
+                        if decision_time < 0.8 and n > 4:
                             self.other_info.setdefault("lacking_info", {})
 
                             player_idx = [idx for idx in range(4) if self.player_names[idx] == current_player_name][0]
                             self.other_info["lacking_info"].setdefault(player_idx, [])
                             self.other_info["lacking_info"][player_idx].append(leading_suit)
 
-                            self.say("------> Player-{} lacks of {}({}) because of {:.4f} seconds",\
-                                current_player_name, leading_suit, last_card, decision_time)
+                            self.say("------> Player-{} lacks of {}({}) because of {:.4f} seconds, {}",\
+                                current_player_name, leading_suit, last_card, decision_time, n)
 
                             if not self.early_lacking and self.game.trick_nr < 6:
                                 self.early_lacking = True
@@ -169,7 +170,7 @@ class BrainBot(LowPlayBot):
                             #print(self.early_lacking, self.num_shooting_moon_lacking_info, self.num_shooting_moon, self.num_early_lacking)
 
             if isinstance(decision_time, float) and current_player_name != self.player_name and len(self.round_cards_history) > 1 and self.game.trick_nr < 6:
-                self.decision_time_info.setdefault(current_player_name, deque(maxlen=6))
+                self.decision_time_info.setdefault(current_player_name, deque(maxlen=8))
                 self.decision_time_info[current_player_name].append(decision_time)
 
                 self.say("{}'s decision_time_info is {}", current_player_name, self.decision_time_info[current_player_name])
@@ -284,7 +285,7 @@ class BrainBot(LowPlayBot):
         if self.proactive_mode:
             self.player.proactive_mode = self.proactive_mode
         else:
-            self.player.evualate_proactive_mode(self.game)
+            self.player.evaluate_proactive_mode(self.game)
 
         idx = None
         deal_number = data["dealNumber"]
