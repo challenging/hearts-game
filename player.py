@@ -133,7 +133,7 @@ class StupidPlayer(Player):
     def __init__(self, verbose=False):
         super(StupidPlayer, self).__init__(verbose=verbose)
 
-    def pass_cards(self, hand):
+    def pass_cards(self, hand, round_idx):
         cards = []
         for card in hand:
             if len(cards) == 3:

@@ -13,7 +13,7 @@ from random import shuffle, choice
 from card import Suit, Rank, Card, Deck
 from rules import is_card_valid
 
-from simulated_player import MonteCarloPlayer2
+from simulated_player import MonteCarloPlayer6
 from player import SimplePlayer, StupidPlayer
 
 TIMEOUT_SECOND = 0.9
@@ -38,8 +38,7 @@ def policy_value_fn(state):
     #action_probs = np.ones(len(board.availables))/len(board.availables)
 
     current_players = state.players[state.current_player_idx]
-    valid_moves = current_players.get_valid_cards(state._player_hands[state.current_player_idx], state.trick, state.trick_nr, state.is_heart_broken)
-    #print(state.current_player_idx, state._player_hands[state.current_player_idx], valid_moves)
+    valid_moves = current_players.get_valid_cards(state._player_hands[state.current_player_idx], state)
 
     action_probs = np.ones(len(valid_moves)) / len(valid_moves)
 
@@ -51,8 +50,10 @@ class TreeNode(object):
     prior probability P, and its visit-count-adjusted prior score u.
     """
 
-    def __init__(self, parent, prior_p, player_idx):
+    def __init__(self, parent, prior_p, self_player_idx, player_idx):
         self._parent = parent
+
+        self._self_player_idx = self_player_idx
         self._player_idx = player_idx
 
         self._children = {}  # a map from action to TreeNode
@@ -69,7 +70,7 @@ class TreeNode(object):
         """
         for action, prob in action_priors:
             if action not in self._children:
-                self._children[action] = TreeNode(self, prob, player_idx)
+                self._children[action] = TreeNode(self, prob, self._self_player_idx, player_idx)
 
 
     def select(self, c_puct):
@@ -77,6 +78,7 @@ class TreeNode(object):
         plus bonus u(P).
         Return: A tuple of (action, next_node)
         """
+
         return max(self._children.items(),
                    key=lambda act_node: act_node[1].get_value(c_puct))
 
@@ -88,8 +90,9 @@ class TreeNode(object):
         """
         # Count visit.
         self._n_visits += 1
+
         # Update Q, a running average of values for all visits.
-        self._Q += 1.0*(leaf_value - self._Q) / self._n_visits
+        self._Q += (leaf_value - self._Q) / self._n_visits
 
 
     def update_recursive(self, scores):
@@ -99,9 +102,10 @@ class TreeNode(object):
         if self._parent:
             self._parent.update_recursive(scores)
 
-        #print(scores, self._parent, self._player_idx)
-        if self._parent:
-            self.update(-scores[self._player_idx])
+        if self._player_idx is None:
+            self._n_visits += 1
+        else:
+            self.update(scores[self._player_idx])#*(1 if self._self_player_idx == self._player_idx else -1))
 
 
     def get_value(self, c_puct):
@@ -111,8 +115,7 @@ class TreeNode(object):
         c_puct: a number in (0, inf) controlling the relative impact of
             value Q, and prior probability P, on this node's score.
         """
-        self._u = (c_puct * self._P *
-                   np.sqrt(self._parent._n_visits) / (1 + self._n_visits))
+        self._u = (c_puct * self._P * np.sqrt(self._parent._n_visits) / (1 + self._n_visits))
 
         return self._Q + self._u
 
@@ -130,7 +133,7 @@ class TreeNode(object):
 class MCTS(object):
     """A simple implementation of Monte Carlo Tree Search."""
 
-    def __init__(self, policy_value_fn, c_puct=5, n_playout=10000):
+    def __init__(self, policy_value_fn, self_player_idx, c_puct=5, n_playout=10000):
         """
         policy_value_fn: a function that takes in a board state and outputs
             a list of (action, probability) tuples and also a score in [-1, 1]
@@ -141,7 +144,10 @@ class MCTS(object):
             converges to the maximum-value policy. A higher value means
             relying on the prior more.
         """
-        self._root = TreeNode(None, 1.0, None)
+
+        self._self_player_idx = self_player_idx
+        self._root = TreeNode(None, 1.0, self_player_idx, None)
+
         self._policy = policy_value_fn
         self._c_puct = c_puct
         self._n_playout = n_playout
@@ -189,7 +195,23 @@ class MCTS(object):
             state.step()
             winners = state.get_game_winners()
 
-        return state.player_scores
+        rating = [0, 0, 0, 0]
+
+        info = zip(range(4), state.player_scores)
+        pre_score, pre_rating, max_score = None, None, np.array(state.player_scores)/np.max(state.player_scores)
+        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: x[1])):
+            tmp_rating = rating_idx
+            if pre_score is not None:
+                if score == pre_score:
+                    tmp_rating = pre_rating
+
+
+            rating[player_idx] = ((4-tmp_rating) + (1-max_score[player_idx]))/5
+
+            pre_score = score
+            pre_rating = tmp_rating
+
+        return rating
 
 
     def get_move(self, state):
@@ -229,35 +251,38 @@ class MCTS(object):
             self._root = self._root._children[last_move]
             self._root._parent = None
             self._player_idx = None
+
+            print(last_move, self._root._children, last_move in self._root._children)
         else:
-            self._root = TreeNode(None, 1.0, None)
+            self._root = TreeNode(None, 1.0, self._self_player_idx, None)
 
 
     def __str__(self):
         return "MCTS"
 
 
-class DragonRiderPlayer(MonteCarloPlayer5):
+class DragonRiderPlayer(MonteCarloPlayer6):
     """AI player based on MCTS"""
-    def __init__(self, verbose=False, c_puct=2, n_playout=512):
-        super(RCPlayer, self).__init__(verbose)
+    def __init__(self, self_player_idx, verbose=False, c_puct=2, n_playout=512):
+        super(DragonRiderPlayer, self).__init__(verbose)
 
-        self.mcts = MCTS(policy_value_fn, c_puct, n_playout)
+        self.mcts = MCTS(policy_value_fn, self_player_idx, c_puct, n_playout)
 
 
     def reset(self):
-        super(MCTSPlayer, self).reset()
+        super(DragonRiderPlayer, self).reset()
 
         self.mcts.update_with_move(-1)
 
 
     def play_card(self, game, simulation_time_limit=TIMEOUT_SECOND):
         hand_cards = game._player_hands[self.position]
-        valid_cards = self.get_valid_cards(hand_cards, game.trick, game.trick_nr, game.is_heart_broken)
+        valid_cards = self.get_valid_cards(hand_cards, game)
 
         if len(valid_cards) > 1:
             played_card = self.mcts.get_move(copy.deepcopy(game))
             print("pick card", played_card, hand_cards, valid_cards)
+
             self.mcts.update_with_move(-1)
         else:
             played_card = valid_cards[0]
