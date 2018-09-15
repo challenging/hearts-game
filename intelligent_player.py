@@ -228,10 +228,14 @@ class MCTS(object):
 
 class IntelligentPlayer(MonteCarloPlayer6):
     """AI player based on MCTS"""
-    def __init__(self, self_player_idx, verbose=False, c_puct=2, is_selfplay):
+    def __init__(self, policy_value_fn, self_player_idx, is_selfplay, verbose=False, c_puct=2):
         super(IntelligentPlayer, self).__init__(verbose)
 
         self.mcts = MCTS(policy_value_fn, self_player_idx, c_puct)
+        self.set_selfplay(is_selfplay)
+
+
+    def set_selfplay(self, is_selfplay):
         self._is_selfplay = is_selfplay
 
 

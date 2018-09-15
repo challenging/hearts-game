@@ -263,7 +263,6 @@ class MonteCarloPlayer3(MonteCarloPlayer2):
 
 
     def score_func(self, scores):
-        """
         min_score, other_score = None, 0
         for idx, score in enumerate(sorted(scores)):
             if idx == 0:
@@ -276,23 +275,25 @@ class MonteCarloPlayer3(MonteCarloPlayer2):
             return self_score-other_score/3
         else:
             return self_score-min_score
+
         """
+        rating = [0, 0, 0, 0]
 
         info = list(zip(range(4), scores))
-        pre_score, pre_rating, max_score = None, None, np.array(scores)/np.max(scores)
-        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: x[1])):
+        pre_score, pre_rating, norm_score = None, None, np.array(scores)/np.sum(scores)
+        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
             tmp_rating = rating_idx
             if pre_score is not None:
                 if score == pre_score:
                     tmp_rating = pre_rating
 
-
-            rating[player_idx] = tmp_rating + max_score[player_idx]
+            rating[player_idx] = (4-tmp_rating)/4 + norm_score[player_idx]
 
             pre_score = score
             pre_rating = tmp_rating
 
         return rating[self.position]
+        """
 
 
 class MonteCarloPlayer4(MonteCarloPlayer3):
@@ -496,8 +497,11 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
             contains_hearts = False
             for card in valid_cards:
                 if card.suit == Suit.hearts:
+                    contains_hearts = True
+
                     break
-            else:
+
+            if contains_hearts:
                 players =  [MaxCardPlayer() if self.proactive_mode and player_idx == self.position else SimplePlayer() for player_idx in range(4)]
 
         if not players:
@@ -514,26 +518,6 @@ class MonteCarloPlayer6(MonteCarloPlayer5):
     def evaluate_proactive_mode(self, hands):
         self.say("re-evaluate the hands is suitable for the mode of shooting_the_moon, self.proactive_mode={}", self.proactive_mode)
         super(MonteCarloPlayer6, self).set_proactive_mode(hands, 3)
-
-
-    def score_func(self, scores):
-        rating = [0, 0, 0, 0]
-
-        info = list(zip(range(4), scores))
-        pre_score, pre_rating, max_score = None, None, np.array(scores)/np.max(scores)
-        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: x[1])):
-            tmp_rating = rating_idx
-            if pre_score is not None:
-                if score == pre_score:
-                    tmp_rating = pre_rating
-
-
-            rating[player_idx] = tmp_rating + max_score[player_idx]
-
-            pre_score = score
-            pre_rating = tmp_rating
-
-        return rating[self.position]
 
 
     def no_choice(self, played_card):
@@ -593,3 +577,7 @@ class MonteCarloPlayer6(MonteCarloPlayer5):
             self.say("Player-{} may lack of {} suit({}, {})", player_idx, suit, game.lacking_cards[player_idx], other_info)
 
         return super(MonteCarloPlayer6, self).play_card(game, other_info=other_info, simulation_time_limit=simulation_time_limit)
+
+
+    def get_players(self, game):
+        return [StupidPlayer() for _ in range(4)]

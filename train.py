@@ -20,8 +20,8 @@ from card import read_card_games
 from rules import evaluate_players
 
 from alpha_game import AlphaGame as Game
-from alpha_player import AlphaPlayer
-from simulated_player import MonteCarloPlayer4 as MonteCarloPlayer
+from intelligent_player import IntelligentPlayer
+from simulated_player import MonteCarloPlayer6 as MonteCarloPlayer
 
 from nn import PolicyValueNet
 
@@ -53,7 +53,7 @@ class TrainPipeline():
             # start training from a new policy-value net
             self.policy_value_net = PolicyValueNet()
 
-        players = [AlphaPlayer(policy=self.policy_value_net.policy_value, verbose=False) for _ in range(4)]
+        players = [IntelligentPlayer(self.policy_value_net.policy_value, player_idx, True, verbose=False) for player_idx in range(4)]
         for player in players:
             player.set_selfplay(True)
 

@@ -10,7 +10,6 @@ from rules import get_setting_cards, evaluate_players
 from player import StupidPlayer, SimplePlayer
 from dragon_rider_player import DragonRiderPlayer
 from simulated_player import MonteCarloPlayer, MonteCarloPlayer2, MonteCarloPlayer3, MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
-from simulated_player import MonteCarloPlayer33
 
 import mcts_player
 import alpha_player
@@ -55,11 +54,11 @@ if __name__ == "__main__":
 
     #setting_cards = read_card_games("game/game_0008/game_1534672482.pkl")
     #setting_cards = read_card_games("game/game_0032/game_1536341876.pkl")
-    setting_cards = read_card_games("game/game_0032/game_*.pkl")
+    #setting_cards = read_card_games("game/game_0032/game_*.pkl")
     #setting_cards = read_card_games("game/game_0008/game_153467248*.pkl")
 
-    shuffle(setting_cards)
-    evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=False)
+    #shuffle(setting_cards)
+    #evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=False)
 
-    #setting_cards = get_setting_cards()
-    #evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True)
+    setting_cards = get_setting_cards()
+    evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True)

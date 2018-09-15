@@ -107,22 +107,24 @@ def transform(rank, suit):
 
 def get_setting_cards():
     # shoot the moon
-    card_string = [["AS,KS,TS,9S,8S,7S,3S,JH,KH,QC,JC,TC,9C",
-                    "QS,6S,AH,9H,QH,TH,7H,6H,3H,2H,KC,AD,8D",
+    card_string = [
+                   ["KS,TS,8S,6S,3S,5H,3H,2H,TC,QD,6D,5D,4D",
+                    "9S,5S,AH,JH,7H,6H,4H,AC,KC,JC,5C,KD,8D",
+                    "4S,2S,KH,QH,8H,QC,9C,6C,4C,2C,TD,9D,7D",
+                    "AS,QS,JS,7S,TH,9H,8C,7C,3C,AD,JD,3D,2D"],
+                   ["QS,6S,AH,9H,QH,TH,7H,6H,3H,2H,KC,AD,8D",
                     "5S,4S,8H,5H,7C,4C,QD,TD,9D,6D,5D,4D,3D",
-                    "JS,2S,4H,AC,8C,6C,5C,3C,2C,KD,JD,7D,2D"],
-                   ["QS,6S,AH,KH,QH,TH,7H,6H,3H,2H,KC,AD,8D",
-                    "5S,4S,8H,5H,7C,4C,QD,TD,9D,6D,5D,4D,3D",
-                    "AS,KS,TS,9S,8S,7S,3S,JH,9H,QC,JC,TC,9C",
-                    "JS,2S,4H,AC,8C,6C,5C,3C,2C,KD,JD,7D,2D"],
-                   ["JS,AH,KH,QH,JH,TH,2H,KC,QC,TC,AD,KD,8D",
-                    "8S,7S,3S,JC,4C,3C,9D,7D,6D,5D,4D,3D,2D",
+                    "JS,2S,4H,AC,8C,6C,5C,3C,2C,KD,JD,7D,2D",
+                    "AS,KS,TS,9S,8S,7S,3S,JH,KH,QC,JC,TC,9C"],
+                   ["8S,7S,3S,JC,4C,3C,9D,7D,6D,5D,4D,3D,2D",
                     "AS,KS,QS,9S,6S,4S,2S,7H,3H,AC,QD,JD,TD",
-                    "TS,5S,9H,8H,6H,5H,4H,9C,8C,7C,6C,5C,2C"],
-                   ["AS,KS,TS,9S,KH,QH,TH,7H,6H,5H,5C,KD,QD",
-                    "QS,8S,6S,5S,2S,JH,9H,8H,2H,AC,9C,7C,3D",
+                    "TS,5S,9H,8H,6H,5H,4H,9C,8C,7C,6C,5C,2C",
+                    "JS,AH,KH,QH,JH,TH,2H,KC,QC,TC,AD,KD,8D"],
+                   ["QS,8S,6S,5S,2S,JH,9H,8H,2H,AC,9C,7C,3D",
                     "JS,7S,4S,3S,AH,3H,KC,QC,JC,TC,AD,TD,6D",
-                    "4H,8C,6C,4C,3C,2C,JD,9D,8D,7D,5D,4D,2D"]]
+                    "4H,8C,6C,4C,3C,2C,JD,9D,8D,7D,5D,4D,2D",
+                    "AS,KS,TS,9S,KH,QH,TH,7H,6H,5H,5C,KD,QD"]
+                  ]
 
     return transform_cards(card_string)
 
@@ -130,7 +132,7 @@ def get_setting_cards():
 def transform_cards(card_strings):
     cardss = []
 
-    separator = ","
+    separator = ','
     for card_string in card_strings:
         cards = []
         for card_s in card_string:
@@ -157,7 +159,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
     for game_idx in range(nr_of_games):
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
             for round_idx in range(0, 4):
-                cards[0], cards[1], cards[2], cards[3] = cards[1], cards[2], cards[3], cards[0]
+                cards[0], cards[1], cards[2], cards[3] = cards[round_idx%4], cards[(round_idx+1)%4], cards[(round_idx+2)%4], cards[(round_idx+3)%4]
 
                 for passing_direction in range(1 if is_rotating else 4, 5):
                     if passing_direction == 1:
