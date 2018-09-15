@@ -263,6 +263,7 @@ class MonteCarloPlayer3(MonteCarloPlayer2):
 
 
     def score_func(self, scores):
+        """
         min_score, other_score = None, 0
         for idx, score in enumerate(sorted(scores)):
             if idx == 0:
@@ -275,9 +276,7 @@ class MonteCarloPlayer3(MonteCarloPlayer2):
             return self_score-other_score/3
         else:
             return self_score-min_score
-    """
-    def score_func(self, scores):
-        rating = [0, 0, 0, 0]
+        """
 
         info = list(zip(range(4), scores))
         pre_score, pre_rating, max_score = None, None, np.array(scores)/np.max(scores)
@@ -294,7 +293,6 @@ class MonteCarloPlayer3(MonteCarloPlayer2):
             pre_rating = tmp_rating
 
         return rating[self.position]
-    """
 
 
 class MonteCarloPlayer4(MonteCarloPlayer3):
@@ -357,10 +355,10 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
             else:
                 if (point_of_suit > 6 and len(cards) > 3):# and (len(hand_cards[Suit.hearts]) > 1 and np.sum(hand_cards[Suit.hearts]) > 2):
                     self.proactive_mode.add(suit)
-                    self.proactive_mode.add(Suit.hearts)
+                    #self.proactive_mode.add(Suit.hearts)
                 elif (point_of_suit > 5 and len(cards) > 4):# and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 2):
                     self.proactive_mode.add(suit)
-                    self.proactive_mode.add(Suit.hearts)
+                    #self.proactive_mode.add(Suit.hearts)
                 elif (point_of_suit > 4 and len(cards) > 5):
                     self.proactive_mode.add(suit)
 
@@ -539,7 +537,7 @@ class MonteCarloPlayer6(MonteCarloPlayer5):
 
 
     def no_choice(self, played_card):
-        #time.sleep(np.random.randint(9000, 9200)*0.0001)
+        time.sleep(np.random.randint(9000, 9200)*0.0001)
 
         return played_card
 

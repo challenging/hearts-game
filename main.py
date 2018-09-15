@@ -10,6 +10,7 @@ from rules import get_setting_cards, evaluate_players
 from player import StupidPlayer, SimplePlayer
 from dragon_rider_player import DragonRiderPlayer
 from simulated_player import MonteCarloPlayer, MonteCarloPlayer2, MonteCarloPlayer3, MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
+from simulated_player import MonteCarloPlayer33
 
 import mcts_player
 import alpha_player
@@ -34,8 +35,8 @@ if __name__ == "__main__":
         player = MonteCarloPlayer4(verbose=True)
         other_players = [MonteCarloPlayer3(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mc3":
-        player = MonteCarloPlayer3(verbose=True)
-        other_players = [MonteCarloPlayer2(verbose=False) for _ in range(3)]
+        player = MonteCarloPlayer33(verbose=True)
+        other_players = [MonteCarloPlayer3(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mc2":
         player = MonteCarloPlayer2(verbose=True)
         other_players = [MonteCarloPlayer(verbose=False) for _ in range(3)]
@@ -46,8 +47,8 @@ if __name__ == "__main__":
         player = mcts_player.MCTSPlayer(C=72, verbose=True)   # 48
         other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "rider":
-        player = DragonRiderPlayer(self_player_idx=3, verbose=True, c_puct=4)
-        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
+        player = DragonRiderPlayer(self_player_idx=3, verbose=True, c_puct=2)
+        other_players = [MonteCarloPlayer6(verbose=False) for _ in range(3)]
     else:
         player = SimplePlayer(verbose=False)
         other_players = [StupidPlayer() for _ in range(3)]

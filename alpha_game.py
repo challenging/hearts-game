@@ -29,6 +29,24 @@ class AlphaGame(Game):
 
 
     def score_func(self, scores, position):
+        rating = [0, 0, 0, 0]
+
+        info = zip(range(4), scores)
+        pre_score, pre_rating, max_score = None, None, np.array(scores)/np.max(scores)
+        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: x[1])):
+            tmp_rating = rating_idx
+            if pre_score is not None:
+                if score == pre_score:
+                    tmp_rating = pre_rating
+
+            rating[player_idx] = ((4-tmp_rating) + (1-max_score[player_idx]))/5
+
+            pre_score = score
+            pre_rating = tmp_rating
+
+        return rating[position]
+
+        """
         min_score, second_score = None, None
         for idx, score in enumerate(sorted(scores)):
             if idx == 0:
@@ -42,6 +60,7 @@ class AlphaGame(Game):
             return self_score-second_score
         else:
             return self_score-min_score
+        """
 
 
     def current_status(self):
