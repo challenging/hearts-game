@@ -1,5 +1,6 @@
 """This module containts the abstract class Player and some implementations."""
 import os
+import copy
 
 import numpy as np
 
@@ -131,94 +132,77 @@ class Player(object):
         return remaining_cards
 
 
-    def simple_redistribute_cards(self, copy_hand_cards, remaining_cards, lacking_cards):
+    def simple_redistribute_cards(self, game, remaining_cards):
         shuffle(remaining_cards)
-
-        hand_cards = [[], [], [], []]
-        #for idx in range(len(game._player_hands)):
-        for idx in range(len(copy_hand_cards)):
-            if idx != self.position:
-                hand_cards[idx] = np.random.choice(remaining_cards, len(copy_hand_cards[idx]), replace=False).tolist()
-
-                for used_card in hand_cards[idx]:
-                    remaining_cards.remove(used_card)
+        for idx in range(len(game._player_hands)):
+           if idx != self.position:
+               game._player_hands[idx] = np.random.choice(remaining_cards, len(game._player_hands[idx]), replace=False).tolist()
+               for used_card in game._player_hands[idx]:
+                   remaining_cards.remove(used_card)
 
         if remaining_cards:
-            self.say("Error in redistributing cards, {}, {}, {}", type(self).__name__, remaining_cards, [len(v) for v in hand_cards])
-            raise
+           self.say("Error in redistributing cards, {}, {}, {}", type(self).__name__, remaining_cards, [len(v) for v in game._player_hands])
+           raise
 
-        return hand_cards
+        return game
 
 
-    """
-    def redistribute_cards(self, copy_hand_cards, copy_remaining_cards, lacking_cards):
-        return self.simple_redistribute_cards(copy_hand_cards, copy_remaining_cards, lacking_cards)
-    """
+    def redistribute_cards(self, game, remaining_cards):
+        return self.simple_redistribute_cards(game, remaining_cards)
 
-    def redistribute_cards(self, copy_hand_cards, copy_remaining_cards, lacking_cards):
-        hand_cards = None
 
+    def redistribute_cards(self, copy_game, copy_remaining_cards):
         retry = 3
         while retry >= 0:
-            #game = copy.deepcopy(copy_game)
-            hand_cards = copy_hand_cards[:]
-            remaining_cards = copy_remaining_cards[:]#copy.deepcopy(copy_remaining_cards)
+            game = copy.deepcopy(copy_game)
+            remaining_cards = copy.deepcopy(copy_remaining_cards)
 
             shuffle(remaining_cards)
 
             ori_size, fixed_cards = [], set()
-            #for idx in range(len(game._player_hands)):
-            for idx in range(len(hand_cards)):
+            for idx in range(len(game._player_hands)):
                 if idx != self.position:
-                    #size = len(game._player_hands[idx])
-                    size = len(hand_cards[idx])
+                    size = len(game._player_hands[idx])
                     ori_size.append(size)
 
-                    #game._player_hands[idx] = []
-                    hand_cards[idx] = []
+                    game._player_hands[idx] = []
 
                     for card in self.transfer_cards.get(idx, []):
                         if card in remaining_cards:
-                            #game._player_hands[idx].append(card)
-                            hand_cards[idx].append(card)
+                            game._player_hands[idx].append(card)
                             remaining_cards.remove(card)
 
                             fixed_cards.add(card)
 
                     removed_cards = []
                     for card in remaining_cards:
-                        #if game.lacking_cards[idx][card.suit] == False:
-                        if lacking_cards[idx][card.suit] == False:
-                            #game._player_hands[idx].append(card)
-                            hand_cards[idx].append(card)
+                        if game.lacking_cards[idx][card.suit] == False:
+                            game._player_hands[idx].append(card)
                             removed_cards.append(card)
 
-                            if len(hand_cards[idx]) == size:
+                            if len(game._player_hands[idx]) == size:
                                 break
 
                     for card in removed_cards:
                         remaining_cards.remove(card)
                 else:
-                    #ori_size.append(len(game._player_hands[idx]))
-                    ori_size.append(len(hand_cards[idx]))
+                    ori_size.append(len(game._player_hands[idx]))
 
 
             retry2 = 3
-            #lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) < ori_size[idx]]
-            lacking_idx = [idx for idx in range(4) if len(hand_cards[idx]) < ori_size[idx]]
-            #while retry2 >= 0 and any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
-            while retry2 >= 0 and any([ori_size[player_idx] != len(hand_cards[player_idx]) for player_idx in range(4)]):
+            lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) < ori_size[idx]]
+            while retry2 >= 0 and any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
                 removed_cards = []
                 for card in remaining_cards:
-                    latest_lacking_idx = [idx for idx in range(4) if len(hand_cards[idx]) < ori_size[idx]]
+                    latest_lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) < ori_size[idx]]
 
                     player_idx = choice([player_idx for player_idx in range(4) if player_idx not in latest_lacking_idx + [self.position]])
-                    #hand_cards = hand_cards[player_idx]
+                    hand_cards = game._player_hands[player_idx]
 
-                    for card_idx, hand_card in enumerate(hand_cards[player_idx]):
-                        if hand_card not in fixed_cards and not lacking_cards[latest_lacking_idx[0]][hand_card.suit]:
-                            hand_cards[player_idx][card_idx] = card
-                            hand_cards[latest_lacking_idx[0]].append(hand_card)
+                    for card_idx, hand_card in enumerate(hand_cards):
+                        if hand_card not in fixed_cards and not game.lacking_cards[latest_lacking_idx[0]][hand_card.suit]:
+                            game._player_hands[player_idx][card_idx] = card
+                            game._player_hands[latest_lacking_idx[0]].append(hand_card)
 
                             removed_cards.append(card)
 
@@ -228,35 +212,31 @@ class Player(object):
                     remaining_cards.remove(card)
 
                 for player_idx, size in enumerate(ori_size):
-                    if len(hand_cards[player_idx]) > size:
-                        for idx in range(len(hand_cards[player_idx])-size):
-                            candidated_cards = [card for card in hand_cards[player_idx] if card not in fixed_cards]
+                    if len(game._player_hands[player_idx]) > size:
+                        for idx in range(len(game._player_hands[player_idx])-size):
+                            candidated_cards = [card for card in game._player_hands[player_idx] if card not in fixed_cards]
                             if candidated_cards:
                                 card = choice(candidated_cards)
-                                hand_cards[player_idx].remove(card)
+                                game._player_hands[player_idx].remove(card)
                                 remaining_cards.append(card)
 
                 retry2 -= 1
 
-            if remaining_cards or any([ori_size[player_idx] != len(hand_cards[player_idx]) for player_idx in range(4)]):
+            if remaining_cards or any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
 
                 retry -= 1
             else:
-                #copy_game = game
+                copy_game = game
 
                 break
         else:
-            hand_cards = self.simple_redistribute_cards(copy_hand_cards, copy_remaining_cards, lacking_cards)
+            self.simple_redistribute_cards(copy_game, copy_remaining_cards)
 
-        return hand_cards
+        return copy_game
 
 
     def reset(self):
-        self.seen_cards = []
-        self.freeze_cards = []
-        self.transfer_cards = defaultdict(list)
-
-        self.proactive_mode = set()
+        pass
 
 
 class StupidPlayer(Player):

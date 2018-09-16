@@ -26,7 +26,13 @@ class AlphaGame(Game):
                 played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
 
         # store the self-play data: (state, mcts_probs, z) for training
-        cards, probs = played_prob_to_v(played_probs)
+        #cards, probs = played_prob_to_v(played_probs)
+
+        cards, probs = [], []
+        for card, prob in played_probs.items():
+            cards.append(card)
+            probs.append(prob)
+
         self._memory.append([self.current_status(), cards, probs, played_card, self.current_player_idx])
 
         self._player_hands[self.current_player_idx].remove(played_card)

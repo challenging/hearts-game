@@ -58,4 +58,4 @@ if __name__ == "__main__":
     #evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=False)
 
     setting_cards = get_setting_cards()
-    evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=True)
+    evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=False)

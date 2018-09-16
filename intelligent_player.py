@@ -61,8 +61,8 @@ class TreeNode(object):
         Return: A tuple of (action, next_node)
         """
 
-        return max(self._children.items(),
-                   key=lambda act_node: act_node[1].get_value(c_puct))
+        return sorted(self._children.items(),
+                   key=lambda act_node: -act_node[1].get_value(c_puct))
 
 
     def update(self, leaf_value):
@@ -147,28 +147,39 @@ class MCTS(object):
                 break
 
             # Greedily select next move.
-            action, node = node.select(self._c_puct)
-            if action > 0:
-                card = v2card(action)
+            #action, node = node.select(self._c_puct)
+            #card = v2card(action)
+            #print(action, card)
+            #state.step(card)
 
-                state.print_game_status()
-                state.step(card)
-            else:
-                break
+            valid_cards = state.players[state.current_player_idx].get_valid_cards(state._player_hands[state.current_player_idx], state)
+            for action, node in node.select(self._c_puct):
+                card = v2card(action)
+                if card in valid_cards:
+                    state.step(card)
+
+                    break
 
         state.print_game_status()
 
         valid_cards = state.players[state.current_player_idx].get_valid_cards(state._player_hands[state.current_player_idx], state)
-        cards = [card2v(card) for card in valid_cards] + [0 for _ in range(12-len(valid_cards))]
+        #cards = [card2v(card) for card in valid_cards] + [0 for _ in range(12-len(valid_cards))]
+        cards = np.zeros(52, dtype=np.int32)
+        for card in valid_cards:
+            cards[card2v(card)] = 1
 
         action_probs, rating = self._policy([state.current_status()], [cards])
+        action_probs, rating = action_probs[0], rating[0]
+
+        for idx, (card_v, prob) in enumerate(zip(cards, action_probs)):
+            if v2card(card_v) not in valid_cards:
+                action_probs[idx] = 0
 
         # Check for end of game.
         winners = state.get_game_winners()
         if not winners:
-            node.expand(state.current_player_idx, zip(cards, action_probs[0]))
-
-            rating = rating[0]
+            print(valid_cards, cards, action_probs)
+            node.expand(state.current_player_idx, zip(cards, action_probs))
         else:
             rating = game._player_scores
 
@@ -179,16 +190,15 @@ class MCTS(object):
     def get_move_probs(self, state, temp=1e-3):
         state.verbose = False
 
+        remaining_cards = state.players[self._self_player_idx].get_remaining_cards(state._player_hands[self._self_player_idx])
+
         stime = time.time()
         while time.time()-stime < TIMEOUT_SECOND:
             copy_state = copy.deepcopy(state)
+            copy_state = copy_state.players[self._self_player_idx].redistribute_cards(copy_state, remaining_cards[:])
+            #print(self._self_player_idx, copy_state._player_hands)
 
-            hand_cards = copy_state._player_hands[copy_state.current_player_idx]
-
-            remaining_cards = copy_state.players[copy_state.current_player_idx].get_remaining_cards(copy_state._player_hands[copy_state.current_player_idx])
-            copy_state.players[copy_state.current_player_idx].redistribute_cards(copy_state._player_hands[:], remaining_cards[:], copy_state.lacking_cards)
-
-            self._playout(copy.deepcopy(copy_state))
+            self._playout(copy_state)
 
         act_visits = [(act, node._n_visits) for act, node in self._root._children.items()]
         acts, visits = zip(*act_visits)
@@ -267,9 +277,12 @@ class IntelligentPlayer(MonteCarloPlayer6):
         played_card = None
 
         acts, probs = self.mcts.get_move_probs(local_game, temp)
+        move_probs = {}
+        for act, prob in zip(acts, probs):
+            move_probs[act] = prob
 
-        move_probs = np.zeros(59)
-        move_probs[list(acts)] = probs
+        #move_probs = np.zeros(12)
+        #move_probs[list(acts)] = probs
 
         if self._is_selfplay:
             # add Dirichlet Noise for exploration (needed for

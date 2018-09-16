@@ -232,9 +232,9 @@ class MCTS(object):
 
         stime = time.time()
         while time.time()-stime < TIMEOUT_SECOND:
-            hand_cards = state_copy._player_hands[state.current_player_idx]
+            #hand_cards = state_copy._player_hands[state.current_player_idx]
             remaining_cards = state.players[state.current_player_idx].get_remaining_cards(state._player_hands[state.current_player_idx])
-            state.players[state.current_player_idx].redistribute_cards(state._player_hands, remaining_cards[:], state.lacking_cards)
+            state = state.players[state.current_player_idx].redistribute_cards(state, remaining_cards[:])
 
             state_copy.verbose = False
             state_copy.players = [StupidPlayer() for idx in range(4)]

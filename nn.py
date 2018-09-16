@@ -8,24 +8,24 @@ class PolicyValueNet(object):
     def __init__(self, model_file=None):
         # 1. input:
         self.states = tf.placeholder(tf.float32, shape=[None, 9], name="game_status")
-        self.cards = tf.placeholder(tf.int32, shape=[None, 12], name="valid_cards")
-        self.probs = tf.placeholder(tf.float32, shape=[None, 12], name="mcts_probs")
+        self.cards = tf.placeholder(tf.int32, shape=[None, 52], name="valid_cards")
+        self.probs = tf.placeholder(tf.float32, shape=[None, 52], name="mcts_probs")
         self.scores = tf.placeholder(tf.float32, shape=[None, 4], name="scores")
 
 
         # Define the tensorflow neural network
-        cards_embeddings = tf.Variable(tf.random_uniform([53, 16], -1.0, 1.0))
+        cards_embeddings = tf.Variable(tf.random_uniform([52, 16], -1.0, 1.0))
         self.cards_embed = tf.nn.embedding_lookup(cards_embeddings, self.cards)
         cards_flat = tf.reshape(self.cards_embed, [-1, 1])
 
 
         # 2. Common Networks Layers
-        input = tf.reshape(tf.multiply(cards_flat, self.states), [-1, 12*16*9])
+        input = tf.reshape(tf.multiply(cards_flat, self.states), [-1, 52*16*9])
         input1 = tf.layers.dense(input, units=128, activation=tf.nn.relu)
         input2 = tf.layers.dense(input1, units=64, activation=tf.nn.relu)
 
         # 3. Policy Networks
-        self.action_fc = tf.layers.dense(inputs=input2, units=12, activation=tf.nn.softmax)
+        self.action_fc = tf.layers.dense(inputs=input2, units=52, activation=tf.nn.softmax)
 
         # 4 Value Networks
         self.evaluation_fc1 = tf.layers.dense(inputs=input2, units=64, activation=tf.nn.relu)

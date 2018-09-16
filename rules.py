@@ -107,7 +107,10 @@ def transform(rank, suit):
 
 def get_setting_cards():
     # shoot the moon
-    card_string = [
+    card_string = [["TS,KH,5H,AC,KC,9C,4C,3C,2C,8D,7D,4D,2D",
+                    "KS,5S,4S,9H,4H,2H,QC,TC,5C,AD,TD,9D,6D",
+                    "JS,9S,8S,6S,3S,2S,7H,3H,8C,7C,6C,5D,3D",
+                    "AS,QS,7S,AH,QH,JH,TH,8H,6H,JC,KD,QD,JD"],
                    ["KS,TS,8S,6S,3S,5H,3H,2H,TC,QD,6D,5D,4D",
                     "9S,5S,AH,JH,7H,6H,4H,AC,KC,JC,5C,KD,8D",
                     "4S,2S,KH,QH,8H,QC,9C,6C,4C,2C,TD,9D,7D",
