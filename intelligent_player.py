@@ -137,6 +137,7 @@ class MCTS(object):
         the leaf and propagating it back through its parents.
         State is modified in-place, so a copy must be provided.
         """
+        print("**************")
 
         node = self._root
         while True:
@@ -147,7 +148,8 @@ class MCTS(object):
             action, node = node.select(self._c_puct)
             if action > 0:
                 card = v2card(action)
-                print(state.current_player_idx)
+
+                print("current_player_idx", state.current_player_idx)
                 state.print_game_status()
                 state.step(card)
             else:
@@ -173,16 +175,18 @@ class MCTS(object):
     def get_move_probs(self, state, temp=1e-3):
         state.verbose = False
 
-        hand_cards = state._player_hands[state.current_player_idx]
-        valid_cards = state.players[state.current_player_idx].get_valid_cards(hand_cards, state)
-
-        remaining_cards = state.players[state.current_player_idx].get_remaining_cards(state._player_hands[state.current_player_idx])
-        state.players[state.current_player_idx].redistribute_cards(state._player_hands[:], remaining_cards[:], state.lacking_cards)
-
         stime = time.time()
         while time.time()-stime < TIMEOUT_SECOND:
+            copy_state = copy.deepcopy(state)
+
+            hand_cards = copy_state._player_hands[copy_state.current_player_idx]
+            valid_cards = copy_state.players[copy_state.current_player_idx].get_valid_cards(hand_cards, copy_state)
+
+            remaining_cards = copy_state.players[copy_state.current_player_idx].get_remaining_cards(copy_state._player_hands[copy_state.current_player_idx])
+            copy_state.players[copy_state.current_player_idx].redistribute_cards(copy_state._player_hands[:], remaining_cards[:], copy_state.lacking_cards)
+
             cards = [card2v(card) for card in valid_cards] + [0 for _ in range(12-len(valid_cards))]
-            self._playout(copy.deepcopy(state), cards)
+            self._playout(copy.deepcopy(copy_state), cards)
 
         act_visits = [(act, node._n_visits) for act, node in self._root._children.items()]
         acts, visits = zip(*act_visits)

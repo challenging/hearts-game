@@ -203,20 +203,22 @@ class MCTS(object):
             pre_rating = tmp_rating
 
         return rating
-        """
 
         min_score, other_score = None, 0
-        for idx, score in enumerate(sorted(scores)):
+        for idx, score in enumerate(sorted(state.player_scores)):
             if idx == 0:
                 min_score = score
             else:
                 other_score += score
 
-        self_score = scores[self.position]
+        self_score = state.player_scores[self._self_player_idx]
         if self_score == min_score:
             return -(self_score-other_score/3)
         else:
             return -(self_score-min_score)
+        """
+
+        return state.player_scores
 
 
     def get_move(self, state):
@@ -232,7 +234,7 @@ class MCTS(object):
         while time.time()-stime < TIMEOUT_SECOND:
             hand_cards = state_copy._player_hands[state.current_player_idx]
             remaining_cards = state.players[state.current_player_idx].get_remaining_cards(state._player_hands[state.current_player_idx])
-            state.players[state.current_player_idx].redistribute_cards(state, remaining_cards[:])
+            state.players[state.current_player_idx].redistribute_cards(state._player_hands, remaining_cards[:], state.lacking_cards)
 
             state_copy.verbose = False
             state_copy.players = [StupidPlayer() for idx in range(4)]

@@ -232,10 +232,8 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
             else:
                 if (point_of_suit > 6 and len(cards) > 3):# and (len(hand_cards[Suit.hearts]) > 1 and np.sum(hand_cards[Suit.hearts]) > 2):
                     self.proactive_mode.add(suit)
-                    #self.proactive_mode.add(Suit.hearts)
                 elif (point_of_suit > 5 and len(cards) > 4):# and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 2):
                     self.proactive_mode.add(suit)
-                    #self.proactive_mode.add(Suit.hearts)
                 elif (point_of_suit > 4 and len(cards) > 5):
                     self.proactive_mode.add(suit)
 
@@ -245,7 +243,6 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
             if points > 13:
                 pass_low_card = True
 
-        #self.proactive_mode.add(Suit.hearts)
         return hand_cards, pass_low_card
 
 
@@ -435,4 +432,7 @@ class MonteCarloPlayer6(MonteCarloPlayer5):
 
 
     def get_players(self, game):
-        return [StupidPlayer() for _ in range(4)]
+        if self.proactive_mode:
+            return [StupidPlayer() for _ in range(4)]
+        else:
+            return [SimplePlayer() for _ in range(4)]

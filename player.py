@@ -138,7 +138,7 @@ class Player(object):
         #for idx in range(len(game._player_hands)):
         for idx in range(len(copy_hand_cards)):
             if idx != self.position:
-                hand_cards[idx] = np.random.choice(remaining_cards, len(hand_cards[idx]), replace=False).tolist()
+                hand_cards[idx] = np.random.choice(remaining_cards, len(copy_hand_cards[idx]), replace=False).tolist()
 
                 for used_card in hand_cards[idx]:
                     remaining_cards.remove(used_card)
