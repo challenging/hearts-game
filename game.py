@@ -1,6 +1,8 @@
 import sys
 
 from card import Suit, Rank, Card, Deck, POINT_CARDS
+from card import SPADES_Q, SPADES_K, SPADES_A
+
 from rules import is_card_valid, is_score_card, card_points, reversed_score
 
 
@@ -47,6 +49,8 @@ class Game(object):
 
             self.lacking_cards.append(suits)
 
+        self._memory = []
+
 
     def post_round_over(self, winning_index, winning_player_index):
         # Add the information for lacking cards
@@ -78,14 +82,16 @@ class Game(object):
             print(message.format(*formatargs))
 
 
-    """
     def print_game_status(self):
+        verbose = self.verbose
+        self.verbose = True
+
         for player_idx, (player, hand_cards, taken_cards, lacking_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken, self.lacking_cards)):
             self.say("trick_nr: {:2d}, current_trick: {}, leading_position: {}", self.trick_nr, self.trick, self.current_player_idx)
             self.say("lacking_info: {}, is_heart_broken: {}, expose_hearts_ace: {}", lacking_cards, self.is_heart_broken, self.expose_heart_ace)
             self.say("position: {}, name:{:18s}, hand_cards: {}, score: {:3d}, taken_cards: {}",\
                 player_idx, type(player).__name__, sorted(hand_cards), self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)]))
-    """
+        self.verbose = verbose
 
 
     def print_hand_cards(self):
@@ -343,3 +349,47 @@ class Game(object):
             return [idx for idx in range(4) if scores[idx] == min_score]
         else:
             return []
+
+
+    def get_memory(self):
+        return self._memory
+
+
+    def score_func(self, scores, position):
+        min_score, second_score = None, None
+        for idx, score in enumerate(sorted(scores)):
+            if idx == 0:
+                min_score = score
+            elif idx == 1:
+                second_score = score
+                break
+
+        self_score = scores[position]
+        if self_score == min_score:
+            return self_score-second_score
+        else:
+            return self_score-min_score
+
+
+    def current_status(self):
+        status = []
+
+        def contains_spades(cards):
+            has_queen, has_king, has_ace = False, False, False
+            count = 0
+
+            for card in cards:
+                if card == SPADES_Q:
+                    has_queen = True
+                elif card == SPADES_K:
+                    has_king = True
+                elif card == SPADES_A:
+                    has_ace = True
+                elif card.suit == Suit.spades:
+                    count += 1
+
+            return [has_queen, has_king, has_ace, count==0, count==1, count==2, count==3, count==4, count>5]
+
+        status.extend(contains_spades(self._player_hands[self.current_player_idx]))
+
+        return status

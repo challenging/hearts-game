@@ -10,7 +10,7 @@ class PolicyValueNet(object):
         self.states = tf.placeholder(tf.float32, shape=[None, 9], name="game_status")
         self.cards = tf.placeholder(tf.int32, shape=[None, 12], name="valid_cards")
         self.probs = tf.placeholder(tf.float32, shape=[None, 12], name="mcts_probs")
-        self.scores = tf.placeholder(tf.float32, shape=[None, 1], name="scores")
+        self.scores = tf.placeholder(tf.float32, shape=[None, 4], name="scores")
 
 
         # Define the tensorflow neural network
@@ -29,14 +29,15 @@ class PolicyValueNet(object):
 
         # 4 Value Networks
         self.evaluation_fc1 = tf.layers.dense(inputs=input2, units=64, activation=tf.nn.relu)
-        self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=1, activation=tf.nn.tanh)
+        self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=4, activation=tf.nn.tanh)
 
         # Define the Loss function
         # 1. Label: the array containing if the game wins or not for each state
         # 2. Predictions: the array containing the evaluation score of each state
         # which is self.evaluation_fc2
         # 3-1. Value Loss function
-        self.value_loss = tf.losses.mean_squared_error(self.scores, self.evaluation_fc2)
+        #self.value_loss = tf.losses.mean_squared_error(self.scores, self.evaluation_fc2)
+        self.value_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.scores, self.evaluation_fc2), 1)))
         self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))
 
         # 3-3. L2 penalty (regularization)

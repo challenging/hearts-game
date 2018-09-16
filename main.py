@@ -9,7 +9,7 @@ from rules import get_setting_cards, evaluate_players
 
 from player import StupidPlayer, SimplePlayer
 from dragon_rider_player import DragonRiderPlayer
-from simulated_player import MonteCarloPlayer, MonteCarloPlayer2, MonteCarloPlayer3, MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
+from simulated_player import MonteCarloPlayer, MonteCarloPlayer3, MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
 
 import mcts_player
 import alpha_player
@@ -36,9 +36,6 @@ if __name__ == "__main__":
     elif player_ai.lower() == "mc3":
         player = MonteCarloPlayer33(verbose=True)
         other_players = [MonteCarloPlayer3(verbose=False) for _ in range(3)]
-    elif player_ai.lower() == "mc2":
-        player = MonteCarloPlayer2(verbose=True)
-        other_players = [MonteCarloPlayer(verbose=False) for _ in range(3)]
     elif player_ai.lower() == "mc":
         player = MonteCarloPlayer(verbose=True)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]

@@ -4,7 +4,7 @@ from sample_bot import PokerSocket
 from brain_bot import BrainBot
 
 from player import SimplePlayer
-from simulated_player import MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
+from simulated_player import MonteCarloPlayer6
 from mcts_player import MCTSPlayer
 
 def main():
@@ -27,11 +27,7 @@ def main():
     if len(sys.argv) == 6:
         methodology = sys.argv[5]
 
-        if methodology == "mc5":
-            bot = BrainBot(player_name, MonteCarloPlayer5(verbose=True))
-        elif methodology == "mc4":
-            bot = BrainBot(player_name, MonteCarloPlayer4(verbose=True))
-        elif methodology == "mcts":
+        if methodology == "mcts":
             bot = BrainBot(player_name, MCTSPlayer(verbose=True))
         elif methodology == "simple":
             bot = BrainBot(player_name, SimplePlayer(verbose=True))

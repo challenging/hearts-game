@@ -63,7 +63,7 @@ class TrainPipeline():
     def collect_selfplay_data(self, n_games):
         """collect self-play data for training"""
         for i in range(n_games):
-            self.game.pass_cards()
+            self.game.pass_cards(i%4)
             self.game.play()
             self.game.score()
 

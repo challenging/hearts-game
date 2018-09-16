@@ -91,41 +91,6 @@ class MonteCarloPlayer(SimplePlayer):
         return played_card
 
 
-    def get_remaining_cards(self, hand_cards):
-        deck = Deck()
-
-        remaining_cards = []
-        for c in deck.cards:
-            for pc in hand_cards + self.seen_cards:
-                if c == pc:
-                    break
-            else:
-                remaining_cards.append(c)
-
-        return remaining_cards
-
-
-    def simple_redistribute_cards(self, game, remaining_cards):
-        shuffle(remaining_cards)
-
-        for idx in range(len(game._player_hands)):
-            if idx != self.position:
-                game._player_hands[idx] = np.random.choice(remaining_cards, len(game._player_hands[idx]), replace=False).tolist()
-
-                for used_card in game._player_hands[idx]:
-                    remaining_cards.remove(used_card)
-
-        if remaining_cards:
-            self.say("Error in redistributing cards, {}, {}, {}", type(self).__name__, remaining_cards, [len(v) for v in game._player_hands])
-            raise
-
-        return game
-
-
-    def redistribute_cards(self, game, remaining_cards):
-        return self.simple_redistribute_cards(game, remaining_cards)
-
-
     def score_func(self, scores):
         return scores[self.position]
 
@@ -149,7 +114,7 @@ class MonteCarloPlayer(SimplePlayer):
         game.verbose = False
         game.players = self.get_players(game)
 
-        game = self.redistribute_cards(game, remaining_cards[:])
+        game._player_hands = self.redistribute_cards(game._player_hands[:], remaining_cards[:], game.lacking_cards)
 
         game.step(played_card)
 
@@ -168,96 +133,7 @@ class MonteCarloPlayer(SimplePlayer):
         return played_card, self_score
 
 
-class MonteCarloPlayer2(MonteCarloPlayer):
-    def __init__(self, verbose=False):
-        super(MonteCarloPlayer2, self).__init__(verbose=verbose)
-
-
-    def redistribute_cards(self, copy_game, copy_remaining_cards):
-        retry = 3
-        while retry >= 0:
-            game = copy.deepcopy(copy_game)
-            remaining_cards = copy.deepcopy(copy_remaining_cards)
-
-            shuffle(remaining_cards)
-
-            ori_size, fixed_cards = [], set()
-            for idx in range(len(game._player_hands)):
-                if idx != self.position:
-                    size = len(game._player_hands[idx])
-                    ori_size.append(size)
-
-                    game._player_hands[idx] = []
-
-                    for card in self.transfer_cards.get(idx, []):
-                        if card in remaining_cards:
-                            game._player_hands[idx].append(card)
-                            remaining_cards.remove(card)
-
-                            fixed_cards.add(card)
-
-                    removed_cards = []
-                    for card in remaining_cards:
-                        if game.lacking_cards[idx][card.suit] == False:
-                            game._player_hands[idx].append(card)
-                            removed_cards.append(card)
-
-                            if len(game._player_hands[idx]) == size:
-                                break
-
-                    for card in removed_cards:
-                        remaining_cards.remove(card)
-                else:
-                    ori_size.append(len(game._player_hands[idx]))
-
-
-            retry2 = 3
-            lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) < ori_size[idx]]
-            while retry2 >= 0 and any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
-                removed_cards = []
-                for card in remaining_cards:
-                    latest_lacking_idx = [idx for idx in range(4) if len(game._player_hands[idx]) < ori_size[idx]]
-
-                    player_idx = choice([player_idx for player_idx in range(4) if player_idx not in latest_lacking_idx + [self.position]])
-                    hand_cards = game._player_hands[player_idx]
-
-                    for card_idx, hand_card in enumerate(hand_cards):
-                        if hand_card not in fixed_cards and not game.lacking_cards[latest_lacking_idx[0]][hand_card.suit]:
-                            game._player_hands[player_idx][card_idx] = card
-                            game._player_hands[latest_lacking_idx[0]].append(hand_card)
-
-                            removed_cards.append(card)
-
-                            break
-
-                for card in removed_cards:
-                    remaining_cards.remove(card)
-
-                for player_idx, size in enumerate(ori_size):
-                    if len(game._player_hands[player_idx]) > size:
-                        for idx in range(len(game._player_hands[player_idx])-size):
-                            candidated_cards = [card for card in game._player_hands[player_idx] if card not in fixed_cards]
-                            if candidated_cards:
-                                card = choice(candidated_cards)
-                                game._player_hands[player_idx].remove(card)
-                                remaining_cards.append(card)
-
-                retry2 -= 1
-
-            if remaining_cards or any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
-
-                retry -= 1
-            else:
-                copy_game = game
-
-                break
-        else:
-            self.simple_redistribute_cards(copy_game, copy_remaining_cards)
-
-        return copy_game
-
-
-class MonteCarloPlayer3(MonteCarloPlayer2):
+class MonteCarloPlayer3(MonteCarloPlayer):
     def __init__(self, verbose=False):
         super(MonteCarloPlayer3, self).__init__(verbose=verbose)
 
@@ -427,27 +303,6 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
 
     def select_card(self, game, valid_cards, winning_score):
         valid_cards = sorted(valid_cards)
-
-        """
-        if not game.trick and game.trick_nr > 2 and self.proactive_mode:
-            deck = Deck()
-
-            remaining_cards = {}
-            for card in deck.cards:
-                if card not in self.seen_cards and card not in game.trick and card not in game._player_hands[self.position]:
-                    remaining_cards.setdefault(card.suit, card)
-                    if card.rank > remaining_cards[card.suit].rank:
-                        remaining_cards[card.suit] = card
-
-            for card in valid_cards[::-1]:
-                for suit in sorted(self.proactive_mode):
-                    if card.suit in remaining_cards:
-                        if card.suit == suit and card > remaining_cards[suit]:
-                            self.say("1. force to get this card - {} from {} because of {}", card, valid_cards, game.trick)
-
-                            return card
-        """
-
 
         if Suit.hearts in self.proactive_mode:
             deck = Deck()

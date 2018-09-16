@@ -5,16 +5,16 @@ import copy
 import time
 
 import numpy as np
-import multiprocessing as mp
 
+from game import Game
 from card import Suit, Rank, Card, Deck
 
 from simulated_player import MonteCarloPlayer6
 from player import StupidPlayer
 
-TIMEOUT_SECOND = 0.93
+from nn_utils import card2v, v2card
 
-from operator import itemgetter
+TIMEOUT_SECOND = 0.93
 
 
 def softmax(x):
@@ -47,6 +47,7 @@ class TreeNode(object):
         action_priors: a list of tuples of actions and their prior probability
             according to the policy function.
         """
+
         for action, prob in action_priors:
             if action not in self._children:
                 self._children[action] = TreeNode(self, prob, self._self_player_idx, player_idx)
@@ -84,7 +85,7 @@ class TreeNode(object):
         if self._player_idx is None:
             self._n_visits += 1
         else:
-            self.update(scores[self._player_idx])#*(1 if self._self_player_idx == self._player_idx else -1))
+            self.update(scores[self._player_idx])
 
 
     def get_value(self, c_puct):
@@ -131,11 +132,12 @@ class MCTS(object):
         self._c_puct = c_puct
 
 
-    def _playout(self, state):
+    def _playout(self, state, cards):
         """Run a single playout from the root to the leaf, getting a value at
         the leaf and propagating it back through its parents.
         State is modified in-place, so a copy must be provided.
         """
+
         node = self._root
         while True:
             if node.is_leaf():
@@ -143,52 +145,44 @@ class MCTS(object):
 
             # Greedily select next move.
             action, node = node.select(self._c_puct)
+            if action > 0:
+                card = v2card(action)
+                print(state.current_player_idx)
+                state.print_game_status()
+                state.step(card)
+            else:
+                break
 
-            state.step(action)
-
-        action_probs, rating = self._policy(state)
+        # [0 for _ in range(12-len(valid_cards))]
+        action_probs, rating = self._policy([state.current_status()], [cards])
 
         # Check for end of game.
         winners = state.get_game_winners()
         if not winners:
-            node.expand(state.current_player_idx, action_probs)
+            node.expand(state.current_player_idx, zip(cards, action_probs[0]))
+
+            rating = rating[0]
         else:
-            rating = [0, 0, 0, 0]
-
-            info = zip(range(4), state.player_scores)
-            pre_score, pre_rating, max_score = None, None, np.array(state.player_scores)/np.max(state.player_scores)
-            for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: x[1])):
-                tmp_rating = rating_idx
-                if pre_score is not None:
-                    if score == pre_score:
-                        tmp_rating = pre_rating
-
-
-                rating[player_idx] = ((4-tmp_rating) + (1-max_score[player_idx]))/5
-
-                pre_score = score
-                pre_rating = tmp_rating
+            rating = game._player_scores
 
         # Update value and visit count of nodes in this traversal.
+        print("rating", rating)
         node.update_recursive(rating)
 
 
-    def get_move_probs(self, state):
-        state_copy = copy.deepcopy(state)
-        seen_cards = state.players[0].seen_cards
+    def get_move_probs(self, state, temp=1e-3):
+        state.verbose = False
+
+        hand_cards = state._player_hands[state.current_player_idx]
+        valid_cards = state.players[state.current_player_idx].get_valid_cards(hand_cards, state)
+
+        remaining_cards = state.players[state.current_player_idx].get_remaining_cards(state._player_hands[state.current_player_idx])
+        state.players[state.current_player_idx].redistribute_cards(state._player_hands[:], remaining_cards[:], state.lacking_cards)
 
         stime = time.time()
         while time.time()-stime < TIMEOUT_SECOND:
-            hand_cards = state_copy._player_hands[state.current_player_idx]
-            remaining_cards = state.players[state.current_player_idx].get_remaining_cards(state._player_hands[state.current_player_idx])
-            state.players[state.current_player_idx].redistribute_cards(state, remaining_cards[:])
-
-            state_copy.verbose = False
-            state_copy.players = [StupidPlayer() for idx in range(4)]
-            for player in state_copy.players:
-                player.seen_cards = copy.deepcopy(seen_cards)
-
-            self._playout(copy.deepcopy(state_copy))
+            cards = [card2v(card) for card in valid_cards] + [0 for _ in range(12-len(valid_cards))]
+            self._playout(copy.deepcopy(state), cards)
 
         act_visits = [(act, node._n_visits) for act, node in self._root._children.items()]
         acts, visits = zip(*act_visits)
@@ -222,6 +216,7 @@ class MCTS(object):
         else:
             print("\t"*depth, card, node)
 
+
     def __str__(self):
         return "MCTS"
 
@@ -249,32 +244,38 @@ class IntelligentPlayer(MonteCarloPlayer6):
         hand_cards = game._player_hands[self.position]
         valid_cards = self.get_valid_cards(hand_cards, game)
 
-        if len(valid_cards) > 1:
-            #played_card = self.mcts.get_move(copy.deepcopy(game))
-            #self.mcts.print_tree(depth=-1)
+        local_game = Game([StupidPlayer(verbose=False) for idx in range(4)], verbose=False)
+        for player in local_game.players:
+            player.seen_cards = copy.deepcopy(self.seen_cards)
+        local_game.trick = game.trick[:]
+        local_game.trick_nr = game.trick_nr
+        local_game.current_player_idx = game.current_player_idx
 
-            #print("pick card", played_card, hand_cards, valid_cards)
+        local_game.take_pig_card = game.take_pig_card
+        local_game.is_heart_broken = game.is_heart_broken
+        local_game.is_shootmoon = game.is_shootmoon
 
-            #self.mcts.update_with_move(-1)
+        local_game._player_hands = game._player_hands[:]
+        local_game._cards_taken = game._cards_taken[:]
 
-            played_card = None
-            acts, probs = self.mcts.get_move_probs(game, temp)
-            move_probs[list(acts)] = probs
-            if self._is_selfplay:
-                # add Dirichlet Noise for exploration (needed for
-                # self-play training)
-                played_card = np.random.choice(acts,p=0.75*probs + 0.25*np.random.dirichlet(0.3*np.ones(len(probs))))
-                # update the root node and reuse the search tree
-                self.mcts.update_with_move(played_card)
-            else:
-                # with the default temp=1e-3, it is almost equivalent
-                # to choosing the move with the highest prob
-                played_card = np.random.choice(acts, p=probs)
-                # reset the root node
-                self.mcts.update_with_move(-1)
+        played_card = None
+        acts, probs = self.mcts.get_move_probs(local_game, temp)
+        move_probs[list(acts)] = probs
+
+        if self._is_selfplay:
+            # add Dirichlet Noise for exploration (needed for
+            # self-play training)
+            played_card = np.random.choice(acts,p=0.75*probs + 0.25*np.random.dirichlet(0.3*np.ones(len(probs))))
+            # update the root node and reuse the search tree
+            self.mcts.update_with_move(played_card)
         else:
-            played_card = valid_cards[0]
+            # with the default temp=1e-3, it is almost equivalent
+            # to choosing the move with the highest prob
+            played_card = np.random.choice(acts, p=probs)
+            # reset the root node
+            self.mcts.update_with_move(-1)
 
-            self.sat("don't need simulation, can only play {} card", played_card)
-
-        return played_card
+        if return_prob:
+            return played_card, move_probs
+        else:
+            return played_card

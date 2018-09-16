@@ -185,6 +185,7 @@ class MCTS(object):
             state.step()
             winners = state.get_game_winners()
 
+        """
         rating = [0, 0, 0, 0]
 
         info = zip(range(4), state.player_scores)
@@ -202,6 +203,20 @@ class MCTS(object):
             pre_rating = tmp_rating
 
         return rating
+        """
+
+        min_score, other_score = None, 0
+        for idx, score in enumerate(sorted(scores)):
+            if idx == 0:
+                min_score = score
+            else:
+                other_score += score
+
+        self_score = scores[self.position]
+        if self_score == min_score:
+            return -(self_score-other_score/3)
+        else:
+            return -(self_score-min_score)
 
 
     def get_move(self, state):
