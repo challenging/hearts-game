@@ -6,10 +6,10 @@ from card import Suit, Rank, Card
 
 
 def card2v(card):
-    return card.suit.value*13+card.rank.value
+    return card.suit.value*15+card.rank.value
 
 def v2card(v):
-    suit, suit_num = None, v//13
+    suit, suit_num = None, v//15
     if suit_num == 0:
         suit = Suit.clubs
     elif suit_num == 1:
@@ -54,13 +54,11 @@ def v2card(v):
 
 
 def played_prob_to_v(played_prob, n_slot=12):
-    v = []
+    cards, probs = [], []
+    for idx, prob in enumerate(played_prob):
+        #v.append([card2v(card), prob])
 
-    for idx, (card, prob) in enumerate(played_prob):
-        v.append([card2v(card), prob])
-
-    for _ in range(n_slot-len(v)):
-        v.append([0, 0])
+        cards
 
     cards, probs = [], []
     for card, prob in v:
@@ -68,3 +66,9 @@ def played_prob_to_v(played_prob, n_slot=12):
         probs.append(prob)
 
     return cards, probs
+
+
+if __name__ == "__main__":
+    print(card2v(Card(Suit.clubs, Rank.king)), v2card(13))
+    print(card2v(Card(Suit.clubs, Rank.ace)), v2card(14))
+    print(card2v(Card(Suit.diamonds, Rank.two)), v2card(17))

@@ -52,7 +52,7 @@ class TreeNode(object):
             if action > 0 and action not in self._children:
                 self._children[action] = TreeNode(self, prob, self._self_player_idx, player_idx)
 
-                print("expansion", action, self, self._children[action])
+                print("expansion", action, v2card(action), self, self._children[action])
 
 
     def select(self, c_puct):
@@ -134,7 +134,7 @@ class MCTS(object):
         self._c_puct = c_puct
 
 
-    def _playout(self, state, cards):
+    def _playout(self, state):
         """Run a single playout from the root to the leaf, getting a value at
         the leaf and propagating it back through its parents.
         State is modified in-place, so a copy must be provided.
@@ -148,17 +148,19 @@ class MCTS(object):
 
             # Greedily select next move.
             action, node = node.select(self._c_puct)
-            print("node", node, node._children, action)
             if action > 0:
                 card = v2card(action)
 
-                print("current_player_idx", state.current_player_idx)
                 state.print_game_status()
                 state.step(card)
             else:
                 break
 
-        # [0 for _ in range(12-len(valid_cards))]
+        state.print_game_status()
+
+        valid_cards = state.players[state.current_player_idx].get_valid_cards(state._player_hands[state.current_player_idx], state)
+        cards = [card2v(card) for card in valid_cards] + [0 for _ in range(12-len(valid_cards))]
+
         action_probs, rating = self._policy([state.current_status()], [cards])
 
         # Check for end of game.
@@ -171,7 +173,6 @@ class MCTS(object):
             rating = game._player_scores
 
         # Update value and visit count of nodes in this traversal.
-        print("rating", rating)
         node.update_recursive(rating)
 
 
@@ -183,13 +184,11 @@ class MCTS(object):
             copy_state = copy.deepcopy(state)
 
             hand_cards = copy_state._player_hands[copy_state.current_player_idx]
-            valid_cards = copy_state.players[copy_state.current_player_idx].get_valid_cards(hand_cards, copy_state)
 
             remaining_cards = copy_state.players[copy_state.current_player_idx].get_remaining_cards(copy_state._player_hands[copy_state.current_player_idx])
             copy_state.players[copy_state.current_player_idx].redistribute_cards(copy_state._player_hands[:], remaining_cards[:], copy_state.lacking_cards)
 
-            cards = [card2v(card) for card in valid_cards] + [0 for _ in range(12-len(valid_cards))]
-            self._playout(copy.deepcopy(copy_state), cards)
+            self._playout(copy.deepcopy(copy_state))
 
         act_visits = [(act, node._n_visits) for act, node in self._root._children.items()]
         acts, visits = zip(*act_visits)
@@ -266,7 +265,10 @@ class IntelligentPlayer(MonteCarloPlayer6):
         local_game._cards_taken = game._cards_taken[:]
 
         played_card = None
+
         acts, probs = self.mcts.get_move_probs(local_game, temp)
+
+        move_probs = np.zeros(59)
         move_probs[list(acts)] = probs
 
         if self._is_selfplay:
@@ -283,6 +285,6 @@ class IntelligentPlayer(MonteCarloPlayer6):
             self.mcts.update_with_move(-1)
 
         if return_prob:
-            return played_card, move_probs
+            return v2card(played_card), move_probs
         else:
-            return played_card
+            return v2card(played_card)
