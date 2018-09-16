@@ -15,7 +15,7 @@ from card import Suit, Rank, Card, Deck, POINT_CARDS
 from player import StupidPlayer, SimplePlayer, MinCardPlayer, MaxCardPlayer
 
 
-TIMEOUT_SECOND = 0.93
+TIMEOUT_SECOND = 0.92
 COUNT_CPU = mp.cpu_count()
 
 

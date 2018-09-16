@@ -49,8 +49,10 @@ class TreeNode(object):
         """
 
         for action, prob in action_priors:
-            if action not in self._children:
+            if action > 0 and action not in self._children:
                 self._children[action] = TreeNode(self, prob, self._self_player_idx, player_idx)
+
+                print("expansion", action, self, self._children[action])
 
 
     def select(self, c_puct):
@@ -146,6 +148,7 @@ class MCTS(object):
 
             # Greedily select next move.
             action, node = node.select(self._c_puct)
+            print("node", node, node._children, action)
             if action > 0:
                 card = v2card(action)
 

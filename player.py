@@ -134,7 +134,7 @@ class Player(object):
     def simple_redistribute_cards(self, copy_hand_cards, remaining_cards, lacking_cards):
         shuffle(remaining_cards)
 
-        hand_cards = []
+        hand_cards = [[], [], [], []]
         #for idx in range(len(game._player_hands)):
         for idx in range(len(copy_hand_cards)):
             if idx != self.position:
