@@ -10,7 +10,7 @@ import glob
 import time
 import pickle
 
-from random import shuffle
+import numpy as np
 
 from orderedenum import OrderedEnum
 
@@ -101,7 +101,7 @@ class Deck:
 
         cards = cards if cards is not None else self.cards
 
-        shuffle(self.cards)
+        np.random.shuffle(self.cards)
         for i in range(0, 52, 13):
             yield sorted(self.cards[i:i + 13])
 
@@ -136,6 +136,76 @@ POINT_CARDS = {Card(Suit.clubs, Rank.ten), Card(Suit.spades, Rank.queen), Card(S
                Card(Suit.hearts, Rank.eight), Card(Suit.hearts, Rank.nine), Card(Suit.hearts, Rank.ten),
                Card(Suit.hearts, Rank.jack), Card(Suit.hearts, Rank.queen), Card(Suit.hearts, Rank.king)}
 
+
+NUM_TO_INDEX = {"2":1, "3":2, "4":4, "5":8, "6":16, "7":32, "8":64, "9":128, "T":256, "J":512, "Q":1024, "K":2048, "A":4096}
+INDEX_TO_NUM = {1:"2", 2:"3", 4:"4", 8:"5", 16:"6", 32:"7", 64:"8", 128:"9", 256:"T", 512:"J", 1024:"Q", 2048:"K", 4096:"A"}
+
+SUIT_TO_INDEX = {"C":0, "D":1, "S":2, "H":3}
+INDEX_TO_SUIT = {0:"C", 1:"D", 2:"S", 3:"H"}
+
+RANK_SUM = np.sum([2**idx for idx in range(0, 13)])
+EMPTY_CARDS = {SUIT_TO_INDEX["C"]: 0, SUIT_TO_INDEX["D"]: 0, SUIT_TO_INDEX["S"]: 0, SUIT_TO_INDEX["H"]: 0}
+FULL_CARDS = {SUIT_TO_INDEX["C"]: RANK_SUM, SUIT_TO_INDEX["D"]: RANK_SUM, SUIT_TO_INDEX["S"]: RANK_SUM, SUIT_TO_INDEX["H"]: RANK_SUM}
+
+
+def _card_to_index(self, card_string):
+    global NUM_TO_INDEX, SUIT_TO_INDEX
+
+    return NUM_TO_INDEX[card_string[0]], SUIT_TO_INDEX[card_string[1]]
+
+
+def _index_to_card(self, n, s):
+    global INDEX_TO_NUM, INDEX_TO_SUIT
+
+    return INDEX_TO_NUM[n] + INDEX_TO_SUIT[s]
+
+
+def str_to_bitmask(cards):
+    global NUM_TO_INDEX, SUIT_TO_INDEX
+
+    hand_cards = {}
+    #print(cards)
+    for card in cards:
+        card = str(card)
+        rank, suit = card[0], card[1]
+        index = SUIT_TO_INDEX[suit]
+
+        hand_cards.setdefault(index, 0)
+        hand_cards[index] |= NUM_TO_INDEX[rank]
+
+    return hand_cards
+
+
+def card_to_bitmask(cards):
+    global NUM_TO_INDEX, SUIT_TO_INDEX
+
+    hand_cards = [0, 0, 0, 0]
+    for card in cards:
+        rank, suit = 1 << (card.rank.value-2), card.suit.value
+
+        hand_cards[suit] |= rank
+
+    return hand_cards
+
+
+def count_points(cards, expose_hearts_ace):
+    global SUIT_TO_INDEX, NUM_TO_INDEX
+
+    point = 0
+    bit_mask = 1
+    while bit_mask <= 4096:
+        if cards[SUIT_TO_INDEX["H"]] & bit_mask:
+            point += 1*expose_hearts_ace
+
+        bit_mask <<= 1
+
+    if cards[SUIT_TO_INDEX["S"]] & NUM_TO_INDEX["Q"]:
+        point += 13
+
+    if cards[SUIT_TO_INDEX["C"]] & NUM_TO_INDEX["T"]:
+        point <<= 1
+
+    return point
 
 
 if __name__ == "__main__":

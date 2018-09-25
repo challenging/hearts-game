@@ -134,6 +134,7 @@ class BrainBot(LowPlayBot):
             leading_card = self.round_cards_history[leading_idx][1]
             current_card = self.round_cards_history[-1][1]
 
+            self.say("(leading_card, current_card) = ({}, {})", leading_card, current_card)
             return leading_idx, leading_card.suit, leading_card.suit != current_card.suit
 
         current_player_name, last_card = self.round_cards_history[-1]
@@ -141,11 +142,16 @@ class BrainBot(LowPlayBot):
         leading_idx, is_lacking = None, False
         if self.round_cards_history:
             if len(self.round_cards_history)%4 > 0:
+            #if current_player_name != self.player_name:
                 leading_idx, leading_suit, is_lacking = find_leading_suit()
+                self.say("(leading_idx, leading_suit, is_lacking) = ({}, {}, {}), (player_names, current_player_name) = {}, {})", \
+                    leading_idx, leading_suit, is_lacking, [player.name for player in self.game.players], current_player_name)
+
                 if is_lacking:
                     for player_idx, player in enumerate(self.game.players):
                         if player.name == current_player_name:
                             self.game.lacking_cards[player_idx][leading_suit] = True
+                            self.say("set info of lacking_cards is {}", self.game.lacking_cards)
 
                             break
                 else:
@@ -210,6 +216,7 @@ class BrainBot(LowPlayBot):
         #print("current trick", self.game.trick)
         #print("current hand cards", self.game._player_hands[self.player.position])
 
+        """
         deck = Deck()
         for idx in range(1, len(self.game.trick)+1):
             player_idx = (self.player.position+(4-idx))%4
@@ -218,6 +225,7 @@ class BrainBot(LowPlayBot):
         for idx in range(1, 4-len(self.game.trick)):
             player_idx = (self.player.position+idx)%4
             self.game._player_hands[player_idx] = np.random.choice(deck.cards, len(self.my_hand_cards), replace=False).tolist()
+        """
 
         self.game.current_player_idx = self.player.position
         self.game._player_hands[self.player.position] = self.my_hand_cards
@@ -239,12 +247,14 @@ class BrainBot(LowPlayBot):
             self.my_hand_cards.append(transform(card[0], card[1]))
 
         expose_card = []
+        """
         if self.proactive_mode:
             for card in self.my_hand_cards:
                 if card == Card(Suit.hearts, Rank.ace):
                     expose_card.append(str(card))
 
                     break
+        """
 
         message = "Expose Cards:{}".format(expose_card)
         system_log.show_message(message)

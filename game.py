@@ -43,11 +43,7 @@ class Game(object):
 
         self.lacking_cards = []
         for _ in range(4):
-            suits = {}
-            for suit in [Suit.spades, Suit.hearts, Suit.diamonds, Suit.clubs]:
-                suits[suit] = False
-
-            self.lacking_cards.append(suits)
+            self.lacking_cards.append({Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False})
 
         self._memory = []
 
@@ -245,7 +241,7 @@ class Game(object):
                 if is_lacking:
                     print("Player-{} lacks of {}".format(player_idx, [suit for suit, is_lacking in self.lacking_cards[player_idx].items() if is_lacking]))
             print()
-            print("the winning_player_index is {}({}, {}), is_heart_broken: {}, expose_heart_ace".format(\
+            print("the winning_player_index is {}({}, {}), is_heart_broken: {}, expose_heart_ace: {}".format(\
                 winning_player_index, self.current_player_idx, winning_index, self.is_heart_broken, self.expose_heart_ace))
             print("player {}({}) win this {:2d} trick by {} card based on {}".format(\
                 winning_player_index, type(self.players[winning_player_index]).__name__, self.trick_nr, winning_card, self.trick))

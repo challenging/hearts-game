@@ -20,6 +20,7 @@ from card import read_card_games
 from rules import evaluate_players
 
 from alpha_game import AlphaGame as Game
+from player import StupidPlayer
 from intelligent_player import IntelligentPlayer
 from simulated_player import MonteCarloPlayer6 as MonteCarloPlayer
 
@@ -32,7 +33,7 @@ class TrainPipeline():
         self.learn_rate = 2e-3
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
         self.temp = 1.0  # the temperature param
-        self.c_puct = 2
+        self.c_puct = 1.5
 
         self.buffer_size = 2**15
         self.batch_size = 512  # mini-batch size for training
@@ -180,4 +181,4 @@ class TrainPipeline():
 
 if __name__ == '__main__':
     training_pipeline = TrainPipeline()
-    training_pipeline.run(4)
+    training_pipeline.run(1)

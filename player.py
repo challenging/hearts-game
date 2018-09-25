@@ -5,7 +5,6 @@ import copy
 import numpy as np
 
 from random import shuffle, choice
-from collections import defaultdict
 
 from card import Suit, Rank, Card, Deck
 from rules import is_card_valid
@@ -22,7 +21,7 @@ class Player(object):
     def __init__(self, verbose=False):
         self.seen_cards = []
         self.freeze_cards = []
-        self.transfer_cards = defaultdict(list)
+        self.transfer_cards = {}
 
         self.name = None
         self.position = None
@@ -47,6 +46,7 @@ class Player(object):
 
 
     def set_transfer_card(self, received_player, card):
+        self.transfer_cards.setdefault(received_player, [])
         if isinstance(card, list):
             self.transfer_cards[received_player].extend(card)
         elif isinstance(card, Card):
@@ -133,22 +133,34 @@ class Player(object):
 
 
     def simple_redistribute_cards(self, game, remaining_cards):
+        print("start to simple_redistribute_cards")
+
+        fixed_cards = {}
+        for player_idx in range(4):
+            for card in self.transfer_cards.get(player_idx, []):
+                if card in remaining_cards:
+                    remaining_cards.remove(card)
+
+                    fixed_cards.setdefault(player_idx, [])
+                    fixed_cards[player_idx].append(card)
+
         shuffle(remaining_cards)
         for idx in range(len(game._player_hands)):
            if idx != self.position:
-               game._player_hands[idx] = np.random.choice(remaining_cards, len(game._player_hands[idx]), replace=False).tolist()
+               cards = fixed_cards.get(idx, [])
+               game._player_hands[idx] = np.random.choice(remaining_cards, len(game._player_hands[idx])-len(cards), replace=False).tolist()
+
                for used_card in game._player_hands[idx]:
                    remaining_cards.remove(used_card)
+
+               if cards:
+                   game._player_hands[idx].extend(cards)
 
         if remaining_cards:
            self.say("Error in redistributing cards, {}, {}, {}", type(self).__name__, remaining_cards, [len(v) for v in game._player_hands])
            raise
 
         return game
-
-
-    def redistribute_cards(self, game, remaining_cards):
-        return self.simple_redistribute_cards(game, remaining_cards)
 
 
     def redistribute_cards(self, copy_game, copy_remaining_cards):
@@ -223,7 +235,6 @@ class Player(object):
                 retry2 -= 1
 
             if remaining_cards or any([ori_size[player_idx] != len(game._player_hands[player_idx]) for player_idx in range(4)]):
-
                 retry -= 1
             else:
                 copy_game = game
@@ -236,7 +247,11 @@ class Player(object):
 
 
     def reset(self):
-        pass
+        self.seen_cards = []
+        self.freeze_cards = []
+        self.transfer_cards = {}
+
+        self.proactive_mode = set()
 
 
 class StupidPlayer(Player):

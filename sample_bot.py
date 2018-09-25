@@ -20,7 +20,7 @@ class Log(object):
         self.msg=None
         self.logger = logging.getLogger('hearts_logs')
 
-        hdlr = logging.FileHandler('hearts_logs.log')
+        hdlr = logging.FileHandler('/log/hearts_logs.log')
 
         formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
         hdlr.setFormatter(formatter)
@@ -376,7 +376,8 @@ class PokerSocket(object):
            self.ws.close()
 
     def doListen(self):
-        try:
+        #try:
+        if True:
             self.ws = create_connection(self.connect_url)
             self.ws.send(json.dumps({
                 "eventName": "join",
@@ -396,9 +397,9 @@ class PokerSocket(object):
                 system_log.show_message(data)
                 system_log.save_logs(data)
                 self.takeAction(event_name, data)
-        except Exception as e:
-            system_log.show_message(e)
-            self.doListen()
+        #except Exception as e:
+        #    system_log.show_message(e)
+        #    self.doListen()
 
 class LowPlayBot(PokerBot):
 
