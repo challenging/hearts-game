@@ -273,6 +273,7 @@ class MCTS(object):
         else:
             print("\t"*depth, card, node)
 
+
     def __str__(self):
         return "MCTS"
 
@@ -308,7 +309,7 @@ class DragonRiderPlayer(MonteCarloPlayer6):
             pool.close()
 
             #played_card = self.mcts.get_move(copy.deepcopy(game))
-            #self.mcts.print_tree(depth=-1)
+            self.mcts.print_tree(depth=-1)
 
             for played_card, value in sorted(winning_cards.items(), key=lambda x: x[1]):
                 self.say("Picked Card: {}, Predicted Value: {:.4f}", played_card, value)

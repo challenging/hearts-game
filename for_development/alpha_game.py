@@ -11,19 +11,26 @@ class AlphaGame(Game):
         super(AlphaGame, self).__init__(players, verbose)
 
 
+    def round_over(self):
+        super(AlphaGame, self).round_over()
+
+        self.players[0].mcts.update_with_move(-1)
+
+
     def step(self, played_card=None):
         player_hand = self._player_hands[self.current_player_idx]
 
         if played_card is None:
             played_card, played_probs = self.players[self.current_player_idx].play_card(self, return_prob=True)
+            print("Pick {} card from {} for this trick, {}".format(played_card, player_hand, self.trick))
 
         if not is_card_valid(player_hand, self.trick, played_card, self.trick_nr, self.is_heart_broken):
-            raise ValueError('Player {} ({}) played an invalid card {} to the trick {}.'.format(\
-                self.current_player_idx, type(self.players[self.current_player_idx]).__name__, played_card, self.trick))
+            raise ValueError('{} round - Player {} ({}) played an invalid card {}({}) to the trick {}.'.format(\
+                self.trick_nr, self.current_player_idx, type(self.players[self.current_player_idx]).__name__, played_card, player_hand, self.trick))
 
         if played_card not in self._player_hands[self.current_player_idx]:
-            raise ValueError("Not found {} card in this Player-{} hand cards({})".format(\
-                played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
+            raise ValueError("{} round - Not found {} card in this Player-{} hand cards({})".format(\
+                self.trick_nr, played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
 
         # store the self-play data: (state, mcts_probs, z) for training
         #cards, probs = played_prob_to_v(played_probs)

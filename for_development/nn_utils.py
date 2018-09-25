@@ -6,9 +6,11 @@ from card import Suit, Rank, Card, Deck
 
 
 def card2v(card):
-    return card.suit.value*13+(card.rank.value-2)
+    return card.suit.value*13+(card.rank.value-2)+1
 
 def v2card(v):
+    v -= 1
+
     suit, suit_num = None, v//13
     if suit_num == 0:
         suit = Suit.clubs
@@ -71,3 +73,6 @@ def played_prob_to_v(played_prob):
 if __name__ == "__main__":
     for card in Deck().cards:
         print(card, card2v(card), v2card(card2v(card)))
+
+    print(38, v2card(38))
+    print(Card(Suit.clubs, Rank.ten), card2v(Card(Suit.clubs, Rank.ten)))
