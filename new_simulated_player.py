@@ -85,7 +85,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
                                                              selection_func, 
                                                              must_have, 
                                                              void_info, 
-                                                             TIMEOUT_SECOND)) for seed in range(self.num_of_cpu)]
+                                                             TIMEOUT_SECOND-0.02)) for seed in range(self.num_of_cpu)]
 
         results = defaultdict(list)
         partial_results = [res.get() for res in mul_result]

@@ -3,6 +3,7 @@ import sys
 from sample_bot import PokerSocket
 from brain_bot import BrainBot
 
+from simulated_player import MonteCarloPlayer5
 from new_simulated_player import MonteCarloPlayer7
 
 def main():

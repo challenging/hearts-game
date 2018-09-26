@@ -34,15 +34,13 @@ class Player(object):
         if self.verbose:
             global OUT_FILE
 
-            #if not os.path.exists("/log"):
-            #    os.makedirs("/log")
-
-            if OUT_FILE is None:
-                OUT_FILE = open("/log/game.log", "a")
-
             message = message.format(*formatargs)
-            print(message)
-            OUT_FILE.write("{}\n".format(message))
+            if os.path.exists("/log"):
+                if OUT_FILE is None: OUT_FILE = open("/log/game.log", "a")
+
+                OUT_FILE.write("{}\n".format(message))
+            else:
+                print(message)
 
 
     def set_transfer_card(self, received_player, card):

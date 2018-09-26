@@ -134,7 +134,7 @@ class BrainBot(LowPlayBot):
             leading_card = self.round_cards_history[leading_idx][1]
             current_card = self.round_cards_history[-1][1]
 
-            self.say("(leading_card, current_card) = ({}, {})", leading_card, current_card)
+            #self.say("(leading_card, current_card) = ({}, {})", leading_card, current_card)
             return leading_idx, leading_card.suit, leading_card.suit != current_card.suit
 
         current_player_name, last_card = self.round_cards_history[-1]
@@ -144,14 +144,14 @@ class BrainBot(LowPlayBot):
             if len(self.round_cards_history)%4 > 0:
             #if current_player_name != self.player_name:
                 leading_idx, leading_suit, is_lacking = find_leading_suit()
-                self.say("(leading_idx, leading_suit, is_lacking) = ({}, {}, {}), (player_names, current_player_name) = {}, {})", \
-                    leading_idx, leading_suit, is_lacking, [player.name for player in self.game.players], current_player_name)
+                #self.say("(leading_idx, leading_suit, is_lacking) = ({}, {}, {}), (player_names, current_player_name) = {}, {})", \
+                #    leading_idx, leading_suit, is_lacking, [player.name for player in self.game.players], current_player_name)
 
                 if is_lacking:
                     for player_idx, player in enumerate(self.game.players):
                         if player.name == current_player_name:
                             self.game.lacking_cards[player_idx][leading_suit] = True
-                            self.say("set info of lacking_cards is {}", self.game.lacking_cards)
+                            #self.say("set info of lacking_cards is {}", self.game.lacking_cards)
 
                             break
                 else:
@@ -202,7 +202,7 @@ class BrainBot(LowPlayBot):
         self.game._player_hands[self.player.position] = self.my_hand_cards
 
         message = "My Cards:{}".format(self.game._player_hands[self.player.position])
-        self.say(message)
+        #self.say(message)
         system_log.show_message(message)
 
         message = "Pick Card Event Content:{}".format(data)
@@ -231,8 +231,7 @@ class BrainBot(LowPlayBot):
         self.game._player_hands[self.player.position] = self.my_hand_cards
         played_card = self.game.players[self.player.position].play_card(self.game, self.other_info)
 
-        print("current other_info is {}".format(self.other_info))
-        message = "Pick Card:{} ({})".format(played_card, candidate_cards)
+        message = "Pick Card:{} from {}".format(played_card, candidate_cards)
         self.say(message)
 
         system_log.show_message(message)

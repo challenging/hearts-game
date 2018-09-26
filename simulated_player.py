@@ -231,11 +231,16 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
     def set_proactive_mode(self, hand, round_idx):
         hand.sort(key=lambda x: self.undesirability(x), reverse=True)
 
+        has_spades_queen = False
         hand_cards = {Suit.spades: [], Suit.hearts: [], Suit.diamonds: [], Suit.clubs: []}
         for card in hand:
             hand_cards[card.suit].append(max(card.rank.value-10, 0))
 
+            if card.suit == Suit.spades and card.rank == Rank.queen:
+                has_spades_queen = True
+
         pass_low_card = False
+        short_card_suit = None
 
         point_of_suit = 0
         for suit, cards in hand_cards.items():
@@ -257,11 +262,21 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
             if points > 18 and sum(hand_cards[Suit.hearts]) > 3:
                 pass_low_card = True
 
-        return hand_cards, pass_low_card
+            if not pass_low_card:
+                for suit in [Suit.clubs, Suit.diamonds, Suit.spades]:
+                    if len(hand_cards[suit]) < 4:
+                        if suit == Suit.spades:
+                            if has_spades_queen:
+                                short_card_suit = suit
+                        else:
+                            short_card_suit = suit
+
+
+        return hand_cards, pass_low_card, short_card_suit
 
 
     def pass_cards(self, hand, round_idx):
-        hand_cards, pass_low_card = self.set_proactive_mode(hand, round_idx)
+        hand_cards, pass_low_card, short_card_suit = self.set_proactive_mode(hand, round_idx)
 
         pass_cards, keeping_cards = [], []
         if self.proactive_mode:
@@ -282,6 +297,12 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
             pass_cards = hand
 
             self.say("{} ----> pass low cards are {} from {}({})", type(self).__name__, pass_cards[:3], hand, hand_cards)
+        elif short_card_suit is not None:
+            for card in hand:
+                if card.suit == short_card_suit:
+                    pass_cards.append(card)
+
+            self.say("{} ----> pass shorten cards are {} from {}({})", type(self).__name__, pass_cards[:3], hand, hand_cards)
         else:
             pass_cards = []
 
@@ -302,10 +323,10 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
                     if card not in keeping_cards and (card.suit != Suit.spades or (card.suit == Suit.spades and card.rank > Rank.queen)):
                         pass_cards.append(card)
 
-            if len(pass_cards) < 3:
-                for card in hand:
-                    if card not in keeping_cards and card not in pass_cards:
-                        pass_cards.append(card)
+        if len(pass_cards) < 3:
+            for card in hand:
+                if card not in keeping_cards and card not in pass_cards:
+                    pass_cards.append(card)
 
         self.say("proactive mode: {}, keeping_cards are {}, pass card is {}", self.proactive_mode, keeping_cards, pass_cards[:3])
 
