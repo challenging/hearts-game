@@ -15,6 +15,9 @@ from simulated_player import MonteCarloPlayer5
 from simple_game import run_simulation, random_choose, greedy_choose
 
 
+TIMEOUT_SECOND = 0.91
+
+
 class MonteCarloPlayer7(MonteCarloPlayer5):
     def __init__(self, num_of_cpu=COUNT_CPU, verbose=False):
         super(MonteCarloPlayer7, self).__init__(verbose=verbose)
@@ -66,7 +69,6 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         print(8888, must_have)
         print(9999, void_info)
         """
-        #print(self.num_of_cpu)
 
         selection_func = random_choose if self.proactive_mode else greedy_choose
         self.say("proactive_mode: {}, selection_func={}", self.proactive_mode, selection_func)

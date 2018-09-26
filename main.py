@@ -52,8 +52,7 @@ if __name__ == "__main__":
         player = IntelligentPlayer(policy.policy_value, self_player_idx=3, is_selfplay=True, verbose=True)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     else:
-        player = StupidPlayer(verbose=False)
-        other_players = [StupidPlayer() for _ in range(3)]
+        raise
     """
 
     #setting_cards = read_card_games("game/game_0008/game_1534672482.pkl")

@@ -131,7 +131,7 @@ class Player(object):
 
 
     def simple_redistribute_cards(self, game, remaining_cards):
-        print("start to simple_redistribute_cards")
+        #print("start to simple_redistribute_cards")
 
         fixed_cards = {}
         for player_idx in range(4):

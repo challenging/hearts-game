@@ -112,7 +112,7 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
                     void_players = [player_idx for player_idx, number in numbers.items() if (len(copy_cards[player_idx])-len(fixed_cards.get(player_idx, []))) != number]
                     shuffle(void_players)
                     for player_idx in void_players:
-                        #print("find void_player", player_idx)
+                        #print("find void_player", player_idx, card, remaining_cards)
 
                         target_players = list(numbers.keys())
                         shuffle(target_players)
