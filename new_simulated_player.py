@@ -58,19 +58,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
 
         played_card = None
 
-        """
-        print(1111, game.trick_nr+1)
-        print(2222, self.position)
-        print(3333, init_trick)
-        print(4444, hand_cards)
-        print(5555, game.is_heart_broken)
-        print(6666, remaining_cards)
-        print(7777, taken_cards)
-        print(8888, must_have)
-        print(9999, void_info)
-        """
-
-        selection_func = random_choose if self.proactive_mode else greedy_choose
+        selection_func = random_choose #if self.proactive_mode else greedy_choose
         self.say("proactive_mode: {}, selection_func={}", self.proactive_mode, selection_func)
 
         pool = mp.Pool(processes=self.num_of_cpu)
@@ -80,7 +68,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
                                                              init_trick, 
                                                              hand_cards, 
                                                              game.is_heart_broken, 
-                                                             game.expose_heart_ace,
+                                                             game.expose_heart_ace, 
                                                              remaining_cards, 
                                                              taken_cards, 
                                                              played_card, 
@@ -93,7 +81,6 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         partial_results = [res.get() for res in mul_result]
         for row in partial_results:
             for card, scores in row.items():
-                #print(card, scores)
                 results[card].extend(scores)
 
         pool.close()
