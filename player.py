@@ -104,7 +104,7 @@ class Player(object):
         elif card.suit == Suit.hearts:
             additional_rank = 2
         elif card == Card(Suit.clubs, Rank.ten):
-            additional_rank += 2
+            additional_rank = 2
 
         return card.rank.value + additional_rank
 

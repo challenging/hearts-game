@@ -12,7 +12,8 @@ from card import card_to_bitmask
 from simulated_player import TIMEOUT_SECOND, COUNT_CPU
 from simulated_player import MonteCarloPlayer5
 
-from simple_game import run_simulation, random_choose, greedy_choose
+from simple_game import run_simulation
+from strategy_play import random_choose, greedy_choose
 
 
 TIMEOUT_SECOND = 0.91
@@ -21,8 +22,6 @@ TIMEOUT_SECOND = 0.91
 class MonteCarloPlayer7(MonteCarloPlayer5):
     def __init__(self, num_of_cpu=COUNT_CPU, verbose=False):
         super(MonteCarloPlayer7, self).__init__(verbose=verbose)
-
-        #self.num_of_cpu = 1
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
@@ -45,7 +44,6 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         taken_cards = []
         for player_idx, cards in enumerate(game._cards_taken):
             taken_cards.append(card_to_bitmask(cards))
-            #self.say("transfrom the player-{}'s score_cards from {} to {}", player_idx, cards, taken_cards[-1])
 
         init_trick = [[None, game.trick]]
 
@@ -58,7 +56,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
 
         played_card = None
 
-        selection_func = random_choose #if self.proactive_mode else greedy_choose
+        selection_func = greedy_choose #if self.proactive_mode else greedy_choose
         self.say("proactive_mode: {}, selection_func={}", self.proactive_mode, selection_func)
 
         pool = mp.Pool(processes=self.num_of_cpu)
@@ -93,7 +91,14 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
                 played_card = card
                 min_score = mean_score
 
-            self.say("simulate {} card with {:4d} times, and get {:.3f} score", card, len(scores), mean_score)
+            ma, mi = -sys.maxsize, sys.maxsize
+            for score in scores:
+                if score > ma:
+                    ma = score
+                if score < mi:
+                    mi = score
+
+            self.say("simulate {} card with {:4d} times, and get {:.3f} score ({:.4f} ~ {:.4f})", card, len(scores), mean_score, ma, mi)
 
         self.say("pick {} card, cost {:.8} seconds", played_card, time.time()-stime)
 

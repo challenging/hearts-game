@@ -227,6 +227,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                                 game.expose_heart_ace, num_of_shooting_moon[player_idx], stats.nobs, stats.mean, stats.variance**0.5, stats.minmax))
 
                     game.reset()
+                    sys.exit(1)
 
     stats = []
     for player_idx, scores in enumerate(final_scores):

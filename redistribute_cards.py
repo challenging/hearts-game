@@ -103,13 +103,39 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
                 for card in removed_cards:
                     remaining_cards.remove(card)
 
-            is_finished = True
+            void_players = []
+            for player_idx, number in numbers.items():
+                num_hand_cards = len(copy_cards[player_idx])-len(fixed_cards.get(player_idx, []))
+
+                if num_hand_cards < number:
+                    void_players.append(player_idx)
+
+            for card in remaining_cards[:]:
+                for player_idx in range(4):
+                    if card in copy_cards[player_idx]:
+                        remaining_cards.remove(card)
+
             while remaining_cards:
                 #print("remaining_cards", remaining_cards)
-                removed_cards = []
-                for card in remaining_cards:
+                for card in remaining_cards[:]:
                     #print("start to handle", card, copy_cards, fixed_cards, numbers)
-                    void_players = [player_idx for player_idx, number in numbers.items() if (len(copy_cards[player_idx])-len(fixed_cards.get(player_idx, []))) != number]
+                    void_players = []
+                    for player_idx, number in numbers.items():
+                        num_hand_cards = len(copy_cards[player_idx])-len(fixed_cards.get(player_idx, []))
+
+                        if num_hand_cards < number:
+                            void_players.append(player_idx)
+
+                            #print("find void_player", player_idx, card, remaining_cards, len(copy_cards[player_idx]), len(fixed_cards.get(player_idx, [])), num_hand_cards, number)
+                        elif num_hand_cards > number:
+                            raise
+
+                    if not void_players:
+                        remaining_cards.remove(card)
+
+                        break
+
+                    #void_players = [player_idx for player_idx, number in numbers.items() if (len(copy_cards[player_idx])-len(fixed_cards.get(player_idx, []))) != number]
                     shuffle(void_players)
                     for player_idx in void_players:
                         #print("find void_player", player_idx, card, remaining_cards)
@@ -128,7 +154,7 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
                                         copy_cards[targeted_player_idx].remove(switched_card)
                                         copy_cards[targeted_player_idx].append(card)
 
-                                        removed_cards.append(card)
+                                        remaining_cards.remove(card)
                                         is_switched = True
 
                                         break
@@ -136,36 +162,13 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
                             if is_switched:
                                 break
 
+                        """
                         if is_switched == False:
                             copy_cards[player_idx].append(card)
-                            removed_cards.append(card)
-
-                        """
-                        targeted_player_idx = choice(list(numbers.keys()))
-                        if player_idx != targeted_player_idx and void_info[targeted_player_idx][card.suit] == False:
-                            switched_card = choice(copy_cards[targeted_player_idx])
-                            if switched_card not in fixed_cards.get(targeted_player_idx, []) and void_info[player_idx][switched_card.suit] == False:
-                                print("---> player-{}'s {} card vs. player-{}'s {} card".format(player_idx, card, targeted_player_idx, switched_card))
-                                copy_cards[player_idx].append(switched_card)
-
-                                copy_cards[targeted_player_idx].remove(switched_card)
-                                copy_cards[targeted_player_idx].append(card)
-
-                                removed_cards.append(card)
-
-                                break
-
-                        elif time.time()-stime <= TIME_LIMIT:
-                            copy_cards[player_idx].append(card)
-                            removed_cards.append(card)
-
-                            print("333 ---> force appending {} card into player-{} ({})".format(card, player_idx, void_info[player_idx]))
-
-                            break
+                            remaining_cards.remove(card)
                         """
 
-                for card in removed_cards:
-                    if card in remaining_cards: remaining_cards.remove(card)
+                #for card in removed_cards:
+                #    if card in remaining_cards: remaining_cards.remove(card)
 
-            if is_finished:
-                yield copy_cards
+            yield copy_cards

@@ -4,12 +4,14 @@ import sys
 import copy
 import time
 
+import numpy as np
 import multiprocessing as mp
 
+from scipy.stats import describe
 from collections import defaultdict
-from random import shuffle, choice, randint
+from random import shuffle, choice
 
-from card import Suit, Rank, Card, Deck
+from card import Suit, Rank, Card, Deck, POINT_CARDS
 from player import StupidPlayer, SimplePlayer, MinCardPlayer, MaxCardPlayer
 
 
@@ -25,11 +27,11 @@ class MonteCarloPlayer(SimplePlayer):
 
 
     def winning_score_func(self, scores):
-        return sum(scores) / (len(scores)+1e-16)
+        return np.mean(scores)
 
 
     def no_choice(self, played_card):
-        time.sleep(randint(9000, 9200)*0.0001)
+        time.sleep(np.random.randint(9000, 9200)*0.0001)
 
         return played_card
 
@@ -45,23 +47,18 @@ class MonteCarloPlayer(SimplePlayer):
                 min_score = score
                 played_card = card
 
-            min_score, max_score = sys.maxsize, -sys.maxsize
-            for score in winning_score[card]:
-                if score < min_score:
-                    min_score = score
-
-                if score > max_score:
-                    max_score = score
-
-            self.say("{} {}, simulation: {} round --> valid_cards: {}, simulate {} card --> average_score {:.3f} (min={}, max={})",
+            stats = describe(winning_score[card])
+            self.say("{} {}, simulation: {} round --> valid_cards: {}, simulate {} card --> average_score {:.3f} --> {:.3f}, (mean={:.2f}, std={:.2}, minmax={})",
                 game.trick_nr,
                 type(self).__name__,
                 len(winning_score[card]),
                 valid_cards,
                 card,
+                np.mean(winning_score[card]),
                 score,
-                min_score,
-                max_score)
+                stats.mean,
+                stats.variance**0.5,
+                stats.minmax)
 
         return played_card
 
@@ -170,7 +167,7 @@ class MonteCarloPlayer3(MonteCarloPlayer):
         rating = [0, 0, 0, 0]
 
         info = list(zip(range(4), scores))
-        pre_score, pre_rating, norm_score = None, None, np.array(scores)/sum(scores)
+        pre_score, pre_rating, norm_score = None, None, np.array(scores)/np.sum(scores)
         for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
             tmp_rating = rating_idx
             if pre_score is not None:
@@ -231,52 +228,37 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
     def set_proactive_mode(self, hand, round_idx):
         hand.sort(key=lambda x: self.undesirability(x), reverse=True)
 
-        has_spades_queen = False
         hand_cards = {Suit.spades: [], Suit.hearts: [], Suit.diamonds: [], Suit.clubs: []}
         for card in hand:
             hand_cards[card.suit].append(max(card.rank.value-10, 0))
 
-            if card.suit == Suit.spades and card.rank == Rank.queen:
-                has_spades_queen = True
-
         pass_low_card = False
-        short_card_suit = None
 
         point_of_suit = 0
         for suit, cards in hand_cards.items():
-            point_of_suit = sum(cards)
+            point_of_suit = np.sum(cards)
             if suit == Suit.hearts:
                 if (point_of_suit > 7 and len(cards) > 5):# or (point_of_suit > 5 and len(cards) > 4) or (point_of_suit > 4 and len(cards) > 5):
                     self.proactive_mode.add(suit)
             else:
-                if (point_of_suit > 6 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and sum(hand_cards[Suit.hearts]) > 3):
+                if (point_of_suit > 6 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
-                elif (point_of_suit > 5 and len(cards) > 5) and (len(hand_cards[Suit.hearts]) > 2 and sum(hand_cards[Suit.hearts]) > 3):
+                elif (point_of_suit > 5 and len(cards) > 5) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
-                elif (point_of_suit > 4 and len(cards) > 6) and (len(hand_cards[Suit.hearts]) > 2 and sum(hand_cards[Suit.hearts]) > 3):
+                elif (point_of_suit > 4 and len(cards) > 6) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
 
         if not self.proactive_mode:
-            points = sum([v for vv in hand_cards.values() for v in vv])
+            points = np.sum([v for vv in hand_cards.values() for v in vv])
 
-            if points > 18 and sum(hand_cards[Suit.hearts]) > 3:
+            if points > 18 and np.sum(hand_cards[Suit.hearts]) > 3:
                 pass_low_card = True
 
-            if not pass_low_card:
-                for suit in [Suit.clubs, Suit.diamonds, Suit.spades]:
-                    if len(hand_cards[suit]) < 4:
-                        if suit == Suit.spades:
-                            if has_spades_queen:
-                                short_card_suit = suit
-                        else:
-                            short_card_suit = suit
-
-
-        return hand_cards, pass_low_card, short_card_suit
+        return hand_cards, pass_low_card
 
 
     def pass_cards(self, hand, round_idx):
-        hand_cards, pass_low_card, short_card_suit = self.set_proactive_mode(hand, round_idx)
+        hand_cards, pass_low_card = self.set_proactive_mode(hand, round_idx)
 
         pass_cards, keeping_cards = [], []
         if self.proactive_mode:
@@ -297,12 +279,6 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
             pass_cards = hand
 
             self.say("{} ----> pass low cards are {} from {}({})", type(self).__name__, pass_cards[:3], hand, hand_cards)
-        elif short_card_suit is not None:
-            for card in hand:
-                if card.suit == short_card_suit:
-                    pass_cards.append(card)
-
-            self.say("{} ----> pass shorten cards are {} from {}({})", type(self).__name__, pass_cards[:3], hand, hand_cards)
         else:
             pass_cards = []
 
@@ -323,10 +299,10 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
                     if card not in keeping_cards and (card.suit != Suit.spades or (card.suit == Suit.spades and card.rank > Rank.queen)):
                         pass_cards.append(card)
 
-        if len(pass_cards) < 3:
-            for card in hand:
-                if card not in keeping_cards and card not in pass_cards:
-                    pass_cards.append(card)
+            if len(pass_cards) < 3:
+                for card in hand:
+                    if card not in keeping_cards and card not in pass_cards:
+                        pass_cards.append(card)
 
         self.say("proactive mode: {}, keeping_cards are {}, pass card is {}", self.proactive_mode, keeping_cards, pass_cards[:3])
 
@@ -338,6 +314,7 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
             return [StupidPlayer() for _ in range(4)]
         else:
             return [SimplePlayer() for _ in range(4)]
+
 
 
 class MonteCarloPlayer6(MonteCarloPlayer5):

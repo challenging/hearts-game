@@ -27,7 +27,8 @@ if __name__ == "__main__":
     player_ai = sys.argv[2]
     if player_ai.lower() == "mc7":
         player = MonteCarloPlayer7(verbose=True)
-        other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
+        debug_player = MonteCarloPlayer5(verbose=False)
+        other_players = [debug_player] + [MonteCarloPlayer5(verbose=False) for player_idx in range(2)]
     elif player_ai.lower() == "mc6":
         player = MonteCarloPlayer6(verbose=True)
         other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
@@ -43,7 +44,6 @@ if __name__ == "__main__":
     elif player_ai.lower() == "mc":
         player = MonteCarloPlayer(verbose=True)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
-    """
     elif player_ai.lower() == "rider":
         player = DragonRiderPlayer(self_player_idx=3, verbose=True, c_puct=1.5)
         other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
@@ -52,13 +52,8 @@ if __name__ == "__main__":
         player = IntelligentPlayer(policy.policy_value, self_player_idx=3, is_selfplay=True, verbose=True)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     else:
-        raise
-    """
-
-    #setting_cards = read_card_games("game/game_0008/game_1534672482.pkl")
-    #setting_cards = read_card_games("game/game_0032/game_1536341876.pkl")
-    #setting_cards = read_card_games("game/game_0032/game_*.pkl")
-    #setting_cards = read_card_games("game/game_0008/game_153467248*.pkl")
+        player = SimplePlayer(verbose=False)
+        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
 
     setting_cards = read_card_games("game/game_0032/game_*.pkl")
     shuffle(setting_cards)
