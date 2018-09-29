@@ -103,13 +103,6 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
                 for card in removed_cards:
                     remaining_cards.remove(card)
 
-            void_players = []
-            for player_idx, number in numbers.items():
-                num_hand_cards = len(copy_cards[player_idx])-len(fixed_cards.get(player_idx, []))
-
-                if num_hand_cards < number:
-                    void_players.append(player_idx)
-
             for card in remaining_cards[:]:
                 for player_idx in range(4):
                     if card in copy_cards[player_idx]:
@@ -133,7 +126,7 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
                     if not void_players:
                         remaining_cards.remove(card)
 
-                        break
+                        continue
 
                     #void_players = [player_idx for player_idx, number in numbers.items() if (len(copy_cards[player_idx])-len(fixed_cards.get(player_idx, []))) != number]
                     shuffle(void_players)
@@ -162,13 +155,8 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
                             if is_switched:
                                 break
 
-                        """
                         if is_switched == False:
                             copy_cards[player_idx].append(card)
                             remaining_cards.remove(card)
-                        """
-
-                #for card in removed_cards:
-                #    if card in remaining_cards: remaining_cards.remove(card)
 
             yield copy_cards

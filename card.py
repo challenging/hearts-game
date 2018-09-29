@@ -176,6 +176,10 @@ def str_to_bitmask(cards):
     return hand_cards
 
 
+def bitmask_to_str(suit, rank):
+    return "{}{}".format(INDEX_TO_NUM[rank], INDEX_TO_SUIT[suit])
+
+
 def card_to_bitmask(cards):
     global NUM_TO_INDEX, SUIT_TO_INDEX
 

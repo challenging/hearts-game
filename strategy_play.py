@@ -1,5 +1,3 @@
-
-
 import numpy as np
 
 from collections import defaultdict
@@ -7,12 +5,12 @@ from collections import defaultdict
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
 
 
-def random_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False):
+def random_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False, players_with_point=set(), game_info=None, void_info={}):
     candicated_cards = []
 
     for suit, ranks in cards.items():
         bit_mask = 1
-        while bit_mask <= 4096:
+        while bit_mask <= NUM_TO_INDEX["A"]:
             if ranks & bit_mask:
                 candicated_cards.append([suit, bit_mask])
 
@@ -22,11 +20,11 @@ def random_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False,
 
 
 
-def greedy_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False):
+def greedy_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False, players_with_point=set(), game_info=None, void_info={}):
     def choose_max_card(cards, suits):
         candicated_cards = []
 
-        bit_mask = 4096
+        bit_mask = NUM_TO_INDEX["A"]
         while bit_mask > 0:
             for suit in suits:
                 rank = cards.get(suit, 0)
@@ -42,7 +40,7 @@ def greedy_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False,
         played_card = None
 
         bit_mask = 1
-        while bit_mask <= 4096:
+        while bit_mask <= NUM_TO_INDEX["A"]:
             for suit in suits:
                 rank = cards.get(suit, 0)
                 if rank & bit_mask:
@@ -67,7 +65,7 @@ def greedy_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False,
         rank = cards.get(leading_suit, 0)
 
         if rank > 0:
-            bit_mask = 4096
+            bit_mask = NUM_TO_INDEX["A"]
             while bit_mask > 0:
                 if rank & bit_mask:
                     if bit_mask < max_rank:
@@ -102,11 +100,11 @@ def greedy_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False,
     return candicated_cards, safe_play
 
 
-def expert_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False):
+def expert_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False, players_with_point=set(), game_info=None, void_info={}):
     def choose_max_card(cards, suits):
         candicated_cards = []
 
-        bit_mask = 4096
+        bit_mask = NUM_TO_INDEX["A"]
         while bit_mask > 0:
             for suit in suits:
                 rank = cards.get(suit, 0)
@@ -117,56 +115,43 @@ def expert_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False,
 
         return candicated_cards
 
-
     def choose_min_card(cards, suits, is_pig_card_taken, own_pig_card):
-        print(111111)
         candicated_cards, played_card = [], None
 
         num_of_suits = defaultdict(int)
 
-        bit_mask = 1
-        while bit_mask <= 4096:
+        bit_mask = NUM_TO_INDEX["2"]
+        while bit_mask <= NUM_TO_INDEX["A"]:
             for suit in suits:
                 if cards.get(suit, 0) & bit_mask:
                     num_of_suits[suit] += 1
 
             bit_mask <<= 1
 
-        second_suit = None
-        for suit_idx, (best_suit, num) in enumerate(sorted(num_of_suits.items(), key=lambda x: x[1])):
-            if own_pig_card and best_suit == SUIT_TO_INDEX["S"]:
-                continue
+        #for suit, num in num_of_suits.items():
+        #    print("num_of_suits.items: ", INDEX_TO_SUIT[suit], num)
 
-            if suit_idx == 1:
-                second_suit = best_suit
+        best_suit, second_suit = None, None
+        for suit_idx, (suit, num) in enumerate(sorted(num_of_suits.items(), key=lambda x: x[1])):
+            if best_suit is None: best_suit = suit
+            if suit_idx == 1: second_suit = suit
+            if second_suit is not None: break
 
-            if second_suit is not None:
+        if best_suit == SUIT_TO_INDEX["S"] and own_pig_card and second_suit is not None:
+            best_suit = second_suit
+
+        #print(best_suit, second_suit)
+
+        bit_mask = NUM_TO_INDEX["2"]
+        while bit_mask <= NUM_TO_INDEX["A"]:
+            if cards[best_suit] & bit_mask:
+                played_card = [best_suit, bit_mask]
+
                 break
 
-        print("suit", best_suit, second_suit)
+            bit_mask <<= 1
 
-        if best_suit == SUIT_TO_INDEX["S"]:
-            bit_mask = 1
-            while bit_mask <= NUM_TO_INDEX["J"]:
-               if cards[best_suit] & bit_mask:
-                   played_card = [best_suit, bit_mask]
-
-                   break
-
-               bit_mask <<= 1
-
-        if played_card is None:
-            second_suit = second_suit if second_suit else best_suit
-
-            bit_mask = 1
-            while bit_mask <= 4096:
-               if cards[second_suit] & bit_mask:
-                   played_card = [second_suit, bit_mask]
-
-                   break
-
-               bit_mask <<= 1
-
+        #print("played_card", played_card)
         return played_card
 
 
@@ -184,7 +169,7 @@ def expert_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False,
         rank = cards.get(leading_suit, 0)
 
         if rank > 0:
-            bit_mask = 4096
+            bit_mask = NUM_TO_INDEX["A"]
             while bit_mask > 0:
                 if rank & bit_mask:
                     if bit_mask < max_rank:
@@ -210,7 +195,6 @@ def expert_choose(cards, trick, is_hearts_broken=False, is_pig_card_taken=False,
 
                     break
     else:
-        print(222222)
         suits = [SUIT_TO_INDEX["C"], SUIT_TO_INDEX["D"], SUIT_TO_INDEX["S"], SUIT_TO_INDEX["H"]]
         if own_pig_card:
             suits = [SUIT_TO_INDEX["C"], SUIT_TO_INDEX["D"], SUIT_TO_INDEX["H"], SUIT_TO_INDEX["S"]]

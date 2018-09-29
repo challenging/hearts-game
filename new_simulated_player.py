@@ -75,30 +75,39 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
                                                              void_info, 
                                                              TIMEOUT_SECOND-0.02)) for seed in range(self.num_of_cpu)]
 
-        results = defaultdict(list)
         partial_results = [res.get() for res in mul_result]
+
+        results = defaultdict(list)
         for row in partial_results:
-            for card, scores in row.items():
-                results[card].extend(scores)
+            for card, info in row.items():
+                results[card].extend(info)
 
         pool.close()
 
         min_score = sys.maxsize
-        for card, scores in results.items():
-            mean_score = sum(scores) / (len(scores) + 1e-16)
+        for card, info in results.items():
+            total_size, total_score, total_num = 0, 0, 0
+
+            for score, self_shoot_the_moon in info:
+                total_score += score
+                total_num += 1 if self_shoot_the_moon else 0
+                total_size += 1
+
+            mean_score = total_score / len(info)
 
             if mean_score < min_score:
                 played_card = card
                 min_score = mean_score
 
             ma, mi = -sys.maxsize, sys.maxsize
-            for score in scores:
+            for score, _ in info:
                 if score > ma:
                     ma = score
                 if score < mi:
                     mi = score
 
-            self.say("simulate {} card with {:4d} times, and get {:.3f} score ({:.4f} ~ {:.4f})", card, len(scores), mean_score, ma, mi)
+            self.say("simulate {} card with {:4d} times, and get {:.3f} score ({:.4f} ~ {:.4f}), num_moon={}, {:.2f}%", \
+                card, total_size, mean_score, ma, mi, total_num, 100.0*total_num/total_size)
 
         self.say("pick {} card, cost {:.8} seconds", played_card, time.time()-stime)
 
