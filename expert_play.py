@@ -43,20 +43,15 @@ def choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card
 
     best_suit, second_suit, third_suit = None, None, None
     for suit_idx, (suit, num) in enumerate(sorted(num_of_suits.items(), key=lambda x: x[1])):
-        if num > 0 and best_suit is None:
-            best_suit = suit
+        if num > 0:
+            if best_suit is None:
+                best_suit = suit
+            elif second_suit is None:
+                second_suit = suit
+            elif third_suit is None:
+                third_suit = suit
 
-            continue
-
-        if num > 0 and second_suit is None:
-            second_suit = suit
-
-            continue
-
-        if num > 0 and third_suit is None:
-            third_suit = suit
-
-            break
+                break
 
     if best_suit == SUIT_TO_INDEX["S"]:
         if own_pig_card:
@@ -64,9 +59,7 @@ def choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card
                 return play_spades_K_A(cards)
 
         if not is_pig_card_taken and second_suit is not None:
-            best_suit, second_suit = second_suit, None
-
-    #print("best_suit, second_suit, third_suit = ({}, {}, {})".format(best_suit, second_suit, third_suit))
+            best_suit, second_suit = second_suit, third_suit
 
     played_card = None
     for suit in [best_suit, second_suit, third_suit]:
@@ -170,7 +163,7 @@ def expert_choose(position, cards, trick, is_hearts_broken=False, is_pig_card_ta
 
             if safe_play is None:
                 bit_mask = NUM_TO_INDEX["A"]
-                while bit_mask > 0:
+                while bit_mask >= NUM_TO_INDEX["2"]:
                     if rank & bit_mask:
                         if bit_mask < max_rank:
                             if safe_play is None: safe_play = [leading_suit, bit_mask]

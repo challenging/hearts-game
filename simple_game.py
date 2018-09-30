@@ -229,7 +229,7 @@ class SimpleGame(object):
 
 
     def run(self, current_round_idx, played_card=None, selection_func=random_choose):
-        first_choose = greedy_choose if IS_DEBUG else random_choose
+        first_choose = expert_choose if IS_DEBUG else random_choose
 
         start_pos = None
         current_trick = self.tricks[-1]
@@ -245,7 +245,7 @@ class SimpleGame(object):
             if played_card is None:
                 valid_cards = self.get_myself_valid_cards(self.hand_cards[self.position], current_round_idx)
                 candicated_cards, played_card = first_choose(\
-                    position, valid_cards, current_trick[1], self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players, self.current_info, self.void_info)
+                    self.position, valid_cards, current_trick[1], self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players, self.current_info, self.void_info)
 
             self.played_card = played_card
 
@@ -317,7 +317,8 @@ class SimpleGame(object):
 
                 if start_pos == self.position and self.played_card is None:
                     self.played_card = played_card
-                    print("set self.played_card to be {}".format(self.played_card))
+
+                #print("--->", start_pos, played_card)
 
                 self.add_card_to_trick(start_pos, played_card)
                 self.remove_card(self.hand_cards[start_pos], played_card)
