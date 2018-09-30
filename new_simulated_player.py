@@ -14,6 +14,7 @@ from simulated_player import MonteCarloPlayer5
 
 from simple_game import run_simulation
 from strategy_play import random_choose, greedy_choose
+from expert_play import expert_choose
 
 
 TIMEOUT_SECOND = 0.91
@@ -57,7 +58,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         played_card = None
 
         selection_func = greedy_choose #if self.proactive_mode else greedy_choose
-        self.say("proactive_mode: {}, selection_func={}", self.proactive_mode, selection_func)
+        self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}", self.proactive_mode, selection_func, self.num_of_cpu)
 
         pool = mp.Pool(processes=self.num_of_cpu)
         mul_result = [pool.apply_async(run_simulation, args=(seed,

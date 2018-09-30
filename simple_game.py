@@ -12,12 +12,13 @@ from collections import defaultdict
 from card import Rank, Suit, Card, Deck
 
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
-from card import EMPTY_CARDS, FULL_CARDS
+from card import EMPTY_CARDS, FULL_CARDS, RANK_SUM
 from card import card_to_bitmask, str_to_bitmask, bitmask_to_str, count_points
 
 from rules import is_card_valid, transform
 from redistribute_cards import redistribute_cards
-from strategy_play import random_choose, greedy_choose, expert_choose
+from strategy_play import random_choose, greedy_choose
+from expert_play import expert_choose
 
 
 IS_DEBUG = False
@@ -40,7 +41,7 @@ class SimpleGame(object):
         self.position = position
         self.hand_cards = hand_cards
 
-        self.current_info = [[13, NUM_TO_INDEX["2"]] for _ in ALL_SUIT]
+        self.current_info = [[13, RANK_SUM] for _ in ALL_SUIT]
         #self.handle_current_info(self.hand_cards[self.position])
 
         self.is_show_pig_card = is_show_pig_card
@@ -69,7 +70,7 @@ class SimpleGame(object):
 
             self.check_shoot_the_moon(self.score_cards)
 
-        self.translate_current_info()
+        #self.translate_current_info()
 
         self.tricks = tricks
 
@@ -87,9 +88,7 @@ class SimpleGame(object):
 
                 if cards[suit] & bit_mask:
                     self.current_info[suit][0] -= 1
-
-                    if self.current_info[suit][1] < bit_mask:
-                        self.current_info[suit][1] = bit_mask
+                    self.current_info[suit][1] ^= bit_mask
 
             bit_mask <<= 1
 
@@ -103,12 +102,13 @@ class SimpleGame(object):
 
 
     def check_shoot_the_moon(self, score_cards):
+        #print("score_cards", score_cards)
         for player_idx, cards in enumerate(score_cards):
-            if cards.get(SUIT_TO_INDEX["S"], 0) & NUM_TO_INDEX["Q"]:
+            if cards[SUIT_TO_INDEX["S"]] & NUM_TO_INDEX["Q"]:
                 self.has_point_players.add(player_idx)
 
-            if cards.get(SUIT_TO_INDEX["H"], 0) > 0:
-                has_point_players.add(player_idx)
+            if cards[SUIT_TO_INDEX["H"]] > 0:
+                self.has_point_players.add(player_idx)
 
 
     def get_seen_cards(self):
@@ -208,16 +208,17 @@ class SimpleGame(object):
 
         suit, rank = card
         self.current_info[suit][0] -= 1
-        if self.current_info[suit][1] < rank:
-            self.current_info[suit][1] = rank
+        self.current_info[suit][1] ^= rank
 
         if self.tricks[-1][1][-1][0] != self.tricks[-1][1][0][0]:
             self.void_info[player_idx][self.tricks[-1][1][0][0]] = True
 
 
-    def just_run_one_step(self, selection_func):
-        valid_cards = self.get_myself_valid_cards(self.hand_cards[self.position])
-        ccards, played_card = selection_func(valid_cards, 
+    def just_run_one_step(self, current_round_idx, selection_func):
+        valid_cards = self.get_myself_valid_cards(self.hand_cards[self.position], current_round_idx)
+
+        ccards, played_card = selection_func(self.position, 
+                                             valid_cards, 
                                              self.tricks[-1][1], 
                                              self.is_hearts_broken, 
                                              self.is_show_pig_card, 
@@ -241,13 +242,12 @@ class SimpleGame(object):
             # handle current_info
             for suit, rank in current_trick[1]:
                 self.current_info[suit][0] -= 1
-                if self.current_info[suit][1] == rank:
-                    self.current_info[suit][1] >>= 1
+                self.current_info[suit][1] ^= rank
 
             if played_card is None:
                 valid_cards = self.get_myself_valid_cards(self.hand_cards[self.position], current_round_idx)
                 candicated_cards, played_card = first_choose(\
-                    valid_cards, current_trick[1], self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players, self.current_info, self.void_info)
+                    position, valid_cards, current_trick[1], self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players, self.current_info, self.void_info)
 
             self.played_card = played_card
 
@@ -261,7 +261,8 @@ class SimpleGame(object):
                 #if sum(valid_cards.values()) == 0:
                 #    print(1111, current_round_idx, player_idx, "--->", self.hand_cards, valid_cards)
 
-                _, played_card = selection_func(valid_cards, 
+                _, played_card = selection_func(player_idx, 
+                                                valid_cards, 
                                                 current_trick[1], 
                                                 self.is_hearts_broken, 
                                                 self.is_show_pig_card, 
@@ -306,7 +307,8 @@ class SimpleGame(object):
                 #if sum(valid_cards.values()) == 0:
                 #    print(2222, round_idx, current_round_idx, start_pos, "--->", self.hand_cards[start_pos], valid_cards)
 
-                ccards, played_card = selection_func(valid_cards, 
+                ccards, played_card = selection_func(start_pos, 
+                                                     valid_cards, 
                                                      self.tricks[-1][1], 
                                                      self.is_hearts_broken, 
                                                      self.is_show_pig_card, 
@@ -314,6 +316,10 @@ class SimpleGame(object):
                                                      self.has_point_players, 
                                                      self.current_info, 
                                                      self.void_info)
+
+                if start_pos == self.position and self.played_card is None:
+                    self.played_card = played_card
+                    print("set self.played_card to be {}".format(self.played_card))
 
                 self.add_card_to_trick(start_pos, played_card)
                 self.remove_card(self.hand_cards[start_pos], played_card)
@@ -371,9 +377,18 @@ class SimpleGame(object):
 
     def translate_current_info(self):
         for suit in ALL_SUIT:
-            print("suit: {}, remaining_cards in deck: {:2d}, max_card: {}".format(\
-                INDEX_TO_SUIT[suit], self.current_info[suit][0], bitmask_to_str(suit, self.current_info[suit][1])))
-        print("void_info", self.void_info)
+            cards = []
+
+            bit_mask = NUM_TO_INDEX["2"]
+            while bit_mask <= NUM_TO_INDEX["A"]:
+                if self.current_info[suit][1] & bit_mask:
+                    cards.append("{}{}".format(INDEX_TO_NUM[bit_mask], INDEX_TO_SUIT[suit]))
+
+                bit_mask <<= 1
+
+
+            print("suit: {}, remaining_cards in deck: {}({})".format(\
+                INDEX_TO_SUIT[suit], cards, self.current_info[suit][0]))
 
 
     def translate_trick_cards(self):
@@ -454,13 +469,15 @@ def simulation(current_round_idx, position, hand_cards, tricks,
             sm.print_tricks(scores)
             print()
 
-        return sm.played_card, scores, sm.score_cards, num_of_shoot_the_moon
     except:
         for player_idx, cards in enumerate(hand_cards):
             print("player-{}'s hand_cards is {}".format(player_idx, sm.translate_hand_cards(hand_cards[player_idx])))
         print()
 
         raise
+
+    return sm.played_card, scores, sm.score_cards, num_of_shoot_the_moon
+
 
 def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
                    score_cards=None, played_card=None, selection_func=random_choose, must_have={}, void_info={}, simulation_time=0.93):
@@ -531,7 +548,7 @@ def one_step_simulation(current_round_idx, position, hand_cards, tricks,
                     expose_hearts_ace=expose_hearts_ace, 
                     tricks=tricks)
 
-    return sm.just_run_one_step(selection_func=selection_func)
+    return sm.just_run_one_step(current_round_idx, selection_func=selection_func)
 
 
 def run_one_step(current_round_idx, position, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
@@ -563,7 +580,7 @@ def run_one_step(current_round_idx, position, init_trick, hand_cards, is_hearts_
                                    played_card, 
                                    selection_func)
 
-        return transform(card[0], card[1])
+        return transform(INDEX_TO_NUM[card[1]], INDEX_TO_SUIT[card[0]])
 
 
 if __name__ == "__main__":
@@ -574,17 +591,41 @@ if __name__ == "__main__":
     expose_hearts_ace = False
     is_hearts_broken = False
 
-    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.ace), Card(Suit.clubs, Rank.eight)]]]
-    hand_cards = [[transform(card[0], card[1]) for card in "KC,QC,TD,8H,9D,9S,5C,3D,3S,AH,QH,JH".split(",")],
-                  [transform(card[0], card[1]) for card in "7H,8D,7C,5H,6C,6D,6S,5D,4D,2D,KS,AD".split(",")],
-                  [transform(card[0], card[1]) for card in "TH,9H,TS,8S,6H,7D,4H,3C,2S,QS,AS,KH".split(",")],
-                  [transform(card[0], card[1]) for card in "TC,JC,JS,9C,7S,5S,3H,4C,4S,2H,KD,QD,JD".split(",")]]
+    """
+    init_trick = [[None, [Card(Suit.clubs, Rank.two)]]]
+    hand_1 = "".replace(" ", "")
+    hand_2 = "".replace(" ", "")
+    hand_3 = "".replace(" ", "")
+    hand_4 = "".replace(" ", "")
+    """
 
-    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.three)]]]
-    hand_cards = [[transform(card[0], card[1]) for card in "KC,JH,JC,TD,8S,6H,6C,5C,3H,2S,KD,TC,JD".split(",")],
-                  [transform(card[0], card[1]) for card in "QC,JS,8H,7C,7D,5H,4D,4S,2D,KH,AC,QD".split(",")],
-                  [transform(card[0], card[1]) for card in "9H,TS,9S,7H,6D,4H,5D,2H,3S,AS,KS,AH".split(",")],
-                  [transform(card[0], card[1]) for card in "TH,9C,9D,8C,8D,7S,6S,5S,4C,3D,QS,AD,QH".split(",")]]
+    """
+    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.queen), Card(Suit.clubs, Rank.ten)]]]
+
+    hand_1 = "KD, JH, TH, JC, 9C, 8C, 3H, 2H, 3D, QS, AS, KC".replace(" ", "")
+    hand_2 = "TD, 9D, 9S, 8D, 6H, 7D, 5H, 6D, 5D, 2D, KS, QD".replace(" ", "")
+    hand_3 = "9H, TS, 7H, 6S, 4H, 5C, 4S, 3C, 2S, KH, AC, AD".replace(" ", "")
+    hand_4 = "JS, 8H, 8S, 7C, 7S, 6C, 5S, 4C, 4D, 3S, AH, QH, JD".replace(" ", "")
+    """
+
+    """
+    init_trick = [[None, [Card(Suit.clubs, Rank.two)]]]
+    hand_1 = "9H, 8H, 7H, 8S, 6H, 5S, 3H, 4D, 4S, 3S, AS, KS, AC".replace(" ", "")
+    hand_2 = "JD, JS, TD, TS, 9D, 9S, 7C, 6S, 3D, 2D, 2S, 2H, 6D".replace(" ", "")
+    hand_3 = "TC, TH, 8C, 8D, 7D, 7S, 5H, 5C, 5D, AH, QH, QD".replace(" ", "")
+    hand_4 = "KH, KC, JH, QC, JC, 9C, 6C, 4H, 4C, 3C, QS, AD, KD".replace(" ", "")
+    """
+
+    init_trick = [[None, [Card(Suit.clubs, Rank.two)]]]
+    hand_1 = "".replace(" ", "")
+    hand_2 = "".replace(" ", "")
+    hand_3 = "".replace(" ", "")
+    hand_4 = "".replace(" ", "")
+
+    hand_cards = [[transform(card[0], card[1]) for card in hand_1.split(",")],
+                  [transform(card[0], card[1]) for card in hand_2.split(",")],
+                  [transform(card[0], card[1]) for card in hand_3.split(",")],
+                  [transform(card[0], card[1]) for card in hand_4.split(",")]]
 
     myself_hand_cards = hand_cards
 

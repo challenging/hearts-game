@@ -1,13 +1,16 @@
 import sys
 import time
 
+import copy
+
 from card import Deck
 from card import card_to_bitmask
 
 from simulated_player import MonteCarloPlayer5
 
 from simple_game import run_one_step
-from strategy_play import expert_choose
+from strategy_play import greedy_choose
+from expert_play import expert_choose
 
 
 class NewSimplePlayer(MonteCarloPlayer5):
@@ -45,7 +48,7 @@ class NewSimplePlayer(MonteCarloPlayer5):
 
         played_card = run_one_step(game.trick_nr+1, 
                                    self.position, 
-                                   init_trick, 
+                                   copy.deepcopy(init_trick), 
                                    hand_cards, 
                                    game.is_heart_broken, 
                                    game.expose_heart_ace, 
@@ -56,6 +59,6 @@ class NewSimplePlayer(MonteCarloPlayer5):
                                    must_have, 
                                    void_info)
 
-        self.say("pick {} card, cost {:.8} seconds", played_card, time.time()-stime)
+        self.say("pick {} card", played_card)
 
         return played_card

@@ -147,7 +147,7 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
                                         copy_cards[targeted_player_idx].remove(switched_card)
                                         copy_cards[targeted_player_idx].append(card)
 
-                                        remaining_cards.remove(card)
+                                        if card in remaining_cards: remaining_cards.remove(card)
                                         is_switched = True
 
                                         break

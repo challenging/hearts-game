@@ -67,7 +67,9 @@ class Player(object):
 
 
     def is_pass_card(self, card):
-        return any([True if card == pass_card else False for pass_card in self.freeze_cards])
+        return card in self.freeze_cards
+
+        #return any([True if card == pass_card else False for pass_card in self.freeze_cards])
 
 
     def play_card(self, game):
@@ -348,6 +350,10 @@ class SimplePlayer(Player):
 
         safe_cards = [card for card in valid_cards
                       if card.suit != leading_suit or card.rank <= max_rank_in_leading_suit]
+
+        #print(" hand_cards", hand)
+        #print("valid_cards", valid_cards)
+        #print(" safe_cards", safe_cards)
 
         self.say('Valid cards: {}, Safe cards: {}', valid_cards, safe_cards)
 

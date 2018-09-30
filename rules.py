@@ -164,10 +164,6 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
     final_scores, num_of_shooting_moon = [[], [], [], []], [0, 0, 0, 0]
     for game_idx in range(nr_of_games):
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
-            if any([len(cards[player_idx]) != 13 for player_idx in range(4)]):
-                print("broken card setting", cards)
-                continue
-
             for round_idx in range(0, 4):
                 cards[0], cards[1], cards[2], cards[3] = cards[round_idx%4], cards[(round_idx+1)%4], cards[(round_idx+2)%4], cards[(round_idx+3)%4]
 
@@ -227,6 +223,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                                 game.expose_heart_ace, num_of_shooting_moon[player_idx], stats.nobs, stats.mean, stats.variance**0.5, stats.minmax))
 
                     game.reset()
+                    #sys.exit(0)
 
     stats = []
     for player_idx, scores in enumerate(final_scores):

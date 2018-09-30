@@ -272,6 +272,11 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
 
             pass_cards.sort(key=lambda x: self.undesirability(x), reverse=False)
 
+            if len(pass_cards) < 3:
+                hand.sort(key=lambda x: self.undesirability(x), reverse=False)
+
+                pass_cards.extend(hand[:3-len(pass_cards)])
+
             self.say("{} ----> proactive_mode: {}, pass cards are {}, hand_cards are {}",\
                  type(self).__name__, self.proactive_mode, pass_cards[:3], hand)
         elif pass_low_card:
