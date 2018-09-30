@@ -70,8 +70,6 @@ class SimpleGame(object):
 
             self.check_shoot_the_moon(self.score_cards)
 
-        #self.translate_current_info()
-
         self.tricks = tricks
 
         self.is_hearts_broken = is_hearts_borken
@@ -580,6 +578,7 @@ def run_one_step(current_round_idx, position, init_trick, hand_cards, is_hearts_
                                    played_card, 
                                    selection_func)
 
+        #print("----->", card)
         return transform(INDEX_TO_NUM[card[1]], INDEX_TO_SUIT[card[0]])
 
 
@@ -616,11 +615,11 @@ if __name__ == "__main__":
     hand_4 = "KH, KC, JH, QC, JC, 9C, 6C, 4H, 4C, 3C, QS, AD, KD".replace(" ", "")
     """
 
-    init_trick = [[None, [Card(Suit.clubs, Rank.two)]]]
-    hand_1 = "".replace(" ", "")
-    hand_2 = "".replace(" ", "")
-    hand_3 = "".replace(" ", "")
-    hand_4 = "".replace(" ", "")
+    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.king)]]]
+    hand_1 = "8H, 6H, 7D, 6S, 5C, 4D, 4S, 3C, 3D, 3S, QS, AH, KH".replace(" ", "")
+    hand_2 = "JS, 9H, TS, 9S, 8C, 8D, 8S, 5S, 3H, AS, KS, AD".replace(" ", "")
+    hand_3 = "9C, 9D, 7H, 7S, 5H, 6C, 6D, 4H, 2H, QD, TH, JC".replace(" ", "")
+    hand_4 = "JH, TC, QC, JD, TD, 7C, 5D, 4C, 2D, 2S, AC, QH, KD".replace(" ", "")
 
     hand_cards = [[transform(card[0], card[1]) for card in hand_1.split(",")],
                   [transform(card[0], card[1]) for card in hand_2.split(",")],

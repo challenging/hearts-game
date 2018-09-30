@@ -16,20 +16,32 @@ def additional_score(suit, rank):
         return rank
 
 
-def choose_max_card(cards, suits, max_rank=NUM_TO_INDEX["A"]):
+def choose_max_card(cards, suits, max_rank=NUM_TO_INDEX["A"], except_rank=0):
     bit_mask = max_rank
     while bit_mask >= NUM_TO_INDEX["2"]:
-        for suit in suits:
-            if cards.get(suit, 0) & bit_mask:
-                return [suit, bit_mask]
+        if bit_mask != except_rank:
+            for suit in suits:
+                if cards.get(suit, 0) & bit_mask:
+                    return [suit, bit_mask]
 
         bit_mask >>= 1
 
 
-def choose_min_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card, game_info, void_info):
+def choose_min_card(cards, suits, min_rank=NUM_TO_INDEX["2"], except_rank=0):
+    bit_mask = min_rank
+    while bit_mask <= NUM_TO_INDEX["A"]:
+        if bit_mask != except_rank:
+            for suit in suits:
+                if cards.get(suit, 0) & bit_mask:
+                    return [suit, bit_mask]
+
+        bit_mask <<= 1
+
+
+def choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card, game_info, void_info):
     played_card = None
 
-    best_suit, second_suit = None, None
+    best_suit, second_suit, third_suit = None, None, None
     for suit_idx, (suit, num) in enumerate(sorted(num_of_suits.items(), key=lambda x: x[1])):
         if num > 0 and best_suit is None:
             best_suit = suit
@@ -38,6 +50,11 @@ def choose_min_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card,
 
         if num > 0 and second_suit is None:
             second_suit = suit
+
+            continue
+
+        if num > 0 and third_suit is None:
+            third_suit = suit
 
             break
 
@@ -49,10 +66,10 @@ def choose_min_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card,
         if not is_pig_card_taken and second_suit is not None:
             best_suit, second_suit = second_suit, None
 
-    #print("best_suit, second_suit = ({}, {})".format(best_suit, second_suit))
+    #print("best_suit, second_suit, third_suit = ({}, {}, {})".format(best_suit, second_suit, third_suit))
 
     played_card = None
-    for suit in [best_suit, second_suit]:
+    for suit in [best_suit, second_suit, third_suit]:
         if void_info[suit]:
             bit_mask = NUM_TO_INDEX["2"]
             while bit_mask <= NUM_TO_INDEX["A"]:
@@ -134,32 +151,36 @@ def expert_choose(position, cards, trick, is_hearts_broken=False, is_pig_card_ta
         rank = cards.get(leading_suit, 0)
 
         if rank > 0:
-            """
             if leading_suit == SUIT_TO_INDEX["S"]:
                 if own_pig_card:
                     if max_rank > NUM_TO_INDEX["Q"]:
-                        return [leading_suit, NUM_TO_INDEX["Q"]]
+                        safe_play = [leading_suit, NUM_TO_INDEX["Q"]]
                     else:
-                        return choose_max_card(cards, suits=suits[:1], max_rank=NUM_TO_INDEX["J"])[0]
-                elif not is_pig_card_taken:
+                        safe_play = choose_max_card(cards, suits=[leading_suit], except_rank=NUM_TO_INDEX["Q"])
+                else:
                     if void_info_for_suits[leading_suit]:
-
+                        safe_play = choose_min_card(cards, suits=[leading_suit])
                     else:
-                        return choose_max_card(cards, suits=suits[:1], max_rank=NUM_TO_INDEX["J"])[0]
-            """
-
-            bit_mask = NUM_TO_INDEX["A"]
-            while bit_mask > 0:
-                if rank & bit_mask:
-                    if bit_mask < max_rank:
-                        if safe_play is None: safe_play = [leading_suit, bit_mask]
-                    else:
-                        if eaten_play is None: eaten_play = [leading_suit, bit_mask]
-
-                bit_mask >>= 1
+                        safe_play = choose_max_card(cards, suits=[leading_suit], max_rank=NUM_TO_INDEX["J"])
+            elif leading_suit == SUIT_TO_INDEX["C"]:
+                if void_info_for_suits[leading_suit]:
+                    safe_play = choose_min_card(cards, suits=[leading_suit])
+                else:
+                    safe_play = choose_max_card(cards, suits=[leading_suit], max_rank=(NUM_TO_INDEX["A"] if is_double_taken else NUM_TO_INDEX["T"]))
 
             if safe_play is None:
-                safe_play = eaten_play
+                bit_mask = NUM_TO_INDEX["A"]
+                while bit_mask > 0:
+                    if rank & bit_mask:
+                        if bit_mask < max_rank:
+                            if safe_play is None: safe_play = [leading_suit, bit_mask]
+                        else:
+                            if eaten_play is None: eaten_play = [leading_suit, bit_mask]
+
+                    bit_mask >>= 1
+
+                if safe_play is None:
+                    safe_play = eaten_play
         else:
             if own_pig_card:
                 safe_play = [SUIT_TO_INDEX["S"], NUM_TO_INDEX["Q"]]
@@ -171,13 +192,8 @@ def expert_choose(position, cards, trick, is_hearts_broken=False, is_pig_card_ta
 
                     if safe_play is not None:
                         break
-
-                #for suit, rank in sorted(candicated_cards, key=lambda x: -additional_score(x[0], x[1])):
-                #    safe_play = [suit, rank]
-
-                #    break
     else:
         suits = ALL_SUITS
-        safe_play = choose_min_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card, game_info, void_info_for_suits)
+        safe_play = choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card, game_info, void_info_for_suits)
 
     return candicated_cards, safe_play
