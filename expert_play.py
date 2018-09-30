@@ -61,15 +61,18 @@ def choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card
         if not is_pig_card_taken and second_suit is not None:
             best_suit, second_suit = second_suit, third_suit
 
-    played_card = None
+    played_card, candicated_cards = None, []
     for suit in [best_suit, second_suit, third_suit]:
         if void_info[suit]:
             bit_mask = NUM_TO_INDEX["2"]
             while bit_mask <= NUM_TO_INDEX["A"]:
-                if cards[suit] & bit_mask and bit_mask < game_info[suit][1]:
-                    played_card = [suit, bit_mask]
+                if cards[suit] & bit_mask:
+                    if bit_mask < game_info[suit][1]:
+                        played_card = [suit, bit_mask]
 
-                    break
+                        break
+                    else:
+                        candicated_cards.append([suit, bit_mask])
 
                 bit_mask <<= 1
         else:
@@ -81,6 +84,9 @@ def choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card
                     break
 
                 bit_mask >>= 1
+
+    if played_card is None:
+        played_card = candicated_cards[0]
 
     return played_card
 

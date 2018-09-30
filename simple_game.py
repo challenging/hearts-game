@@ -259,7 +259,7 @@ class SimpleGame(object):
                 #if sum(valid_cards.values()) == 0:
                 #    print(1111, current_round_idx, player_idx, "--->", self.hand_cards, valid_cards)
 
-                _, played_card = selection_func(player_idx, 
+                _, played_card = selection_func[player_idx](player_idx, 
                                                 valid_cards, 
                                                 current_trick[1], 
                                                 self.is_hearts_broken, 
@@ -305,7 +305,7 @@ class SimpleGame(object):
                 #if sum(valid_cards.values()) == 0:
                 #    print(2222, round_idx, current_round_idx, start_pos, "--->", self.hand_cards[start_pos], valid_cards)
 
-                ccards, played_card = selection_func(start_pos, 
+                ccards, played_card = selection_func[start_pos](start_pos, 
                                                      valid_cards, 
                                                      self.tricks[-1][1], 
                                                      self.is_hearts_broken, 
@@ -461,7 +461,9 @@ def simulation(current_round_idx, position, hand_cards, tricks,
             for player_idx, cards in enumerate(hand_cards):
                 print("player-{}'s hand_cards is {}".format(player_idx, sm.translate_hand_cards(hand_cards[player_idx])))
 
-        sm.run(current_round_idx, played_card=played_card, selection_func=selection_func)
+        ff = dict([[player_idx, np.random.choice(selection_func, p=[0.5, 0.4, 0.1])] for player_idx in range(4)])
+
+        sm.run(current_round_idx, played_card=played_card, selection_func=ff)
         scores, num_of_shoot_the_moon = sm.score()
 
         if IS_DEBUG:

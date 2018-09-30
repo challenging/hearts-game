@@ -43,7 +43,7 @@ class NewSimplePlayer(MonteCarloPlayer5):
 
         must_have = self.transfer_cards
 
-        selection_func = expert_choose
+        selection_func = greedy_choose
         self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}", self.proactive_mode, selection_func, self.num_of_cpu)
 
         played_card = run_one_step(game.trick_nr+1, 
