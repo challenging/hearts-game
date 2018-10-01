@@ -67,7 +67,7 @@ def choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, own_pig_card
             bit_mask = NUM_TO_INDEX["2"]
             while bit_mask <= NUM_TO_INDEX["A"]:
                 if cards[suit] & bit_mask:
-                    if bit_mask < game_info[suit][1]:
+                    if bit_mask < (game_info[suit][1] >> 3):
                         played_card = [suit, bit_mask]
 
                         break

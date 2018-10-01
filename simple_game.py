@@ -461,7 +461,11 @@ def simulation(current_round_idx, position, hand_cards, tricks,
             for player_idx, cards in enumerate(hand_cards):
                 print("player-{}'s hand_cards is {}".format(player_idx, sm.translate_hand_cards(hand_cards[player_idx])))
 
-        ff = dict([[player_idx, np.random.choice(selection_func, p=[0.5, 0.4, 0.1])] for player_idx in range(4)])
+        if len(selection_func) == 1:
+            ff = dict([[player_idx, np.random.choice(selection_func)] for player_idx in range(4)])
+        else:
+            ff = dict([[player_idx, np.random.choice(selection_func, p=[0.7, 0.3])] for player_idx in range(4)])
+
 
         sm.run(current_round_idx, played_card=played_card, selection_func=ff)
         scores, num_of_shoot_the_moon = sm.score()
@@ -642,7 +646,7 @@ if __name__ == "__main__":
 
     pool = mp.Pool(processes=1)
 
-    selection_func = expert_choose
+    selection_func = [expert_choose]
     mul_result = [pool.apply_async(run_simulation, args=(seed,
                                                          current_round_idx, 
                                                          position, 

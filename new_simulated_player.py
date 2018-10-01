@@ -58,7 +58,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
 
         played_card = None
 
-        selection_func = [expert_choose, greedy_choose, random_choose] #if self.proactive_mode else greedy_choose
+        selection_func = [expert_choose] #if self.proactive_mode else greedy_choose
         self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}", self.proactive_mode, selection_func, self.num_of_cpu)
 
         pool = mp.Pool(processes=self.num_of_cpu)
