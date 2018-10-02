@@ -26,6 +26,8 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
     def __init__(self, num_of_cpu=COUNT_CPU, verbose=False):
         super(MonteCarloPlayer7, self).__init__(verbose=verbose)
 
+        self.num_of_cpu = 1
+
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
         stime = time.time()
@@ -59,7 +61,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
 
         played_card = None
 
-        selection_func = [expert_choose] #if self.proactive_mode else greedy_choose
+        selection_func = [expert_choose, greedy_choose] #if self.proactive_mode else greedy_choose
         #shuffle(selection_func)
         self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}", self.proactive_mode, selection_func, self.num_of_cpu)
 
@@ -77,6 +79,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
                                                              selection_func, 
                                                              must_have, 
                                                              void_info, 
+                                                             None,
                                                              TIMEOUT_SECOND-0.02)) for seed in range(self.num_of_cpu)]
 
         partial_results = [res.get() for res in mul_result]

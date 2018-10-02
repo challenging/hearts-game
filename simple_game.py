@@ -445,7 +445,8 @@ class SimpleGame(object):
 
 
 def simulation(current_round_idx, position, hand_cards, tricks,
-               void_info={}, score_cards=None, is_hearts_borken=False, expose_hearts_ace=False, played_card=None, selection_func=None):
+               void_info={}, score_cards=None, is_hearts_borken=False, expose_hearts_ace=False, played_card=None, selection_func=None,
+               proactive_mode=None):
 
     sm = None
     try:
@@ -464,11 +465,12 @@ def simulation(current_round_idx, position, hand_cards, tricks,
             for player_idx, cards in enumerate(hand_cards):
                 print("player-{}'s hand_cards is {}".format(player_idx, sm.translate_hand_cards(hand_cards[player_idx])))
 
-        if len(selection_func) == 1:
+        if proactive_mode:
+            ff = dict([[player_idx, random_choose if player_idx == position else np.random.choice(selection_func)] for player_idx in range(4)])
+        elif len(selection_func) == 1:
             ff = dict([[player_idx, np.random.choice(selection_func)] for player_idx in range(4)])
         else:
-            ff = dict([[player_idx, np.random.choice(selection_func, p=[0.5, 0.5])] for player_idx in range(4)])
-
+            ff = dict(zip(range(4),  np.random.choice(selection_func, size=4, p=[0.5, 0.5])))
 
         sm.run(current_round_idx, played_card=played_card, selection_func=ff)
         scores, num_of_shoot_the_moon = sm.score()
@@ -488,7 +490,8 @@ def simulation(current_round_idx, position, hand_cards, tricks,
 
 
 def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
-                   score_cards=None, played_card=None, selection_func=random_choose, must_have={}, void_info={}, simulation_time=0.93):
+                   score_cards=None, played_card=None, selection_func=random_choose, must_have={}, void_info={}, 
+                   proactive_mode=None, simulation_time=0.93):
 
     simulation_time = max(simulation_time, 0.1)
 
@@ -519,7 +522,8 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
                                                           is_hearts_broken, 
                                                           expose_hearts_ace, 
                                                           played_card, 
-                                                          selection_func)
+                                                          selection_func,
+                                                          proactive_mode)
 
         card = tuple(card)
 
@@ -535,9 +539,9 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
             self_score -= other_score/3
         else:
             sum_of_min_scores = [score for player_idx, score in enumerate(scores) if player_idx != position and score < self_score]
-            self_score -= min_score
+            self_score -= np.mean(sum_of_min_scores)
 
-        results[tuple(card)].append([self_score, self_shoot_the_moon])
+        results[card].append([self_score, self_shoot_the_moon])
 
         if time.time()-stime > simulation_time or IS_DEBUG:
             break
@@ -619,21 +623,27 @@ if __name__ == "__main__":
     hand_4 = "JH, TC, QC, JD, TD, 7C, 5D, 4C, 2D, 2S, AC, QH, KD".replace(" ", "")
     """
 
-    #"""
+    """
     init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.ace)]]]
     hand_1 = "TD, 9S, 6H, 7C, 7D, 7S, 6S, 5D, 4S, 3D, QH, KD, JD".replace(" ", "")
     hand_2 = "TC, TH, 8C, 6D, 5C, 5S, 3H, 2H, 2D, QS, KS, AD".replace(" ", "")
     hand_3 = "JS, TS, 9C, 9D, 8D, 5H, 4H, 4D, 3C, 3S, KH, JC".replace(" ", "")
     hand_4 = "KC, QC, QD, 9H, 8H, 7H, 8S, 6C, 4C, 2S, AS, AH, JH".replace(" ", "")
-    #"""
+    """
 
     """
-    init_trick = [[None, []]]
-    hand_1 = "QD, TD, TS, 8C, 8D, 6C, 4H, 3H, 3C, 2S, QS, AC, KC".replace(" ", "")
-    hand_2 = "QH, TH, JC, 9H, 8S, 5H, 6S, 4D, 2H, 3S, KH, KD, JS".replace(" ", "")
-    hand_3 = "TC, JD, 9C, 9S, 7S, 6D, 5C, 5S, 4C, 4S, KS, JH, QC".replace(" ", "")
-    hand_4 = "8H, 9D, 7H, 6H, 7C, 7D, 5D, 3D, 2C, 2D, AS, AH, AD".replace(" ", "")
+    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.five)]]]
+    hand_1 = "9C, 7H, 7C, 7D, 5H, 6D, 5D, 4D, 2D, 2S, AS, AH, KD".replace(" ", "")
+    hand_2 = "JH, TC, QC, TH, TS, 8C, 7S, 4H, 3C, AC, AD, QH".replace(" ", "")
+    hand_3 = "8H, 9D, 9S, 6H, 6C, 3H, 2H, 3D, 3S, QS, JS, 9H".replace(" ", "")
+    hand_4 = "QD, JC, JD, TD, 8D, 8S, 6S, 5S, 4C, 4S, KS, KH, KC".replace(" ", "")
     """
+
+    init_trick = [[None, []]]
+    hand_1 = "JH, TC, 7H, 8C, 6H, 5H, 6C, 3H, 2H, 3S, QS, QC, 9H".replace(" ", "")
+    hand_2 = "TH, JD, 8H, 9S, 8S, 5C, 5S, 4D, 4S, 2S, AS, KC, QD".replace(" ", "")
+    hand_3 = "AH, 9D, 7C, 7D, 6S, 4H, 5D, 4C, 3D, 2D, AD, QH, KD".replace(" ", "")
+    hand_4 = "JC, JS, TD, TS, 9C, 8D, 7S, 6D, 3C, 2C, KS, KH, AC".replace(" ", "")
 
     hand_cards = [[transform(card[0], card[1]) for card in hand_1.split(",")],
                   [transform(card[0], card[1]) for card in hand_2.split(",")],

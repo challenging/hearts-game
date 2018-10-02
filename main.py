@@ -50,14 +50,11 @@ if __name__ == "__main__":
         player = SimplePlayer(verbose=False)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
 
-    setting_cards = None
-    if sys.argv[3].lower() == "small":
-        setting_cards = read_card_games("game/game_0008/game_*.pkl")
-    else:
-        setting_cards = read_card_games("game/game_0032/game_*.pkl")
+    #setting_cards = None
+    #if sys.argv[3].lower() == "small":
+    #    setting_cards = read_card_games("game/game_0008/game_*.pkl")
+    #else:
+    #    setting_cards = read_card_games("game/game_0032/game_*.pkl")
 
-    shuffle(setting_cards)
+    setting_cards = get_setting_cards()
     evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=False)
-
-    #setting_cards = get_setting_cards()
-    #evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=False)

@@ -108,7 +108,11 @@ def transform(rank, suit):
 
 def get_setting_cards():
     # shoot the moon
-    card_string = [["TS,KH,5H,AC,KC,9C,4C,3C,2C,8D,7D,4D,2D",
+    card_string = [["QD,JC,JD,TD,7C,7D,5H,5C,5D,3C,KS,QC,9H",
+                    "9D,9S,8C,8D,7S,6D,4C,3S,2C,2D,2S,3D,AD",
+                    "JS,TS,9C,8S,6C,6S,4H,5S,4D,4S,QH,KD,TC",
+                    "QS,AS,AH,KH,JH,TH,7H,6H,3H,2H,AC,KC,8H"],
+                   ["TS,KH,5H,AC,KC,9C,4C,3C,2C,8D,7D,4D,2D",
                     "KS,5S,4S,9H,4H,2H,QC,TC,5C,AD,TD,9D,6D",
                     "JS,9S,8S,6S,3S,2S,7H,3H,8C,7C,6C,5D,3D",
                     "AS,QS,7S,AH,QH,JH,TH,8H,6H,JC,KD,QD,JD"],
@@ -138,20 +142,23 @@ def transform_cards(card_strings):
 
     separator = ','
     for card_string in card_strings:
+        print(card_string)
         cards = []
         for card_s in card_string:
             t = []
             for card in card_s.split(separator):
                 card = card.strip()
 
-                rank = "".join(card[:-1])
-                suit = card[-1]
+                rank = card[0]#"".join(card[:-1])
+                suit = card[1]
 
                 t.append(transform(rank, suit))
 
             cards.append(t)
 
         cardss.append(cards)
+
+        break
 
     return cardss
 
@@ -223,7 +230,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                                 game.expose_heart_ace, num_of_shooting_moon[player_idx], stats.nobs, stats.mean, stats.variance**0.5, stats.minmax))
 
                     game.reset()
-                    #sys.exit(0)
+                    sys.exit(0)
 
     stats = []
     for player_idx, scores in enumerate(final_scores):
