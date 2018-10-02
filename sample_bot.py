@@ -93,16 +93,14 @@ class PokerBot(object):
         if self.verbose:
             global OUT_FILE
 
-            if OUT_FILE is None:
-                if not os.path.exists("/log"):
-                    os.makedirs("/log")
-
-                OUT_FILE = open("/log/bot.log", "a")
-
             message = message.format(*formatargs)
+            if not os.path.exists("/log"):
+                print(message)
+            else:
+                if OUT_FILE is None:
+                    OUT_FILE = open("/log/bot.log", "a")
 
-            print(message)
-            OUT_FILE.write("{}\n".format(message))
+                OUT_FILE.write("{}\n".format(message))
 
 
     def receive_cards(self,data):

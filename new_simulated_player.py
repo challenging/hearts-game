@@ -4,6 +4,7 @@ import time
 
 import multiprocessing as mp
 
+from random import shuffle
 from scipy.stats import describe
 from collections import defaultdict
 
@@ -59,6 +60,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         played_card = None
 
         selection_func = [expert_choose] #if self.proactive_mode else greedy_choose
+        #shuffle(selection_func)
         self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}", self.proactive_mode, selection_func, self.num_of_cpu)
 
         pool = mp.Pool(processes=self.num_of_cpu)

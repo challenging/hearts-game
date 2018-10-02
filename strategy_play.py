@@ -44,7 +44,7 @@ def choose_min_card(cards, suits, is_pig_card_taken, own_pig_card):
         bit_mask <<= 1
 
 
-def random_choose(position, cards, trick, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False, players_with_point=set(), game_info=None, void_info={}):
+def random_choose(position, cards, trick, own_pig_card, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False, players_with_point=set(), game_info=None, void_info={}):
     candicated_cards = []
 
     for suit, ranks in cards.items():
@@ -58,7 +58,7 @@ def random_choose(position, cards, trick, is_hearts_broken=False, is_pig_card_ta
     return candicated_cards, candicated_cards[np.random.choice(len(candicated_cards))]
 
 
-def greedy_choose(position, cards, trick, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False, players_with_point=set(), game_info=None, void_info={}):
+def greedy_choose(position, cards, trick, own_pig_card, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False, players_with_point=set(), game_info=None, void_info={}):
     own_pig_card = cards.get(SUIT_TO_INDEX["S"], 0) & NUM_TO_INDEX["Q"]
 
     safe_play, candicated_cards = None, []
