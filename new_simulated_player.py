@@ -44,13 +44,9 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
             if len(ps) >= 3:
                 break
 
-            if cards[0].suit in [Suit.clubs, Suit.diamonds]:
+            if cards[0].suit in [Suit.clubs, Suit.diamonds, Suit.hearts]:
                 for card in sorted(cards, key=lambda x: -x.rank.value):
                     ps.append(card)
-            elif cards[0].suit == Suit.hearts:
-                for card in cards:
-                    if card.rank >= Rank.jack:
-                        ps.append(card)
             else:
                 for card in cards:
                     if card.rank >= Rank.queen:

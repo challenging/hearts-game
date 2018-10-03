@@ -16,7 +16,7 @@ from player import StupidPlayer, SimplePlayer, MinCardPlayer, MaxCardPlayer
 
 
 TIMEOUT_SECOND = 0.935
-COUNT_CPU = mp.cpu_count()
+COUNT_CPU = 4#mp.cpu_count()
 
 
 class MonteCarloPlayer(SimplePlayer):
