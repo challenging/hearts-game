@@ -4,11 +4,11 @@ import time
 
 import multiprocessing as mp
 
+from functools import cmp_to_key
 from random import shuffle
-from scipy.stats import describe
 from collections import defaultdict
 
-from card import Deck
+from card import Deck, Suit, Rank
 from card import card_to_bitmask
 
 from simulated_player import TIMEOUT_SECOND, COUNT_CPU
@@ -19,14 +19,40 @@ from strategy_play import random_choose, greedy_choose
 from expert_play import expert_choose
 
 
-TIMEOUT_SECOND = 0.91
+TIMEOUT_SECOND = 0.90
+
+
+def sorted_suits(xs, ys):
+    if len(xs) == len(ys):
+        return xs[0].suit.value - ys[0].suit.value
+    else:
+        return len(xs) - len(ys)
 
 
 class MonteCarloPlayer7(MonteCarloPlayer5):
     def __init__(self, num_of_cpu=COUNT_CPU, verbose=False):
         super(MonteCarloPlayer7, self).__init__(verbose=verbose)
 
-        self.num_of_cpu = 1
+
+    def pass_cards(self, hand, round_idx):
+        num_of_suits = defaultdict(list)
+        for card in hand:
+            num_of_suits[card.suit].append(card)
+
+        ps = []
+        for suit, cards in sorted(num_of_suits.items(), key=lambda x: len(x[1])):
+            if len(ps) >= 3:
+                break
+
+            if cards[0].suit in [Suit.clubs, Suit.diamonds, Suit.hearts]:
+                for card in sorted(cards, key=lambda x: -x.rank.value):
+                    ps.append(card)
+            else:
+                for card in cards:
+                    if card.rank >= Rank.queen:
+                        ps.append(card)
+
+        return ps[:3]
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
@@ -61,7 +87,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
 
         played_card = None
 
-        selection_func = [expert_choose, greedy_choose] #if self.proactive_mode else greedy_choose
+        selection_func = [expert_choose, greedy_choose]#if self.proactive_mode else greedy_choose
         #shuffle(selection_func)
         self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}", self.proactive_mode, selection_func, self.num_of_cpu)
 

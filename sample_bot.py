@@ -377,8 +377,7 @@ class PokerSocket(object):
            self.ws.close()
 
     def doListen(self):
-        #try:
-        if True:
+        try:
             self.ws = create_connection(self.connect_url)
             self.ws.send(json.dumps({
                 "eventName": "join",
@@ -398,9 +397,9 @@ class PokerSocket(object):
                 system_log.show_message(data)
                 system_log.save_logs(data)
                 self.takeAction(event_name, data)
-        #except Exception as e:
-        #    system_log.show_message(e)
-        #    self.doListen()
+        except Exception as e:
+            system_log.show_message(e)
+            self.doListen()
 
 class LowPlayBot(PokerBot):
 

@@ -479,14 +479,13 @@ def simulation(current_round_idx, position, hand_cards, tricks,
             sm.print_tricks(scores)
             print()
 
+        return sm.played_card, scores, sm.score_cards, num_of_shoot_the_moon
     except:
         for player_idx, cards in enumerate(hand_cards):
             print("player-{}'s hand_cards is {}".format(player_idx, sm.translate_hand_cards(hand_cards[player_idx])))
         print()
 
-        raise
-
-    return sm.played_card, scores, sm.score_cards, num_of_shoot_the_moon
+        return None, None, None, None
 
 
 def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
@@ -524,6 +523,9 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
                                                           played_card, 
                                                           selection_func,
                                                           proactive_mode)
+
+        if card is None:
+            continue
 
         card = tuple(card)
 
