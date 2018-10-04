@@ -121,7 +121,7 @@ class Game(object):
         for player_idx in range(4):
             pass_cards[player_idx] = self.players[player_idx].pass_cards(self._player_hands[player_idx], round_idx)
 
-        if round_idx%4 == 1:
+        if round_idx%4 == 0:
             for player_idx, cards in enumerate(pass_cards):
                 next_idx = (player_idx + 1) % 4
 
@@ -133,7 +133,7 @@ class Game(object):
                     self.players[next_idx].freeze_pass_card(card)
 
                 self.say("Player {} gives Player {} {} cards", player_idx, next_idx, cards)
-        elif round_idx%4 == 2:
+        elif round_idx%4 == 1:
             for player_idx, cards in enumerate(pass_cards):
                 next_idx = (player_idx + 3) % 4
 
@@ -145,7 +145,7 @@ class Game(object):
                     self.players[next_idx].freeze_pass_card(card)
 
                 self.say("Player {} gives Player {} {} cards", player_idx, next_idx, cards)
-        elif round_idx%4 == 3:
+        elif round_idx%4 == 2:
             for player_idx, cards in enumerate(pass_cards):
                 next_idx = (player_idx + 2) % 4
 

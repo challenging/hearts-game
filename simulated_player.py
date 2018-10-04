@@ -7,6 +7,7 @@ import time
 import numpy as np
 import multiprocessing as mp
 
+from functools import cmp_to_key
 from scipy.stats import describe
 from collections import defaultdict
 from random import shuffle, choice
@@ -48,14 +49,13 @@ class MonteCarloPlayer(SimplePlayer):
                 played_card = card
 
             stats = describe(winning_score[card])
-            self.say("{} {}, simulation: {} round --> valid_cards: {}, simulate {} card --> average_score {:.3f} --> {:.3f}, (mean={:.2f}, std={:.2}, minmax={})",
+            self.say("{} {}, simulation: {} round --> valid_cards: {}, simulate {} card --> average_score {:.3f}, (mean={:.2f}, std={:.2}, minmax={})",
                 game.trick_nr,
                 type(self).__name__,
                 len(winning_score[card]),
                 valid_cards,
                 card,
                 np.mean(winning_score[card]),
-                score,
                 stats.mean,
                 stats.variance**0.5,
                 stats.minmax)
@@ -322,11 +322,50 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
 
 
 
+def sorted_suits(xs, ys):
+    if len(xs[1]) == len(ys[1]):
+        if ys[0] == Suit.spades:
+            return 5 - xs[0].value
+        else:
+           return ys[0].value - xs[0].value
+    else:
+        return len(xs[1]) - len(ys[1])
+
 class MonteCarloPlayer6(MonteCarloPlayer5):
     def __init__(self, verbose=False):
         super(MonteCarloPlayer6, self).__init__(verbose=verbose)
 
 
+    def pass_cards(self, hand, round_idx):
+        ps = []
+
+        num_of_suits = defaultdict(list)
+        for card in hand:
+            num_of_suits[card.suit].append(card)
+
+        for card in num_of_suits.get(Suit.spades, []):
+            if card.rank >= Rank.queen:
+                ps.append(card)
+
+
+        for suit, cards in sorted(num_of_suits.items(), key=cmp_to_key(sorted_suits)):
+            if len(ps) >= 3:
+                break
+
+            if suit == Suit.spades:
+                continue
+
+            if cards[0].suit in [Suit.clubs, Suit.diamonds]:
+                for card in sorted(cards, key=lambda x: -x.rank.value):
+                    ps.append(card)
+            elif cards[0].suit == Suit.hearts:
+                for card in sorted(cards, key=lambda x: -x.rank.value):
+                    if card.rank >= Rank.jack:
+                        ps.append(card)
+
+        return ps[:3]
+
+    """
     def evaluate_proactive_mode(self, hands):
         self.say("re-evaluate the hands is suitable for the mode of shooting_the_moon, self.proactive_mode={}", self.proactive_mode)
         super(MonteCarloPlayer6, self).set_proactive_mode(hands, 3)
@@ -373,3 +412,4 @@ class MonteCarloPlayer6(MonteCarloPlayer5):
 
 
         return super(MonteCarloPlayer6, self).select_card(game, valid_cards, winning_score)
+    """

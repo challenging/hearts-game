@@ -174,7 +174,11 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
             for round_idx in range(0, 4):
                 cards[0], cards[1], cards[2], cards[3] = cards[round_idx%4], cards[(round_idx+1)%4], cards[(round_idx+2)%4], cards[(round_idx+3)%4]
 
-                for passing_direction in range(0 if is_rotating else 3, 4):
+                for passing_direction in range(0, 4 if is_rotating else 1):
+                    game = Game(players, verbose=True)
+
+                    game._player_hands = copy.deepcopy(cards)
+
                     if passing_direction == 0:
                         print("pass cards to left-side")
                     elif passing_direction == 1:
@@ -188,9 +192,6 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                     for player_idx in range(4):
                         before_info.append(cards[player_idx])
 
-                    game = Game(players, verbose=True)
-
-                    game._player_hands = copy.deepcopy(cards)
                     game.pass_cards(passing_direction)
 
                     after_info = []
@@ -230,7 +231,6 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                                 game.expose_heart_ace, num_of_shooting_moon[player_idx], stats.nobs, stats.mean, stats.variance**0.5, stats.minmax))
 
                     game.reset()
-                    #sys.exit(0)
 
     stats = []
     for player_idx, scores in enumerate(final_scores):

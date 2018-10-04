@@ -2,13 +2,14 @@ import sys
 
 import time
 
+import numpy as np
 import multiprocessing as mp
 
 from functools import cmp_to_key
 from random import shuffle
 from collections import defaultdict
 
-from card import Deck, Suit, Rank
+from card import Deck, Suit, Rank, Card
 from card import card_to_bitmask
 
 from simulated_player import TIMEOUT_SECOND, COUNT_CPU
@@ -23,10 +24,18 @@ TIMEOUT_SECOND = 0.90
 
 
 def sorted_suits(xs, ys):
-    if len(xs) == len(ys):
-        return xs[0].suit.value - ys[0].suit.value
+    if len(xs[1]) == len(ys[1]):
+        if ys[0] == Suit.spades:
+            return 5 - xs[0].value
+        else:
+           return ys[0].value - xs[0].value
     else:
-        return len(xs) - len(ys)
+        if ys[0] == Suit.spades:
+            return sys.maxsize
+        elif ys[0] == Suit.hearts:
+            return sys.maxsize-1
+        else:
+            return len(xs[1]) - len(ys[1])
 
 
 class MonteCarloPlayer7(MonteCarloPlayer5):
@@ -34,25 +43,106 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         super(MonteCarloPlayer7, self).__init__(verbose=verbose)
 
 
-    def pass_cards(self, hand, round_idx):
-        num_of_suits = defaultdict(list)
+    def set_proactive_mode(self, hand, round_idx):
+        hand.sort(key=lambda x: self.undesirability(x), reverse=True)
+
+        hand_cards = {Suit.spades: [], Suit.hearts: [], Suit.diamonds: [], Suit.clubs: []}
         for card in hand:
-            num_of_suits[card.suit].append(card)
+            hand_cards[card.suit].append(max(card.rank.value-10, 0))
 
-        ps = []
-        for suit, cards in sorted(num_of_suits.items(), key=lambda x: len(x[1])):
-            if len(ps) >= 3:
-                break
+        pass_low_card = False
 
-            if cards[0].suit in [Suit.clubs, Suit.diamonds, Suit.hearts]:
-                for card in sorted(cards, key=lambda x: -x.rank.value):
-                    ps.append(card)
+        point_of_suit = 0
+        for suit, cards in hand_cards.items():
+            point_of_suit = np.sum(cards)
+            if suit == Suit.hearts:
+                if (point_of_suit > 7 and len(cards) > 5):
+                    self.proactive_mode.add(suit)
             else:
-                for card in cards:
-                    if card.rank >= Rank.queen:
-                        ps.append(card)
+                if (point_of_suit > 6 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 3 and np.sum(hand_cards[Suit.hearts]) > 4):
+                    self.proactive_mode.add(suit)
+                elif (point_of_suit > 5 and len(cards) > 5) and (len(hand_cards[Suit.hearts]) > 3 and np.sum(hand_cards[Suit.hearts]) > 4):
+                    self.proactive_mode.add(suit)
+                elif (point_of_suit > 4 and len(cards) > 6) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 4):
+                    self.proactive_mode.add(suit)
 
-        return ps[:3]
+        if not self.proactive_mode:
+            points = np.sum([v for vv in hand_cards.values() for v in vv])
+
+            if points > 20 and np.sum(hand_cards[Suit.hearts]) > 3:
+                pass_low_card = True
+
+        return hand_cards, pass_low_card
+
+
+    def pass_cards(self, hand, round_idx):
+        hand_cards, pass_low_card = self.set_proactive_mode(hand, round_idx)
+
+        pass_cards, keeping_cards = [], []
+        if self.proactive_mode:
+            for card in hand:
+                if card.suit not in self.proactive_mode:
+                    if card.suit != Suit.hearts:
+                        pass_cards.append(card)
+                    else:
+                        if card.rank < Rank.jack:
+                            pass_cards.append(card)
+
+            pass_cards.sort(key=lambda x: self.undesirability(x), reverse=False)
+
+            if len(pass_cards) < 3:
+                hand.sort(key=lambda x: self.undesirability(x), reverse=False)
+
+                pass_cards.extend(hand[:3-len(pass_cards)])
+
+            self.say("{} ----> proactive_mode: {}, pass cards are {}, hand_cards are {}",\
+                 type(self).__name__, self.proactive_mode, pass_cards[:3], hand)
+        elif pass_low_card:
+            hand.sort(key=lambda x: self.undesirability(x), reverse=False)
+            pass_cards = hand
+
+            self.say("{} ----> pass low cards are {} from {}({})", type(self).__name__, pass_cards[:3], hand, hand_cards)
+        else:
+            num_of_suits = defaultdict(list)
+            for card in hand:
+                num_of_suits[card.suit].append(card)
+
+            if len(num_of_suits.get(Suit.spades, [])) <= 4:
+                for card in num_of_suits.get(Suit.spades, []):
+                    if card.rank >= Rank.queen:
+                        pass_cards.append(card)
+
+            for suit, cards in sorted(num_of_suits.items(), key=cmp_to_key(sorted_suits)):
+                if len(pass_cards) >= 3:
+                    break
+
+                if len(cards) > 3:
+                    continue
+
+                if cards[0].suit in [Suit.clubs, Suit.diamonds]:
+                    if len(cards) == 2 and len(pass_cards) == 2:
+                        continue
+
+                    for card in sorted(cards, key=lambda x: -x.rank.value):
+                        pass_cards.append(card)
+                elif cards[0].suit == Suit.spades:
+                    for card in cards:
+                        if card.rank >= Rank.queen and card not in pass_cards:
+                            pass_cards.append(card)
+                elif cards[0].suit == Suit.hearts:
+                    for card in cards:
+                        if card.rank >= Rank.jack:
+                            pass_cards.append(card)
+
+            if len(pass_cards) < 3:
+                hand.sort(key=lambda x: self.undesirability(x), reverse=True)
+                pass_cards.extend([card for card in hand if card not in pass_cards])
+
+            self.say("{} ----> pass short cards are {} from {}({})", type(self).__name__, pass_cards[:3], hand, hand_cards)
+
+        self.say("proactive mode: {}, keeping_cards are {}, pass card is {}", self.proactive_mode, keeping_cards, pass_cards[:3])
+
+        return pass_cards[:3]
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):

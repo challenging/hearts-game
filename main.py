@@ -9,7 +9,7 @@ from rules import get_setting_cards, evaluate_players
 
 from player import StupidPlayer, SimplePlayer
 #from dragon_rider_player import DragonRiderPlayer
-from simulated_player import MonteCarloPlayer, MonteCarloPlayer4, MonteCarloPlayer5
+from simulated_player import MonteCarloPlayer, MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
 from new_simulated_player import MonteCarloPlayer7
 from new_simple_player import NewSimplePlayer
 
@@ -30,6 +30,9 @@ if __name__ == "__main__":
         player = MonteCarloPlayer7(verbose=True)
         debug_player = MonteCarloPlayer5(verbose=False)
         other_players = [debug_player] + [MonteCarloPlayer5(verbose=False) for player_idx in range(2)]
+    elif player_ai == "mc6":
+        player = MonteCarloPlayer6(verbose=True)
+        other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
     elif player_ai == "mc5":
         player = MonteCarloPlayer5(verbose=True)
         other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
