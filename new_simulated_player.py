@@ -107,38 +107,46 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
             for card in hand:
                 num_of_suits[card.suit].append(card)
 
-            if len(num_of_suits.get(Suit.spades, [])) <= 4:
+            if len(num_of_suits.get(Suit.spades, [])) < 5:
                 for card in num_of_suits.get(Suit.spades, []):
                     if card.rank >= Rank.queen:
                         pass_cards.append(card)
 
-            for suit, cards in sorted(num_of_suits.items(), key=cmp_to_key(sorted_suits)):
-                if len(pass_cards) >= 3:
-                    break
+            if len(num_of_suits.get(Suit.hearts, [])) < 5 or sum([max(0, card.rank.value-10) for card in num_of_suits.get(Suit.hearts, [])]) > 5:
+                for card in num_of_suits.get(Suit.hearts, []):
+                    if card.rank >= Rank.queen:
+                        pass_cards.append(card)
 
-                if len(cards) > 3:
-                    continue
+            if len(pass_cards) < 2:
+                for suit, cards in sorted(num_of_suits.items(), key=cmp_to_key(sorted_suits)):
+                    if len(pass_cards) >= 3:
+                        break
 
-                if cards[0].suit in [Suit.clubs, Suit.diamonds]:
-                    if len(cards) == 2 and len(pass_cards) == 2:
+                    if len(cards) > 2:
                         continue
 
-                    for card in sorted(cards, key=lambda x: -x.rank.value):
-                        pass_cards.append(card)
-                elif cards[0].suit == Suit.spades:
-                    for card in cards:
-                        if card.rank >= Rank.queen and card not in pass_cards:
+                    if cards[0].suit in [Suit.clubs, Suit.diamonds]:
+                        if len(cards) == 2 and len(pass_cards) == 2:
+                            continue
+
+                        for card in sorted(cards, key=lambda x: -x.rank.value):
                             pass_cards.append(card)
-                elif cards[0].suit == Suit.hearts:
-                    for card in cards:
-                        if card.rank >= Rank.jack:
-                            pass_cards.append(card)
+                    elif cards[0].suit == Suit.spades:
+                        for card in cards:
+                            if card.rank >= Rank.queen and card not in pass_cards:
+                                pass_cards.append(card)
+                    elif cards[0].suit == Suit.hearts:
+                        for card in cards:
+                            if card.rank >= Rank.jack:
+                                pass_cards.append(card)
 
             if len(pass_cards) < 3:
                 hand.sort(key=lambda x: self.undesirability(x), reverse=True)
                 pass_cards.extend([card for card in hand if card not in pass_cards])
 
-            self.say("{} ----> pass short cards are {} from {}({})", type(self).__name__, pass_cards[:3], hand, hand_cards)
+                self.say("{} ----> pass undesirability cards are {} from {}({})", type(self).__name__, pass_cards[:3], hand, hand_cards)
+            else:
+                self.say("{} ----> pass short cards are {} from {}({})", type(self).__name__, pass_cards[:3], hand, hand_cards)
 
         self.say("proactive mode: {}, keeping_cards are {}, pass card is {}", self.proactive_mode, keeping_cards, pass_cards[:3])
 
@@ -178,8 +186,8 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         played_card = None
 
         selection_func = [expert_choose, greedy_choose]#if self.proactive_mode else greedy_choose
-        #shuffle(selection_func)
-        self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}", self.proactive_mode, selection_func, self.num_of_cpu)
+        self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}", \
+            self.proactive_mode, selection_func, self.num_of_cpu)
 
         pool = mp.Pool(processes=self.num_of_cpu)
         mul_result = [pool.apply_async(run_simulation, args=(seed,

@@ -529,6 +529,7 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
 
         card = tuple(card)
 
+        """
         min_score, other_score = None, 0
         for idx, score in enumerate(sorted(scores)):
             if idx == 0:
@@ -540,10 +541,29 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
         if self_score == min_score:
             self_score -= other_score/3
         else:
-            sum_of_min_scores = [score for player_idx, score in enumerate(scores) if player_idx != position and score < self_score]
+            sum_of_min_scores = [score for player_idx, score in enumerate(scores) if player_idx != position]
             self_score -= np.mean(sum_of_min_scores)
 
-        results[card].append([self_score, self_shoot_the_moon])
+        results[card].append([self_score, self_shoot_the_moon]) 
+        """
+
+        rating = [0, 0, 0, 0]
+
+        info = zip(range(4), scores)
+        pre_score, pre_rating, sum_score = None, None, np.array(scores)/np.sum(scores)
+        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
+            tmp_rating = rating_idx
+            if pre_score is not None:
+                if score == pre_score:
+                    tmp_rating = pre_rating
+
+            rating[player_idx] = (4-tmp_rating)/4 + sum_score[player_idx]
+
+            pre_score = score
+            pre_rating = tmp_rating
+
+        #print(card, scores, rating, sum_score)
+        results[card].append([rating[position], self_shoot_the_moon])
 
         if time.time()-stime > simulation_time or IS_DEBUG:
             break
@@ -587,7 +607,7 @@ def run_one_step(current_round_idx, position, init_trick, hand_cards, is_hearts_
 
     for simulation_card in simulation_cards:
         card = one_step_simulation(current_round_idx, 
-                                   position, 
+                                   osition, 
                                    simulation_card, 
                                    copy.deepcopy(init_trick), 
                                    void_info,
