@@ -59,11 +59,11 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
                 if (point_of_suit > 7 and len(cards) > 5):
                     self.proactive_mode.add(suit)
             else:
-                if (point_of_suit > 6 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 3 and np.sum(hand_cards[Suit.hearts]) > 4):
+                if (point_of_suit > 6 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
-                elif (point_of_suit > 5 and len(cards) > 5) and (len(hand_cards[Suit.hearts]) > 3 and np.sum(hand_cards[Suit.hearts]) > 4):
+                elif (point_of_suit > 5 and len(cards) > 5) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
-                elif (point_of_suit > 4 and len(cards) > 6) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 4):
+                elif (point_of_suit > 4 and len(cards) > 6) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
 
         if not self.proactive_mode:
@@ -117,6 +117,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
                     if card.rank >= Rank.queen:
                         pass_cards.append(card)
 
+
             if len(pass_cards) < 2:
                 for suit, cards in sorted(num_of_suits.items(), key=cmp_to_key(sorted_suits)):
                     if len(pass_cards) >= 3:
@@ -130,15 +131,15 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
                             continue
 
                         for card in sorted(cards, key=lambda x: -x.rank.value):
-                            pass_cards.append(card)
+                            if card not in pass_cards: pass_cards.append(card)
                     elif cards[0].suit == Suit.spades:
                         for card in cards:
                             if card.rank >= Rank.queen and card not in pass_cards:
-                                pass_cards.append(card)
+                                if card not in pass_cards: pass_cards.append(card)
                     elif cards[0].suit == Suit.hearts:
                         for card in cards:
                             if card.rank >= Rank.jack:
-                                pass_cards.append(card)
+                                if card not in pass_cards: pass_cards.append(card)
 
             if len(pass_cards) < 3:
                 hand.sort(key=lambda x: self.undesirability(x), reverse=True)
@@ -185,7 +186,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
 
         played_card = None
 
-        selection_func = [expert_choose, greedy_choose]#if self.proactive_mode else greedy_choose
+        selection_func = [expert_choose, greedy_choose]
         self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}", \
             self.proactive_mode, selection_func, self.num_of_cpu)
 

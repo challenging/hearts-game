@@ -168,7 +168,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
     stime = time.time()
 
-    final_scores, num_of_shooting_moon = [[], [], [], []], [0, 0, 0, 0]
+    final_scores, proactive_moon_scores, shooting_moon_scores = [[], [], [], []], [[], [], [], []], [[], [], [], []]
     for game_idx in range(nr_of_games):
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
             for round_idx in range(0, 4):
@@ -215,20 +215,40 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                     game.play()
                     game.score()
 
-                    for player_idx, score in enumerate(game.player_scores):
-                        final_scores[player_idx].append(score)
-
+                    scores = [0, 0, 0, 0]
                     if game.is_shootmoon:
-                        num_of_shooting_moon[[player_idx for player_idx in range(4) if game.player_scores[player_idx] == 0][0]] += 1
+                        is_proactive_mode = any([True if player.proactive_mode else False for player in game.players])
 
+                        if is_proactive_mode:
+                            for player_idx, score in enumerate(game.player_scores):
+                                proactive_moon_scores[player_idx].append(score)
+
+                                scores[player_idx] = score
+                        else:
+                            for player_idx, score in enumerate(game.player_scores):
+                                shooting_moon_scores[player_idx].append(score)
+
+                                scores[player_idx] = score
+                    else:
+                        for player_idx, score in enumerate(game.player_scores):
+                            final_scores[player_idx].append(score)
+
+                            scores[player_idx] = score
 
                     if verbose:
-                        for player_idx, (player, scores) in enumerate(zip(players, final_scores)):
-                            stats = describe(scores)
+                        for player_idx, player in enumerate(players):
+                            mean_score = np.mean(final_scores[player_idx])
 
-                            print("{:02d}:{}:{} --> {:16s}({}): {:3d} points, expose_hearts_ace={}, n_shooting_mon={:d}, stats: (n={:d}, mean={:.2f}, std={:.2f}, minmax={})".format(\
-                                game_idx+1, round_idx, round_idx*(1 if is_rotating else 4)+passing_direction, type(player).__name__, player_idx, scores[-1], \
-                                game.expose_heart_ace, num_of_shooting_moon[player_idx], stats.nobs, stats.mean, stats.variance**0.5, stats.minmax))
+                            n_proactive_mean_moon_score = sum([1 for score in proactive_moon_scores[player_idx] if score == 0])
+                            proactive_mean_moon_score = np.mean(proactive_moon_scores[player_idx]+final_scores[player_idx])
+
+                            n_mean_moon_score = sum([1 for score in shooting_moon_scores[player_idx] if score == 0])
+                            mean_moon_score = np.mean(shooting_moon_scores[player_idx]+proactive_moon_scores[player_idx]+final_scores[player_idx])
+
+                            print("--> {:16s}({}): {:3d} points, expose_hearts_ace={}, stats: (n={}/{}/{}, mean={:.3f}/{:.3f}/{:.3f})".format(\
+                                type(player).__name__, player_idx, scores[player_idx], \
+                                game.expose_heart_ace, len(final_scores[player_idx]), n_proactive_mean_moon_score, n_mean_moon_score, \
+                                mean_score, proactive_mean_moon_score, mean_moon_score))
 
                     game.reset()
 

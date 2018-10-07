@@ -61,4 +61,5 @@ if __name__ == "__main__":
     else:
         setting_cards = get_setting_cards()
 
+    shuffle(setting_cards)
     evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=False)
