@@ -112,7 +112,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
                     if card.rank >= Rank.queen:
                         pass_cards.append(card)
 
-            if len(num_of_suits.get(Suit.hearts, [])) < 5 or sum([max(0, card.rank.value-10) for card in num_of_suits.get(Suit.hearts, [])]) > 5:
+            if len(num_of_suits.get(Suit.hearts, [])) < 5:
                 for card in num_of_suits.get(Suit.hearts, []):
                     if card.rank >= Rank.queen:
                         pass_cards.append(card)
@@ -188,7 +188,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
 
         played_card = None
 
-        selection_func = [expert_choose, greedy_choose]
+        selection_func = [random_choose]#, [expert_choose, greedy_choose]
         self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}, is_heart_broken={}, expose_heart_ace={}", \
             self.proactive_mode, selection_func, self.num_of_cpu, game.is_heart_broken, game.expose_heart_ace)
 
