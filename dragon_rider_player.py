@@ -9,19 +9,13 @@ import multiprocessing as mp
 
 from card import Suit, Rank, Card, Deck
 
-from simulated_player import MonteCarloPlayer6
+from simple_game import SimpleGame
+from simulated_player import MonteCarloPlayer5
 from player import StupidPlayer
 
 
 TIMEOUT_SECOND = 0.93
 COUNT_CPU = mp.cpu_count()
-
-
-def rollout_policy_fn(board):
-    """a coarse, fast version of policy_fn used in the rollout phase."""
-    # rollout randomly
-    action_probs = np.random.rand(len(board.availables))
-    return zip(board.availables, action_probs)
 
 
 def policy_value_fn(state):
@@ -207,42 +201,25 @@ class MCTS(object):
             state.step()
             winners = state.get_game_winners()
 
-        return state.player_scores/(np.sum(state.player_scores)*-1)
+        #return state.player_scores/(np.sum(state.player_scores)*-1)
 
-        """
+        scores = state.player_scores
         rating = [0, 0, 0, 0]
 
-        info = zip(range(4), state.player_scores)
-        pre_score, pre_rating, max_score = None, None, np.array(state.player_scores)/np.max(state.player_scores)
-        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: x[1])):
+        info = zip(range(4), scores)
+        pre_score, pre_rating, sum_score = None, None, np.array(scores)/np.sum(scores)
+        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
             tmp_rating = rating_idx
             if pre_score is not None:
                 if score == pre_score:
                     tmp_rating = pre_rating
 
-
-            rating[player_idx] = ((4-tmp_rating) + (1-max_score[player_idx]))/5
+            rating[player_idx] = (tmp_rating/4 + (1-sum_score[player_idx]))/2
 
             pre_score = score
             pre_rating = tmp_rating
 
         return rating
-        """
-
-        """
-        min_score, other_score = None, 0
-        for idx, score in enumerate(sorted(state.player_scores)):
-            if idx == 0:
-                min_score = score
-            else:
-                other_score += score
-
-        self_score = state.player_scores[self._self_player_idx]
-        if self_score == min_score:
-            return -(self_score-other_score/3)
-        else:
-            return -(self_score-min_score)
-        """
 
 
     def get_move(self, state):
@@ -299,7 +276,7 @@ class MCTS(object):
         return "MCTS"
 
 
-class DragonRiderPlayer(MonteCarloPlayer6):
+class DragonRiderPlayer(MonteCarloPlayer5):
     """AI player based on MCTS"""
     def __init__(self, self_player_idx, verbose=False, c_puct=2):
         super(DragonRiderPlayer, self).__init__(verbose)

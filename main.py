@@ -8,7 +8,6 @@ from card import Suit, Rank, Card
 from rules import get_setting_cards, evaluate_players
 
 from player import StupidPlayer, SimplePlayer
-#from dragon_rider_player import DragonRiderPlayer
 from simulated_player import MonteCarloPlayer, MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
 from new_simulated_player import MonteCarloPlayer7
 from new_simple_player import NewSimplePlayer

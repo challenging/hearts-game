@@ -529,24 +529,6 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
 
         card = tuple(card)
 
-        """
-        min_score, other_score = None, 0
-        for idx, score in enumerate(sorted(scores)):
-            if idx == 0:
-                min_score = score
-            else:
-                other_score += score
-
-        self_score = scores[position]
-        if self_score == min_score:
-            self_score -= other_score/3
-        else:
-            sum_of_min_scores = [score for player_idx, score in enumerate(scores) if player_idx != position]
-            self_score -= np.mean(sum_of_min_scores)
-
-        results[card].append([self_score, self_shoot_the_moon]) 
-        """
-
         rating = [0, 0, 0, 0]
 
         info = zip(range(4), scores)

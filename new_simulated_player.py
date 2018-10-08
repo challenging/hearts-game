@@ -157,6 +157,8 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
         stime = time.time()
 
+        game.are_hearts_broken()
+
         for player_idx, suits in other_info.get("lacking_info", {}).items():
             for suit in suits:
                 game.lacking_cards[player_idx][suit] = True
@@ -187,8 +189,8 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         played_card = None
 
         selection_func = [expert_choose, greedy_choose]
-        self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}", \
-            self.proactive_mode, selection_func, self.num_of_cpu)
+        self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}, is_heart_broken={}, expose_heart_ace={}", \
+            self.proactive_mode, selection_func, self.num_of_cpu, game.is_heart_broken, game.expose_heart_ace)
 
         pool = mp.Pool(processes=self.num_of_cpu)
         mul_result = [pool.apply_async(run_simulation, args=(seed,
