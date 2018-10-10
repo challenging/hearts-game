@@ -142,7 +142,6 @@ def transform_cards(card_strings):
 
     separator = ','
     for card_string in card_strings:
-        print(card_string)
         cards = []
         for card_s in card_string:
             t = []
@@ -157,8 +156,6 @@ def transform_cards(card_strings):
             cards.append(t)
 
         cardss.append(cards)
-
-        break
 
     return cardss
 

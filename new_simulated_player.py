@@ -69,7 +69,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         if not self.proactive_mode:
             points = np.sum([v for vv in hand_cards.values() for v in vv])
 
-            if points > 20 and np.sum(hand_cards[Suit.hearts]) > 3:
+            if points > 15 and np.sum(hand_cards[Suit.hearts]) > 3:
                 pass_low_card = True
 
         return hand_cards, pass_low_card

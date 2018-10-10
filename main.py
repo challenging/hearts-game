@@ -8,9 +8,11 @@ from card import Suit, Rank, Card
 from rules import get_setting_cards, evaluate_players
 
 from player import StupidPlayer, SimplePlayer
-from simulated_player import MonteCarloPlayer, MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
+from simulated_player import MonteCarloPlayer, MonteCarloPlayer3
+from simulated_player import MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
 from new_simulated_player import MonteCarloPlayer7
 from new_simple_player import NewSimplePlayer
+from dragon_rider_player import DragonRiderPlayer
 
 #from intelligent_player import IntelligentPlayer
 #from nn import PolicyValueNet
@@ -35,6 +37,12 @@ if __name__ == "__main__":
     elif player_ai == "mc5":
         player = MonteCarloPlayer5(verbose=True)
         other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
+    elif player_ai == "mc4":
+        player = MonteCarloPlayer4(verbose=True)
+        other_players = [MonteCarloPlayer3(verbose=False) for _ in range(3)]
+    elif player_ai == "mc3":
+        player = MonteCarloPlayer3(verbose=True)
+        other_players = [MonteCarloPlayer(verbose=False) for _ in range(3)]
     elif player_ai == "mc":
         player = MonteCarloPlayer(verbose=True)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
@@ -50,7 +58,7 @@ if __name__ == "__main__":
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     else:
         player = SimplePlayer(verbose=False)
-        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
+        other_players = [StupidPlayer(verbose=False) for _ in range(3)]
 
     setting_cards = None
     if sys.argv[3].lower() == "small":
@@ -60,5 +68,5 @@ if __name__ == "__main__":
     else:
         setting_cards = get_setting_cards()
 
-    shuffle(setting_cards)
+    #shuffle(setting_cards)
     evaluate_players(nr_of_games, other_players+[player], setting_cards, is_rotating=False)

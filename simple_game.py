@@ -589,7 +589,7 @@ def run_one_step(current_round_idx, position, init_trick, hand_cards, is_hearts_
 
     for simulation_card in simulation_cards:
         card = one_step_simulation(current_round_idx, 
-                                   osition, 
+                                   position, 
                                    simulation_card, 
                                    copy.deepcopy(init_trick), 
                                    void_info,
@@ -617,30 +617,6 @@ if __name__ == "__main__":
     hand_2 = "".replace(" ", "")
     hand_3 = "".replace(" ", "")
     hand_4 = "".replace(" ", "")
-    """
-
-    """
-    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.king)]]]
-    hand_1 = "8H, 6H, 7D, 6S, 5C, 4D, 4S, 3C, 3D, 3S, QS, AH, KH".replace(" ", "")
-    hand_2 = "JS, 9H, TS, 9S, 8C, 8D, 8S, 5S, 3H, AS, KS, AD".replace(" ", "")
-    hand_3 = "9C, 9D, 7H, 7S, 5H, 6C, 6D, 4H, 2H, QD, TH, JC".replace(" ", "")
-    hand_4 = "JH, TC, QC, JD, TD, 7C, 5D, 4C, 2D, 2S, AC, QH, KD".replace(" ", "")
-    """
-
-    """
-    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.ace)]]]
-    hand_1 = "TD, 9S, 6H, 7C, 7D, 7S, 6S, 5D, 4S, 3D, QH, KD, JD".replace(" ", "")
-    hand_2 = "TC, TH, 8C, 6D, 5C, 5S, 3H, 2H, 2D, QS, KS, AD".replace(" ", "")
-    hand_3 = "JS, TS, 9C, 9D, 8D, 5H, 4H, 4D, 3C, 3S, KH, JC".replace(" ", "")
-    hand_4 = "KC, QC, QD, 9H, 8H, 7H, 8S, 6C, 4C, 2S, AS, AH, JH".replace(" ", "")
-    """
-
-    """
-    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.five)]]]
-    hand_1 = "9C, 7H, 7C, 7D, 5H, 6D, 5D, 4D, 2D, 2S, AS, AH, KD".replace(" ", "")
-    hand_2 = "JH, TC, QC, TH, TS, 8C, 7S, 4H, 3C, AC, AD, QH".replace(" ", "")
-    hand_3 = "8H, 9D, 9S, 6H, 6C, 3H, 2H, 3D, 3S, QS, JS, 9H".replace(" ", "")
-    hand_4 = "QD, JC, JD, TD, 8D, 8S, 6S, 5S, 4C, 4S, KS, KH, KC".replace(" ", "")
     """
 
     init_trick = [[None, []]]

@@ -15,7 +15,7 @@ from player import StupidPlayer
 
 
 TIMEOUT_SECOND = 0.93
-COUNT_CPU = mp.cpu_count()
+COUNT_CPU = 1#mp.cpu_count()
 
 
 def policy_value_fn(state):
@@ -243,11 +243,11 @@ class MCTS(object):
 
             self._playout(copy.deepcopy(state_copy))
 
+        for (player_idx, played_card), node in sorted(self._root._children.items(), key=lambda x: x[1]._n_visits):
+            print(player_idx, played_card, node.get_value(self._c_puct), node._n_visits)
 
-        #for (player_idx, played_card), node in sorted(self._root._children.items(), key=lambda x: x[1]._n_visits):
-        #    print(player_idx, played_card, node.get_value(self._c_puct), node._n_visits)
-
-        return self._root #played_card, node.get_value(self._c_puct), 
+        #return self._root
+        return played_card, node.get_value(self._c_puct)
 
 
     def update_with_move(self, last_move):
@@ -266,6 +266,7 @@ class MCTS(object):
     def print_tree(self, node=None, card=None, depth=0):
         node = self._root if node is None else node
 
+        #print(node, card, depth, node._children)
         if node._parent:
             print("  "*depth, card, "[{}]".format(node._player_idx), node, node._n_visits, node.get_value(self._c_puct))
 
@@ -291,10 +292,13 @@ class DragonRiderPlayer(MonteCarloPlayer5):
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
+        game.are_hearts_broken()
+
         hand_cards = game._player_hands[self.position]
         valid_cards = self.get_valid_cards(hand_cards, game)
 
         if len(valid_cards) > 1:
+            """
             pool = mp.Pool(processes=self.num_of_cpu)
 
             mul_result = [pool.apply_async(self.mcts.get_move, args=(game,)) for _ in range(COUNT_CPU)]
@@ -311,12 +315,14 @@ class DragonRiderPlayer(MonteCarloPlayer5):
                 self.say("played_card: {}, n_visits: {}", played_card, n_visits)
 
             pool.close()
+            """
 
-            #played_card = self.mcts.get_move(copy.deepcopy(game))
+            played_card, _ = self.mcts.get_move(copy.deepcopy(game))
 
             self.say("Hand card: {}, Validated card: {}, Picked card: {}", hand_cards, valid_cards, played_card)
             #played_card = played_card[0]
 
+            self.mcts.print_tree()
             self.mcts.update_with_move(-1)
         else:
             played_card = self.no_choice(valid_cards[0])
