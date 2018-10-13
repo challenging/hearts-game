@@ -27,6 +27,7 @@ def get_hand_cards_number(position, hand_cards, trick, fixed_cards):
 
     for idx in range(1, len(trick)+1):
         player_idx = (position+(4-idx))%4
+
         numbers[player_idx] = len(hand_cards[position])-1-len(fixed_cards.get(player_idx, []))
 
     for idx in range(1, 4-len(trick)):

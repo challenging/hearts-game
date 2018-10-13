@@ -11,7 +11,7 @@ from abc import abstractmethod
 from websocket import create_connection
 
 from card import Card, Suit, Rank
-from rules import transform
+from card import transform
 
 
 class Log(object):

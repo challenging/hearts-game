@@ -29,7 +29,7 @@ if __name__ == "__main__":
     player_ai = sys.argv[2].lower()
     if player_ai == "mc7":
         player = MonteCarloPlayer7(verbose=True)
-        other_players = [MonteCarloPlayer5(verbose=False) for player_idx in range(3)]
+        other_players = [SimplePlayer(verbose=False) for player_idx in range(3)]
     elif player_ai == "mc6":
         player = MonteCarloPlayer6(verbose=True)
         other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai == "rider":
         player = DragonRiderPlayer(self_player_idx=3, verbose=True, c_puct=1.5)
-        other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
+        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai == "intelligent":
         policy = PolicyValueNet()
         player = IntelligentPlayer(policy.policy_value, self_player_idx=3, is_selfplay=True, verbose=True)

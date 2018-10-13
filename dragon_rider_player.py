@@ -8,22 +8,26 @@ import numpy as np
 import multiprocessing as mp
 
 from card import Suit, Rank, Card, Deck
+from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
+from card import card_to_bitmask, str_to_bitmask, translate_hand_cards, transform
 
-from simple_game import SimpleGame
-from simulated_player import MonteCarloPlayer5
-from player import StupidPlayer
+from simple_complex_game import SimpleGame
+from new_simulated_player import MonteCarloPlayer7
+from redistribute_cards import redistribute_cards
+from strategy_play import greedy_choose
+from expert_play import expert_choose
 
 
 TIMEOUT_SECOND = 0.93
 COUNT_CPU = 1#mp.cpu_count()
 
 
-def policy_value_fn(state):
+def policy_value_fn(trick_nr, state):
     """a function that takes in a state and outputs a list of (action, probability)
     tuples and a score for the state"""
 
-    current_players = state.players[state.current_player_idx]
-    valid_moves = current_players.get_valid_cards(state._player_hands[state.current_player_idx], state)
+    valid_cards = state.get_myself_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1)
+    valid_moves = translate_hand_cards(valid_cards, is_bitmask=True)
 
     action_probs = np.ones(len(valid_moves)) / len(valid_moves)
 
@@ -53,6 +57,7 @@ class TreeNode(object):
         action_priors: a list of tuples of actions and their prior probability
             according to the policy function.
         """
+
         for action, prob in action_priors:
             if action not in self._children:
                 self._children[(player_idx, action)] = TreeNode(self, prob, self._self_player_idx, player_idx)
@@ -64,8 +69,7 @@ class TreeNode(object):
         Return: A tuple of (action, next_node)
         """
 
-        return sorted(self._children.items(),
-                   key=lambda act_node: -act_node[1].get_value(c_puct))
+        return sorted(self._children.items(), key=lambda act_node: -act_node[1].get_value(c_puct))
 
 
     def update(self, leaf_value):
@@ -137,7 +141,7 @@ class MCTS(object):
         self._c_puct = c_puct
 
 
-    def _playout(self, state):
+    def _playout(self, trick_nr, state, selection_func):
         """Run a single playout from the root to the leaf, getting a value at
         the leaf and propagating it back through its parents.
         State is modified in-place, so a copy must be provided.
@@ -149,9 +153,11 @@ class MCTS(object):
 
             # Greedily select next move.
             is_all_traverse = True
-            valid_cards = state.players[state.current_player_idx].get_valid_cards(state._player_hands[state.current_player_idx], state)
-            for card in valid_cards:
-                if (state.current_player_idx, card) not in node._children:
+
+            valid_cards = state.get_myself_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1)
+            valid_moves = translate_hand_cards(valid_cards, is_bitmask=True)
+            for card in valid_moves:
+                if (state.start_pos, card) not in node._children:
                     is_all_traverse = False
 
                     break
@@ -163,8 +169,9 @@ class MCTS(object):
             for action, node in node.select(self._c_puct):
                 player_idx, played_card = action
 
-                if played_card in valid_cards:
-                    state.step(played_card)
+                suit, rank = played_card[0], played_card[1]
+                if valid_cards.get(suit, 0) & rank:
+                    state.step(trick_nr, selection_func, played_card)
                     is_valid = True
 
                     break
@@ -172,36 +179,33 @@ class MCTS(object):
             if not is_valid:
                 break
 
-
-        action_probs, _ = self._policy(state)
+        #print(state.is_finished, state.hand_cards)
+        action_probs, _ = self._policy(trick_nr, state)
         action_probs = list(action_probs)
 
         # Check for end of game
-        winners = state.get_game_winners()
-        if not winners:
-            node.expand(state.current_player_idx, action_probs)
+        if not state.is_finished:
+            node.expand(state.start_pos, action_probs)
 
         # Evaluate the leaf node by random rollout
         #leaf_value = self._evaluate_rollout(state)
         # Update value and visit count of nodes in this traversal.
         #node.update_recursive(-leaf_value)
 
-        scores = self._evaluate_rollout(state)
+        scores = self._evaluate_rollout(trick_nr, state, selection_func)
         node.update_recursive(scores)
 
 
-    def _evaluate_rollout(self, state):
+    def _evaluate_rollout(self, trick_nr, state, selection_func):
         """Use the rollout policy to play until the end of the game,
         returning +1 if the current player wins, -1 if the opponent wins,
         and 0 if it is a tie.
         """
 
-        winners = state.get_game_winners()
-        while not winners:
-            state.step()
-            winners = state.get_game_winners()
+        while not state.is_finished:
+            state.step(trick_nr, selection_func)
 
-        scores = state.player_scores
+        scores, _ = state.score()
         rating = [0, 0, 0, 0]
 
         info = zip(range(4), scores)
@@ -225,27 +229,63 @@ class MCTS(object):
         state: the current game state
         Return: the selected action
         """
-
-        state_copy = copy.deepcopy(state)
-        seen_cards = state.players[0].seen_cards
-
         stime = time.time()
-        while time.time()-stime < TIMEOUT_SECOND:
-            remaining_cards = state.players[state.current_player_idx].get_remaining_cards(state._player_hands[state.current_player_idx])
-            state_copy = state.players[state.current_player_idx].redistribute_cards(state_copy, remaining_cards[:])
 
-            state_copy.verbose = False
-            state_copy.players = [StupidPlayer() for idx in range(4)]
-            for player in state_copy.players:
-                player.seen_cards = copy.deepcopy(seen_cards)
+        hand_cards = [[] if player_idx != self._self_player_idx else state._player_hands[player_idx] for player_idx in range(4)]
 
-            self._playout(copy.deepcopy(state_copy))
+        remaining_cards = Deck().cards
+        for card in state.players[0].seen_cards + hand_cards[self._self_player_idx]:
+            remaining_cards.remove(card)
+
+        score_cards = []
+        for player_idx, cards in enumerate(state._cards_taken):
+            score_cards.append(card_to_bitmask(cards))
+
+        init_trick = [[None, state.trick]]
+        for trick_idx, (winner_index, trick) in enumerate(init_trick):
+            for card_idx, card in enumerate(trick):
+                for suit, rank in str_to_bitmask([card]).items():
+                    trick[card_idx] = [suit, rank]
+
+        void_info = {}
+        for player_idx, info in enumerate(state.lacking_cards):
+            if player_idx != self._self_player_idx:
+                void_info[player_idx] = info
+
+        must_have = state.players[self._self_player_idx].transfer_cards
+
+        selection_func = np.random.choice([expert_choose, greedy_choose], size=4, p=[0.5, 0.5])
+
+        simulation_cards = redistribute_cards(int(time.time()*1000), 
+                                              self._self_player_idx, 
+                                              copy.deepcopy(hand_cards), 
+                                              init_trick[-1][1], 
+                                              remaining_cards, 
+                                              must_have, 
+                                              void_info)
+
+        for simulation_card in simulation_cards:
+            #print("new round...")
+            for player_idx, cards in enumerate(simulation_card):
+                simulation_card[player_idx] = str_to_bitmask(cards)
+
+            sm = SimpleGame(position=self._self_player_idx, 
+                            hand_cards=simulation_card, 
+                            void_info=void_info,
+                            score_cards=score_cards, 
+                            is_hearts_borken=state.is_heart_broken, 
+                            expose_hearts_ace=state.expose_heart_ace, 
+                            tricks=copy.deepcopy(init_trick))
+
+            self._playout(state.trick_nr+1, sm, selection_func)
+
+            if time.time()-stime > TIMEOUT_SECOND:
+                break
 
         for (player_idx, played_card), node in sorted(self._root._children.items(), key=lambda x: x[1]._n_visits):
-            print(player_idx, played_card, node.get_value(self._c_puct), node._n_visits)
+            print("---->", player_idx, transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]]), node.get_value(self._c_puct), node._n_visits)
 
-        #return self._root
-        return played_card, node.get_value(self._c_puct)
+        return transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]]), node.get_value(self._c_puct)
 
 
     def update_with_move(self, last_move):
@@ -264,18 +304,19 @@ class MCTS(object):
     def print_tree(self, node=None, card=None, depth=0):
         node = self._root if node is None else node
 
-        #print(node, card, depth, node._children)
         if node._parent:
-            print("  "*depth, card, "[{}]".format(node._player_idx), node, node._n_visits, node.get_value(self._c_puct))
+            card_str = transform(INDEX_TO_NUM[card[1][1]], INDEX_TO_SUIT[card[1][0]])
+            print("  "*depth, card[0], card_str, "[{}]".format(node._player_idx), node, node._n_visits, node.get_value(self._c_puct))
 
         for card, children in node._children.items():
             self.print_tree(children, card, depth+1)
+
 
     def __str__(self):
         return "MCTS"
 
 
-class DragonRiderPlayer(MonteCarloPlayer5):
+class DragonRiderPlayer(MonteCarloPlayer7):
     """AI player based on MCTS"""
     def __init__(self, self_player_idx, verbose=False, c_puct=2):
         super(DragonRiderPlayer, self).__init__(verbose)
@@ -296,25 +337,6 @@ class DragonRiderPlayer(MonteCarloPlayer5):
         valid_cards = self.get_valid_cards(hand_cards, game)
 
         if len(valid_cards) > 1:
-            """
-            pool = mp.Pool(processes=self.num_of_cpu)
-
-            mul_result = [pool.apply_async(self.mcts.get_move, args=(game,)) for _ in range(COUNT_CPU)]
-            results = [res.get() for res in mul_result]
-
-            cards = {}
-            for root in results:
-                for (player_idx, played_card), node in root._children.items():
-                    cards.setdefault(played_card, 0)
-                    cards[played_card] += node._n_visits
-                    #print("---->", played_card, node._n_visits)
-
-            for played_card, n_visits in sorted(cards.items(), key=lambda x: x[1]):
-                self.say("played_card: {}, n_visits: {}", played_card, n_visits)
-
-            pool.close()
-            """
-
             played_card, _ = self.mcts.get_move(copy.deepcopy(game))
 
             self.say("Hand card: {}, Validated card: {}, Picked card: {}", hand_cards, valid_cards, played_card)

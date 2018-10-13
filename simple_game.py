@@ -13,9 +13,9 @@ from card import Rank, Suit, Card, Deck
 
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
 from card import EMPTY_CARDS, FULL_CARDS, RANK_SUM
-from card import card_to_bitmask, str_to_bitmask, bitmask_to_str, count_points
+from card import card_to_bitmask, str_to_bitmask, bitmask_to_str, count_points, transform
 
-from rules import is_card_valid, transform
+from rules import is_card_valid
 from redistribute_cards import redistribute_cards
 from strategy_play import random_choose, greedy_choose
 from expert_play import expert_choose

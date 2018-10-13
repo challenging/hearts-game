@@ -10,7 +10,9 @@ import numpy as np
 from scipy.stats import describe
 
 from random import shuffle, randint
+
 from card import Suit, Rank, Card
+from card import transform
 
 
 def is_card_valid(hand, trick, card, trick_nr, is_broken):
@@ -64,46 +66,6 @@ def reversed_score(cards):
             t.append(card)
 
     return len(t) == 14
-
-
-def transform(rank, suit):
-    if suit == "S":
-        suit = Suit.spades
-    elif suit == "H":
-        suit = Suit.hearts
-    elif suit == "C":
-        suit = Suit.clubs
-    elif suit == "D":
-        suit = Suit.diamonds
-
-    if rank == "A":
-        rank = Rank.ace
-    elif rank == "2":
-        rank = Rank.two
-    elif rank == "3":
-        rank = Rank.three
-    elif rank == "4":
-        rank = Rank.four
-    elif rank == "5":
-        rank = Rank.five
-    elif rank == "6":
-        rank = Rank.six
-    elif rank == "7":
-        rank = Rank.seven
-    elif rank == "8":
-        rank = Rank.eight
-    elif rank == "9":
-        rank = Rank.nine
-    elif rank == "10" or rank == "T":
-        rank = Rank.ten
-    elif rank == "J":
-        rank = Rank.jack
-    elif rank == "Q":
-        rank = Rank.queen
-    elif rank == "K":
-        rank = Rank.king
-
-    return Card(suit, rank)
 
 
 def get_setting_cards():

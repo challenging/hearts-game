@@ -106,6 +106,46 @@ class Deck:
             yield sorted(self.cards[i:i + 13])
 
 
+def transform(rank, suit):
+    if suit == "S":
+        suit = Suit.spades
+    elif suit == "H":
+        suit = Suit.hearts
+    elif suit == "C":
+        suit = Suit.clubs
+    elif suit == "D":
+        suit = Suit.diamonds
+
+    if rank == "A":
+        rank = Rank.ace
+    elif rank == "2":
+        rank = Rank.two
+    elif rank == "3":
+        rank = Rank.three
+    elif rank == "4":
+        rank = Rank.four
+    elif rank == "5":
+        rank = Rank.five
+    elif rank == "6":
+        rank = Rank.six
+    elif rank == "7":
+        rank = Rank.seven
+    elif rank == "8":
+        rank = Rank.eight
+    elif rank == "9":
+        rank = Rank.nine
+    elif rank == "10" or rank == "T":
+        rank = Rank.ten
+    elif rank == "J":
+        rank = Rank.jack
+    elif rank == "Q":
+        rank = Rank.queen
+    elif rank == "K":
+        rank = Rank.king
+
+    return Card(suit, rank)
+
+
 def generate_card_games(num_of_game, filepath_out):
     deck = Deck()
 
@@ -210,6 +250,23 @@ def count_points(cards, expose_hearts_ace):
         point <<= 1
 
     return point
+
+
+def translate_hand_cards(hand_cards, is_bitmask=False):
+    cards = []
+
+    for suit, ranks in hand_cards.items():
+        bit_mask = 1
+        while bit_mask <= NUM_TO_INDEX["A"]:
+            if hand_cards[suit] & bit_mask:
+                if is_bitmask:
+                    cards.append((suit, bit_mask))
+                else:
+                    cards.append(transform(INDEX_TO_NUM[bit_mask], INDEX_TO_SUIT[suit]))
+
+            bit_mask <<= 1
+
+    return cards
 
 
 if __name__ == "__main__":

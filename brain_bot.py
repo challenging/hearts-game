@@ -21,7 +21,7 @@ from game import Game
 from player import SimplePlayer
 
 from card import Card, Suit, Rank, Deck
-from rules import transform
+from card import transform
 
 
 IS_DEBUG = False
