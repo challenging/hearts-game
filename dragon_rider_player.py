@@ -201,8 +201,6 @@ class MCTS(object):
             state.step()
             winners = state.get_game_winners()
 
-        #return state.player_scores/(np.sum(state.player_scores)*-1)
-
         scores = state.player_scores
         rating = [0, 0, 0, 0]
 

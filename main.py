@@ -29,8 +29,7 @@ if __name__ == "__main__":
     player_ai = sys.argv[2].lower()
     if player_ai == "mc7":
         player = MonteCarloPlayer7(verbose=True)
-        debug_player = MonteCarloPlayer5(verbose=False)
-        other_players = [debug_player] + [MonteCarloPlayer5(verbose=False) for player_idx in range(2)]
+        other_players = [MonteCarloPlayer5(verbose=False) for player_idx in range(3)]
     elif player_ai == "mc6":
         player = MonteCarloPlayer6(verbose=True)
         other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]

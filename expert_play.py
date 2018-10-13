@@ -58,8 +58,6 @@ def choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, is_double_ca
             elif third_suit is None:
                 third_suit = suit
 
-                break
-
     played_card, candicated_cards = None, []
     for suit, _ in sorted(remaining_size.items(), key=cmp_to_key(numeric_compare)):
         if played_card is not None:
@@ -164,10 +162,6 @@ def expert_choose(position, cards, trick, real_own_pig_card,
             for suit, is_void in info.items():
                 void_info_for_suits[suit] |= (is_void or possible_void_info[suit])
 
-    #print("num_of_suits", position, num_of_suits, own_pig_card)
-    #print("void_info", position, void_info)
-    #print("possible_void_info", position, possible_void_info)
-
     safe_play, candicated_cards = None, []
     if trick:
         len_trick, has_pig_card, has_double_card, has_point_card, leading_suit, max_rank = len(trick), False, False, False, trick[0][0], trick[0][1]
@@ -264,4 +258,5 @@ def expert_choose(position, cards, trick, real_own_pig_card,
 
             bit_mask <<= 1
 
+    #print("--->", cards, safe_play)
     return candicated_cards, safe_play

@@ -255,13 +255,6 @@ class Game(object):
         return winning_card
 
 
-    def early_stop(self):
-        if self.point_cards:
-            return False
-        else:
-            return True
-
-
     def step(self, played_card=None):
         player_hand = self._player_hands[self.current_player_idx]
 

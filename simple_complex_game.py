@@ -42,7 +42,6 @@ class SimpleGame(object):
         self.hand_cards = hand_cards
 
         self.current_info = [[13, RANK_SUM] for _ in ALL_SUIT]
-        #self.handle_current_info(self.hand_cards[self.position])
 
         self.is_show_pig_card = is_show_pig_card
         self.is_show_double_card = is_show_double_card
@@ -72,10 +71,10 @@ class SimpleGame(object):
 
         self.tricks = tricks
 
+        self.played_card = None
+
         self.is_hearts_broken = is_hearts_borken
         self.expose_hearts_ace = 2 if expose_hearts_ace else 1
-
-        self.played_card = None
 
 
     def handle_current_info(self, cards):
@@ -181,21 +180,6 @@ class SimpleGame(object):
                     return cards
 
 
-    def winning_index(self, trick):
-        leading_suit, leading_rank = trick[1][0]
-
-        winning_index = 0
-        winning_card = trick[1][0]
-        for i, (suit, rank) in enumerate(trick[1][1:]):
-            if suit == leading_suit and rank > leading_rank:
-                winning_index = i+1
-                winning_card = [suit, rank]
-
-                leading_rank = rank
-
-        return winning_index, winning_card
-
-
     def remove_card(self, hand_cards, removed_card):
         hand_cards[removed_card[0]] ^= removed_card[1]
 
@@ -211,141 +195,70 @@ class SimpleGame(object):
             self.void_info[player_idx][self.tricks[-1][1][0][0]] = True
 
 
-    def just_run_one_step(self, current_round_idx, selection_func):
-        valid_cards = self.get_myself_valid_cards(self.hand_cards[self.position], current_round_idx)
+    def step(self, current_round_idx, selection_func, played_card=None):
+        def winning_index(trick):
+            leading_suit, leading_rank = trick[1][0]
 
-        ccards, played_card = selection_func(self.position, 
-                                             valid_cards, 
-                                             self.tricks[-1][1], 
-                                             self.hand_cards[self.position].get(SUIT_TO_INDEX["S"], 0) & NUM_TO_INDEX["Q"] > 0,
-                                             self.is_hearts_broken, 
-                                             self.is_show_pig_card, 
-                                             self.is_show_double_card, 
-                                             self.has_point_players, 
-                                             self.current_info, 
-                                             self.void_info)
+            winning_index = 0
+            winning_card = trick[1][0]
+            for i, (suit, rank) in enumerate(trick[1][1:]):
+                if suit == leading_suit and rank > leading_rank:
+                    winning_index = i+1
+                    winning_card = [suit, rank]
 
-        return played_card
+                    leading_rank = rank
 
+            return winning_index, winning_card
 
-    def run(self, current_round_idx, played_card=None, selection_func=random_choose):
-        first_choose = expert_choose if IS_DEBUG else random_choose
+        if not hasattr(self, "start_pos"):
+            self.start_pos = self.position
 
-        start_pos = None
-        current_trick = self.tricks[-1]
-        if current_trick:
-            #leading_player_idx = (self.position+3+len(current_trick))%4
-            current_index = len(current_trick[1])
+        if self.start_pos == self.position:
+            self.current_index = len(self.tricks[-1][1])
 
-            # handle current_info
-            for suit, rank in current_trick[1]:
-                self.current_info[suit][0] -= 1
-                self.current_info[suit][1] ^= rank
+        if played_card is None:
+            valid_cards = self.get_myself_valid_cards(self.hand_cards[self.start_pos], current_round_idx)
+            #print("valid_cards", valid_cards, self.hand_cards[self.start_pos], self.is_first_step, current_round_idx)
+            ccards, played_card = selection_func[self.start_pos](self.start_pos, 
+                                                                 valid_cards, 
+                                                                 self.tricks[-1][1], 
+                                                                 self.hand_cards[self.start_pos].get(SUIT_TO_INDEX["S"], 0) & NUM_TO_INDEX["Q"] > 0,
+                                                                 self.is_hearts_broken, 
+                                                                 self.is_show_pig_card, 
+                                                                 self.is_show_double_card, 
+                                                                 self.has_point_players, 
+                                                                 self.current_info, 
+                                                                 self.void_info)
 
-            if played_card is None:
-                valid_cards = self.get_myself_valid_cards(self.hand_cards[self.position], current_round_idx)
-                candicated_cards, played_card = first_choose(\
-                    self.position, valid_cards, current_trick[1], self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players, self.current_info, self.void_info)
+        #print(len(self.tricks), self.tricks[-1][1], self.hand_cards[self.start_pos], self.is_hearts_broken)
+        if played_card is None:
+            raise Exception("Impossible to get 'None' of played_card")
 
+        if self.played_card is None:
             self.played_card = played_card
 
-            self.add_card_to_trick(self.position, played_card)
-            self.remove_card(self.hand_cards[self.position], played_card)
+        self.add_card_to_trick(self.start_pos, played_card)
+        self.remove_card(self.hand_cards[self.start_pos], played_card)
 
-            for trick_idx in range(4-len(current_trick[1])):
-                player_idx = (self.position+(trick_idx+1))%4
+        if len(self.tricks[-1][1]) == 4:
+            winning_index, winning_card = winning_index(self.tricks[-1])
+            self.start_pos = (self.position+(winning_index-self.current_index))%4
 
-                valid_cards = self.get_myself_valid_cards(self.hand_cards[player_idx], current_round_idx)
-                #if sum(valid_cards.values()) == 0:
-                #    print(1111, current_round_idx, player_idx, "--->", self.hand_cards, valid_cards)
-
-                _, played_card = selection_func[player_idx](player_idx, 
-                                                valid_cards, 
-                                                current_trick[1], 
-                                                self.hand_cards[player_idx].get(SUIT_TO_INDEX["S"], 0) & NUM_TO_INDEX["Q"] > 0,
-                                                self.is_hearts_broken, 
-                                                self.is_show_pig_card, 
-                                                self.is_show_double_card, 
-                                                self.has_point_players, 
-                                                self.current_info, 
-                                                self.void_info)
-
-                self.add_card_to_trick(player_idx, played_card)
-                self.remove_card(self.hand_cards[player_idx], played_card)
-
-            winning_index, winning_card = self.winning_index(current_trick)
-            start_pos = (self.position+(winning_index-current_index))%4
-
-            current_trick[0] = start_pos
-        else:
-            start_pos = (self.position+1)%4
-
-        for suit, rank in current_trick[1]:
-            self.score_cards[start_pos][suit] |= rank
-
-        self.post_round_end()
-
-        if IS_DEBUG:
-            print("trick_no={}, trick={}, is_hearts_broken={}, is_show_pig_card={}, is_show_double_card={}, has_point_players={}, winning_card={}, start_pos={}".format(\
-                current_round_idx, self.translate_trick_cards(), self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players,\
-                winning_card, start_pos))
-            self.translate_current_info()
-            for player_idx in range(4):
-                print("\tplayer-{}'s hand_cards is {}".format(player_idx, sorted(self.translate_hand_cards(self.hand_cards[player_idx]))))
-
-        for round_idx in range(13-current_round_idx):
-            self.tricks.append([None, []])
-
-            leading_player_idx = start_pos
-            current_index = None
-            for trick_idx in range(4):
-                if start_pos == self.position:
-                    current_index = trick_idx
-
-                valid_cards = self.get_myself_valid_cards(self.hand_cards[start_pos])
-                #if sum(valid_cards.values()) == 0:
-                #    print(2222, round_idx, current_round_idx, start_pos, "--->", self.hand_cards[start_pos], valid_cards)
-
-                ccards, played_card = selection_func[start_pos](start_pos, 
-                                                     valid_cards, 
-                                                     self.tricks[-1][1], 
-                                                     self.hand_cards[start_pos].get(SUIT_TO_INDEX["S"], 0) & NUM_TO_INDEX["Q"] > 0,
-                                                     self.is_hearts_broken, 
-                                                     self.is_show_pig_card, 
-                                                     self.is_show_double_card, 
-                                                     self.has_point_players, 
-                                                     self.current_info, 
-                                                     self.void_info)
-
-                if start_pos == self.position and self.played_card is None:
-                    self.played_card = played_card
-
-                #print("--->", start_pos, played_card)
-
-                self.add_card_to_trick(start_pos, played_card)
-                self.remove_card(self.hand_cards[start_pos], played_card)
-
-                start_pos = (start_pos+1)%4
-
-            winning_index, winning_card = self.winning_index(self.tricks[-1])
-            start_pos = (self.position+(winning_index-current_index))%4
-
-            self.tricks[-1][0] = (start_pos+3)%4
-
-            for suit, rank in self.tricks[-1][1]:
-                self.score_cards[start_pos][suit] |= rank
+            self.tricks[-1][0] = (self.start_pos)%4
 
             self.post_round_end()
 
             if IS_DEBUG:
-                print("trick_no={}, trick={}, is_hearts_broken={}, is_show_pig_card={}, is_show_double_card={}, has_point_players={}, winning_card={}, start_pos={}".format(\
-                    current_round_idx+round_idx+1, self.translate_trick_cards(), self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players, \
-                    winning_card, start_pos))
+                self.translate_current_info(current_round_idx, winning_card)
+        else:
+            self.start_pos = (self.start_pos+1)%4
 
-                self.translate_current_info()
 
-                for player_idx in range(4):
-                    print("\tplayer-{}'s hand_cards is {}".format(player_idx, sorted(self.translate_hand_cards(self.hand_cards[player_idx]))))
+    def run(self, current_round_idx, played_card=None, selection_func=random_choose):
+        while any([rank > 0 for player_idx in range(4) for suit, rank in self.hand_cards[player_idx].items()]):
+            choose_func = [random_choose for _ in range(4)] if self.played_card is None and not IS_DEBUG else selection_func
+
+            self.step(current_round_idx+len(self.tricks)-1, choose_func)
 
 
     def post_round_end(self):
@@ -359,6 +272,11 @@ class SimpleGame(object):
                 self.has_point_players.add(winner_idx)
             elif suit == SUIT_TO_INDEX["S"] and rank & NUM_TO_INDEX["Q"]:
                 self.has_point_players.add(winner_idx)
+
+            self.score_cards[self.start_pos][suit] |= rank
+
+        if len(self.tricks[-1][1]) == 4:
+            self.tricks.append([None, []])
 
 
     def score(self):
@@ -376,7 +294,12 @@ class SimpleGame(object):
         return scores, is_my_shoot_the_moon
 
 
-    def translate_current_info(self):
+    def translate_current_info(self, current_round_idx, winning_card=None):
+        if winning_card is not None:
+            print("trick_no={}, trick={}, is_hearts_broken={}, is_show_pig_card={}, is_show_double_card={}, has_point_players={}, winning_card={}, start_pos={}".format(\
+               current_round_idx, self.translate_trick_cards(), self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players, \
+               winning_card, self.start_pos))
+
         for suit in ALL_SUIT:
             cards = []
 
@@ -387,14 +310,16 @@ class SimpleGame(object):
 
                 bit_mask <<= 1
 
-
             print("suit: {}, remaining_cards in deck: {}({})".format(\
                 INDEX_TO_SUIT[suit], cards, self.current_info[suit][0]))
+
+        for player_idx in range(4):
+          print("\tplayer-{}'s hand_cards is {}".format(player_idx, sorted(self.translate_hand_cards(self.hand_cards[player_idx]))))
 
 
     def translate_trick_cards(self):
         cards = []
-        for suit, rank in self.tricks[-1][1]:
+        for suit, rank in self.tricks[-2][1]:
             cards.append("{}{}".format(INDEX_TO_NUM[rank], INDEX_TO_SUIT[suit]))
 
         return cards
@@ -405,7 +330,7 @@ class SimpleGame(object):
 
         for suit, ranks in hand_cards.items():
             bit_mask = 1
-            while bit_mask <= 4096:
+            while bit_mask <= NUM_TO_INDEX["A"]:
                 if hand_cards[suit] & bit_mask:
                     cards.append(transform(INDEX_TO_NUM[bit_mask], INDEX_TO_SUIT[suit]))
 
@@ -418,7 +343,7 @@ class SimpleGame(object):
         cards = []
 
         bit_mask = 1
-        while bit_mask <= 4096:
+        while bit_mask <= NUM_TO_INDEX["A"]:
             if hand_cards[SUIT_TO_INDEX["H"]] & bit_mask:
                 cards.append(transform(INDEX_TO_NUM[bit_mask], "H"))
 
@@ -434,7 +359,7 @@ class SimpleGame(object):
 
 
     def print_tricks(self, scores):
-        for round_idx in range(1, len(self.tricks)+1):
+        for round_idx in range(1, min(14, len(self.tricks)+1)):
             print("Round {:2d}: Tricks: {}".format(\
                 round_idx, ["{}{}".format(INDEX_TO_NUM[rank], INDEX_TO_SUIT[suit]) for suit, rank in self.tricks[round_idx-1][1]]))
 
@@ -479,7 +404,7 @@ def simulation(current_round_idx, position, hand_cards, tricks,
             print()
 
         return sm.played_card, scores, sm.score_cards, num_of_shoot_the_moon
-    except:
+    except Exception as e:
         for player_idx, cards in enumerate(hand_cards):
             print("player-{}'s hand_cards is {}".format(player_idx, sm.translate_hand_cards(hand_cards[player_idx])))
         print()
@@ -543,63 +468,12 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
             pre_score = score
             pre_rating = tmp_rating
 
-        #print(card, scores, rating, sum_score)
         results[card].append([rating[position], self_shoot_the_moon])
 
         if time.time()-stime > simulation_time or IS_DEBUG:
             break
 
     return dict([(transform(INDEX_TO_NUM[card[1]], INDEX_TO_SUIT[card[0]]), info) for card, info in results.items()])
-
-
-def one_step_simulation(current_round_idx, position, hand_cards, tricks,
-                   void_info={}, score_cards=None, is_hearts_borken=False, expose_hearts_ace=False, played_card=None, selection_func=None):
-
-    for player_idx, cards in enumerate(hand_cards):
-        hand_cards[player_idx] = str_to_bitmask(cards)
-
-    sm = SimpleGame(position=position, 
-                    hand_cards=hand_cards, 
-                    void_info=void_info, 
-                    score_cards=score_cards, 
-                    is_hearts_borken=is_hearts_borken, 
-                    expose_hearts_ace=expose_hearts_ace, 
-                    tricks=tricks)
-
-    return sm.just_run_one_step(current_round_idx, selection_func=selection_func)
-
-
-def run_one_step(current_round_idx, position, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
-                 score_cards=None, played_card=None, selection_func=random_choose, must_have={}, void_info={}):
-
-    for trick_idx, (winner_index, trick) in enumerate(init_trick):
-        for card_idx, card in enumerate(trick):
-            for suit, rank in str_to_bitmask([card]).items():
-                trick[card_idx] = [suit, rank]
-
-    if played_card is not None:
-        played_card = [SUIT_TO_INDEX[played_card.suit.__repr__()], NUM_TO_INDEX[played_card.rank.__repr__()]]
-
-    simulations_cards = None
-    if cards:
-        simulation_cards = redistribute_cards(1, position, hand_cards, init_trick[-1][1], cards, must_have, void_info)
-    else:
-        simulation_cards = [hand_cards]
-
-    for simulation_card in simulation_cards:
-        card = one_step_simulation(current_round_idx, 
-                                   position, 
-                                   simulation_card, 
-                                   copy.deepcopy(init_trick), 
-                                   void_info,
-                                   copy.deepcopy(score_cards), 
-                                   is_hearts_broken, 
-                                   expose_hearts_ace, 
-                                   played_card, 
-                                   selection_func)
-
-        #print("----->", card)
-        return transform(INDEX_TO_NUM[card[1]], INDEX_TO_SUIT[card[0]])
 
 
 if __name__ == "__main__":
