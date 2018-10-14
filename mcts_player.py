@@ -5,6 +5,7 @@ import copy
 import time
 
 import numpy as np
+import multiprocessing as mp
 
 from collections import defaultdict
 
@@ -276,11 +277,17 @@ class MCTS(object):
             if time.time()-stime > TIMEOUT_SECOND:
                 break
 
-        #results = defaultdict(int)
+        results = defaultdict(int)
         for played_card, node in sorted(self._root._children.items(), key=lambda x: x[1]._n_visits):
-            print("---->", transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]]), node.get_value(self._c_puct), node._n_visits)
+            results[played_card] += node._n_visits
 
-        return played_card, node.get_value(self._c_puct)
+        return results
+
+
+        #for played_card, node in sorted(self._root._children.items(), key=lambda x: x[1]._n_visits):
+        #    print("---->", transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]]), node.get_value(self._c_puct), node._n_visits)
+
+        #return played_card, node.get_value(self._c_puct)
 
 
     def update_with_move(self, last_move):
@@ -292,12 +299,8 @@ class MCTS(object):
             self._root = self._root._children[last_move]
             self._root._parent = None
             self._player_idx = None
-
-            #print("reset the root to be {}".format(last_move))
         else:
             self._root = TreeNode(None, 1.0, self._self_player_idx, None)
-
-            #print("reset the root because {} is NOT found".format(last_move))
 
 
     def print_tree(self, node=None, card=None, depth=0):
@@ -315,7 +318,7 @@ class MCTS(object):
         return "MCTS"
 
 
-class RiderPlayer(MonteCarloPlayer7):
+class MCTSPlayer(MonteCarloPlayer7):
     """AI player based on MCTS"""
     def __init__(self, self_player_idx, verbose=False, c_puct=2):
         super(MonteCarloPlayer7, self).__init__(verbose=verbose)
@@ -324,13 +327,13 @@ class RiderPlayer(MonteCarloPlayer7):
 
 
     def reset(self):
-        super(RiderPlayer, self).reset()
+        super(MCTSPlayer, self).reset()
 
         self.mcts.update_with_move(-1)
 
 
     def see_played_trick(self, card):
-        super(RiderPlayer, self).see_played_trick(card)
+        super(MCTSPlayer, self).see_played_trick(card)
 
         card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
@@ -344,15 +347,28 @@ class RiderPlayer(MonteCarloPlayer7):
         valid_cards = self.get_valid_cards(hand_cards, game)
 
         if len(valid_cards) > 1:
-            played_card, _ = self.mcts.get_move(copy.deepcopy(game))
-            played_card_str = transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]])
+            pool = mp.Pool(processes=self.num_of_cpu)
 
-            self.say("Hand card: {}, Validated card: {}, Picked card: {}", hand_cards, valid_cards, played_card_str)
+            mul_result = [pool.apply_async(self.mcts.get_move, args=(game,)) for _ in range(self.num_of_cpu)]
+            results = [res.get() for res in mul_result]
 
-            #self.mcts.print_tree()
-            #self.mcts.update_with_move(played_card)
+            cards = defaultdict(int)
+            for sub_results in results:
+                for played_card, n_visits in sub_results.items():
+                    cards[played_card] += n_visits
 
-            played_card = played_card_str
+            for played_card, n_visits in sorted(cards.items(), key=lambda x: x[1]):
+                played_card = transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]])
+                self.say("played_card: {}, n_visits: {}", played_card, n_visits)
+
+            pool.close()
+
+            #played_card, _ = self.mcts.get_move(copy.deepcopy(game))
+            #played_card_str = transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]])
+
+            self.say("Hand card: {}, Validated card: {}, Picked card: {}", hand_cards, valid_cards, played_card)
+
+            #played_card = played_card_str
         else:
             played_card = self.no_choice(valid_cards[0])
 

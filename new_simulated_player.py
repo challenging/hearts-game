@@ -12,8 +12,7 @@ from collections import defaultdict
 from card import Deck, Suit, Rank, Card
 from card import card_to_bitmask
 
-from simulated_player import TIMEOUT_SECOND, COUNT_CPU
-from simulated_player import MonteCarloPlayer5
+from simulated_player import MonteCarloPlayer5, COUNT_CPU
 
 from simple_complex_game import run_simulation
 from strategy_play import random_choose, greedy_choose
@@ -41,8 +40,6 @@ def sorted_suits(xs, ys):
 class MonteCarloPlayer7(MonteCarloPlayer5):
     def __init__(self, num_of_cpu=COUNT_CPU, verbose=False):
         super(MonteCarloPlayer7, self).__init__(verbose=verbose)
-
-        #self.num_of_cpu = 1
 
 
     def set_proactive_mode(self, hand, round_idx):
