@@ -45,8 +45,6 @@ class Game(object):
         for _ in range(4):
             self.lacking_cards.append({Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False})
 
-        self._memory = []
-
 
     def post_round_over(self, winning_index, winning_player_index):
         # Add the information for lacking cards
@@ -340,10 +338,6 @@ class Game(object):
             return []
 
 
-    def get_memory(self):
-        return self._memory
-
-
     def score_func(self, scores, position):
         min_score, second_score = None, None
         for idx, score in enumerate(sorted(scores)):
@@ -358,27 +352,3 @@ class Game(object):
             return self_score-second_score
         else:
             return self_score-min_score
-
-
-    def current_status(self):
-        status = []
-
-        def contains_spades(cards):
-            has_queen, has_king, has_ace = False, False, False
-            count = 0
-
-            for card in cards:
-                if card == SPADES_Q:
-                    has_queen = True
-                elif card == SPADES_K:
-                    has_king = True
-                elif card == SPADES_A:
-                    has_ace = True
-                elif card.suit == Suit.spades:
-                    count += 1
-
-            return [has_queen, has_king, has_ace, count==0, count==1, count==2, count==3, count==4, count>5]
-
-        status.extend(contains_spades(self._player_hands[self.current_player_idx]))
-
-        return status

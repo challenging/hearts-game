@@ -31,7 +31,7 @@ class SimpleGame(object):
                  hand_cards,
                  void_info=None,
                  score_cards=None,
-                 is_hearts_borken=False,
+                 is_hearts_broken=False,
                  is_show_pig_card=False,
                  is_show_double_card=False,
                  has_point_players=set(),
@@ -76,7 +76,7 @@ class SimpleGame(object):
         self.start_pos = self.position
         self.is_finished = False
 
-        self.is_hearts_broken = is_hearts_borken
+        self.is_hearts_broken = is_hearts_broken
         self.expose_hearts_ace = 2 if expose_hearts_ace else 1
 
 
@@ -256,8 +256,6 @@ class SimpleGame(object):
 
     def run(self, current_round_idx, played_card=None, selection_func=random_choose):
         while any([rank > 0 for player_idx in range(4) for suit, rank in self.hand_cards[player_idx].items()]):
-            #choose_func = [random_choose for _ in range(4)] if self.played_card is None and not IS_DEBUG else selection_func
-
             self.step(current_round_idx, selection_func)
 
 
@@ -357,7 +355,7 @@ class SimpleGame(object):
 
 
 def simulation(current_round_idx, position, hand_cards, tricks,
-               void_info={}, score_cards=None, is_hearts_borken=False, expose_hearts_ace=False, played_card=None, selection_func=None,
+               void_info={}, score_cards=None, is_hearts_broken=False, expose_hearts_ace=False, played_card=None, selection_func=None,
                proactive_mode=None):
 
     sm = None
@@ -369,7 +367,7 @@ def simulation(current_round_idx, position, hand_cards, tricks,
                         hand_cards=hand_cards, 
                         void_info=void_info,
                         score_cards=score_cards, 
-                        is_hearts_borken=is_hearts_borken, 
+                        is_hearts_broken=is_hearts_broken, 
                         expose_hearts_ace=expose_hearts_ace, 
                         tricks=tricks)
 

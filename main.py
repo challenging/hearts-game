@@ -14,6 +14,7 @@ from new_simulated_player import MonteCarloPlayer7
 from new_simple_player import NewSimplePlayer
 from mcts_player import MCTSPlayer
 from dragon_rider_player import RiderPlayer
+from intelligent_player import IntelligentPlayer
 
 
 if __name__ == "__main__":
@@ -45,13 +46,14 @@ if __name__ == "__main__":
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai == "mcts":
         player = MCTSPlayer(self_player_idx=3, verbose=True, c_puct=1.5)
-        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
+        other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
     elif player_ai == "rider":
         player = RiderPlayer(self_player_idx=3, verbose=True, c_puct=1.5)
-        other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
+        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai == "intelligent":
-        policy = PolicyValueNet()
-        player = IntelligentPlayer(policy.policy_value, self_player_idx=3, is_selfplay=True, verbose=True)
+        #policy = PolicyValueNet()
+        #player = IntelligentPlayer(policy.policy_value, self_player_idx=3, is_selfplay=True, verbose=True)
+        player = IntelligentPlayer(self_player_idx=3, verbose=True, c_puct=1.5)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai == "new_simple":
         player = NewSimplePlayer(verbose=True)

@@ -36,7 +36,7 @@ class TrainPipeline():
         self.c_puct = 1.5
 
         self.buffer_size = 2**15
-        self.batch_size = 512  # mini-batch size for training
+        self.batch_size = 2**9  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
         self.play_batch_size = 1
@@ -110,14 +110,6 @@ class TrainPipeline():
         elif kl < self.kl_targ / 2 and self.lr_multiplier < 10:
             self.lr_multiplier *= 1.5
 
-        """
-        explained_var_old = (1 -
-                             np.var(np.array(winner_batch) - old_v.flatten()) /
-                             np.var(np.array(winner_batch)))
-        explained_var_new = (1 -
-                             np.var(np.array(winner_batch) - new_v.flatten()) /
-                             np.var(np.array(winner_batch)))
-        """
 
         print(("kl:{:.5f}, lr_multiplier:{:.3f}, loss:{},").format(kl, self.lr_multiplier, loss))
 
