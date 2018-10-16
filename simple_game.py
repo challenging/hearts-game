@@ -60,13 +60,13 @@ class SimpleGame(object):
         else:
             self.score_cards = score_cards
 
-            if not self.is_show_pig_card or not self.is_show_double_card:
-                for cards in self.score_cards:
-                    if not self.is_show_pig_card or not self.is_show_double_card:
-                        self.check_show_pig_card(cards)
-                        self.check_show_double_card(cards)
+            #if not self.is_show_pig_card or not self.is_show_double_card:
+            for cards in self.score_cards:
+                if not self.is_show_pig_card or not self.is_show_double_card:
+                    self.check_show_pig_card(cards)
+                    self.check_show_double_card(cards)
 
-                    self.handle_current_info(cards)
+                self.handle_current_info(cards)
 
             self.check_shoot_the_moon(self.score_cards)
 

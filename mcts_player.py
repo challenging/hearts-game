@@ -61,19 +61,24 @@ class MCTSPlayer(RiderPlayer):
             hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
                 self.get_simple_game_info(game)
 
-            for idx in range(self.num_of_cpu):
-                self.mcts[idx].get_move(hand_cards, 
-                                        remaining_cards, 
-                                        score_cards, 
-                                        init_trick, 
-                                        void_info, 
-                                        must_have, 
-                                        selection_func, 
-                                        game.trick_nr+1, 
-                                        game.is_heart_broken, 
-                                        game.expose_heart_ace, 
-                                        False,
-                                        0.11)
+            pool = mp.Pool(processes=self.num_of_cpu)
+
+            mul_result = [pool.apply_async(self.mcts[idx].get_move, 
+                                           args=(hand_cards, 
+                                                 remaining_cards, 
+                                                 score_cards, 
+                                                 init_trick, 
+                                                 void_info, 
+                                                 must_have, 
+                                                 selection_func, 
+                                                 game.trick_nr+1, 
+                                                 game.is_heart_broken, 
+                                                 game.expose_heart_ace, 
+                                                 False,
+                                                 0.11)) for idx in range(self.num_of_cpu)]
+
+            results = [res.get() for res in mul_result]
+            pool.close()
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND-0.05):

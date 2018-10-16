@@ -14,7 +14,7 @@ from card import card_to_bitmask
 
 from simulated_player import MonteCarloPlayer5, COUNT_CPU
 
-from simple_complex_game import run_simulation
+from simple_game import run_simulation
 from strategy_play import random_choose, greedy_choose
 from expert_play import expert_choose
 

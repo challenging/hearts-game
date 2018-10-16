@@ -49,20 +49,20 @@ class RiderPlayer(MonteCarloPlayer7):
         hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
             self.get_simple_game_info(game)
 
-        self.mcts.get_move(hand_cards, 
-                           remaining_cards, 
-                           score_cards, 
-                           init_trick, 
-                           void_info, 
-                           must_have, 
-                           selection_func, 
-                           game.trick_nr+1, 
-                           game.is_heart_broken, 
-                           game.expose_heart_ace, 
-                           True, 
-                           0.15)
-
-        self.mcts.print_tree()
+        if remaining_cards:
+            print("remaining_cards", remaining_cards)
+            self.mcts.get_move(hand_cards, 
+                               remaining_cards, 
+                               score_cards, 
+                               init_trick, 
+                               void_info, 
+                               must_have, 
+                               selection_func, 
+                               game.trick_nr+1, 
+                               game.is_heart_broken, 
+                               game.expose_heart_ace, 
+                               True, 
+                               0.15)
 
 
     def get_simple_game_info(self, state):

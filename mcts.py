@@ -14,7 +14,7 @@ from card import card_to_bitmask, str_to_bitmask, translate_hand_cards, transfor
 
 from simulated_player import TIMEOUT_SECOND
 
-from simple_complex_game import SimpleGame
+from step_game import StepGame
 from redistribute_cards import redistribute_cards
 
 
@@ -246,13 +246,13 @@ class MCTS(object):
                 for player_idx, cards in enumerate(simulation_card):
                     simulation_card[player_idx] = str_to_bitmask(cards)
 
-                sm = SimpleGame(position=self._self_player_idx, 
-                                hand_cards=simulation_card, 
-                                void_info=copy.deepcopy(void_info),
-                                score_cards=copy.deepcopy(score_cards), 
-                                is_hearts_broken=is_heart_broken, 
-                                expose_hearts_ace=expose_heart_ace, 
-                                tricks=copy.deepcopy(init_trick))
+                sm = StepGame(position=self._self_player_idx, 
+                              hand_cards=simulation_card, 
+                              void_info=copy.deepcopy(void_info),
+                              score_cards=copy.deepcopy(score_cards), 
+                              is_hearts_broken=is_heart_broken, 
+                              expose_hearts_ace=expose_heart_ace, 
+                              tricks=copy.deepcopy(init_trick))
 
                 self._playout(trick_nr, sm, selection_func)
             except Exception as e:
