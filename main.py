@@ -35,8 +35,8 @@ if __name__ == "__main__":
         player = MonteCarloPlayer(verbose=True)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai == "mcts":
-        player = MCTSPlayer(verbose=True, c_puct=2)
-        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
+        player = MCTSPlayer(verbose=True, c_puct=3)
+        other_players = [MonteCarloPlayer7(verbose=False) for _ in range(3)]
     elif player_ai == "rider":
         player = RiderPlayer(verbose=True, c_puct=2)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]

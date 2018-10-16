@@ -131,85 +131,90 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
     for game_idx in range(nr_of_games):
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
             for round_idx in range(0, 4):
-                cards[0], cards[1], cards[2], cards[3] = cards[round_idx%4], cards[(round_idx+1)%4], cards[(round_idx+2)%4], cards[(round_idx+3)%4]
+                try:
+                    cards[0], cards[1], cards[2], cards[3] = cards[round_idx%4], cards[(round_idx+1)%4], cards[(round_idx+2)%4], cards[(round_idx+3)%4]
 
-                for passing_direction in range(0, 4 if is_rotating else 1):
-                    game = Game(players, verbose=True)
+                    for passing_direction in range(0, 4 if is_rotating else 1):
+                        game = Game(players, verbose=True)
 
-                    game._player_hands = copy.deepcopy(cards)
+                        game._player_hands = copy.deepcopy(cards)
 
-                    if passing_direction == 0:
-                        print("pass cards to left-side")
-                    elif passing_direction == 1:
-                        print("pass cards to cross-side")
-                    elif passing_direction == 2:
-                        print("pass cards to right-side")
-                    else:
-                        print("no passing cards")
+                        if passing_direction == 0:
+                            print("pass cards to left-side")
+                        elif passing_direction == 1:
+                            print("pass cards to cross-side")
+                        elif passing_direction == 2:
+                            print("pass cards to right-side")
+                        else:
+                            print("no passing cards")
 
-                    before_info = []
-                    for player_idx in range(4):
-                        before_info.append(cards[player_idx])
+                        before_info = []
+                        for player_idx in range(4):
+                            before_info.append(cards[player_idx])
 
-                    game.pass_cards(passing_direction)
+                        game.pass_cards(passing_direction)
 
-                    after_info = []
-                    for player_idx in range(4):
-                        if game.players[player_idx].proactive_mode and Card(Suit.hearts, Rank.ace) in game._player_hands[player_idx]:
-                            game.expose_heart_ace = True
+                        after_info = []
+                        for player_idx in range(4):
+                            if game.players[player_idx].proactive_mode and Card(Suit.hearts, Rank.ace) in game._player_hands[player_idx]:
+                                game.expose_heart_ace = True
 
-                            for idx in range(4):
-                                if player_idx != idx:
-                                    game.players[idx].set_transfer_card(player_idx, Card(Suit.hearts, Rank.ace))
+                                for idx in range(4):
+                                    if player_idx != idx:
+                                        game.players[idx].set_transfer_card(player_idx, Card(Suit.hearts, Rank.ace))
 
-                        after_info.append(game._player_hands[player_idx])
+                            after_info.append(game._player_hands[player_idx])
 
-                    for player_idx, (before_cards, after_cards) in enumerate(zip(before_info, after_info)):
-                        print("Player-{}'s init_cards: {} to {}".format(player_idx, before_cards, after_cards))
+                        for player_idx, (before_cards, after_cards) in enumerate(zip(before_info, after_info)):
+                            print("Player-{}'s init_cards: {} to {}".format(player_idx, before_cards, after_cards))
 
-                    for player_idx in range(4):
-                        if hasattr(game, "evaluate_proactive_mode"):
-                            game.players[player_idx].evaluate_proactive_mode(game._player_hands[player_idx])
+                        for player_idx in range(4):
+                            if hasattr(game, "evaluate_proactive_mode"):
+                                game.players[player_idx].evaluate_proactive_mode(game._player_hands[player_idx])
 
-                    game.play()
-                    game.score()
+                        game.play()
+                        game.score()
 
-                    scores = [0, 0, 0, 0]
-                    if game.is_shootmoon:
-                        is_proactive_mode = any([True if player.proactive_mode else False for player in game.players])
+                        scores = [0, 0, 0, 0]
+                        if game.is_shootmoon:
+                            is_proactive_mode = any([True if player.proactive_mode else False for player in game.players])
 
-                        if is_proactive_mode:
-                            for player_idx, score in enumerate(game.player_scores):
-                                proactive_moon_scores[player_idx].append(score)
+                            if is_proactive_mode:
+                                for player_idx, score in enumerate(game.player_scores):
+                                    proactive_moon_scores[player_idx].append(score)
 
-                                scores[player_idx] = score
+                                    scores[player_idx] = score
+                            else:
+                                for player_idx, score in enumerate(game.player_scores):
+                                    shooting_moon_scores[player_idx].append(score)
+
+                                    scores[player_idx] = score
                         else:
                             for player_idx, score in enumerate(game.player_scores):
-                                shooting_moon_scores[player_idx].append(score)
+                                final_scores[player_idx].append(score)
 
                                 scores[player_idx] = score
-                    else:
-                        for player_idx, score in enumerate(game.player_scores):
-                            final_scores[player_idx].append(score)
 
-                            scores[player_idx] = score
+                        if verbose:
+                            for player_idx, player in enumerate(players):
+                                mean_score = np.mean(final_scores[player_idx])
 
-                    if verbose:
-                        for player_idx, player in enumerate(players):
-                            mean_score = np.mean(final_scores[player_idx])
+                                n_proactive_mean_moon_score = sum([1 for score in proactive_moon_scores[player_idx] if score == 0])
+                                proactive_mean_moon_score = np.mean(proactive_moon_scores[player_idx]+final_scores[player_idx])
 
-                            n_proactive_mean_moon_score = sum([1 for score in proactive_moon_scores[player_idx] if score == 0])
-                            proactive_mean_moon_score = np.mean(proactive_moon_scores[player_idx]+final_scores[player_idx])
+                                n_mean_moon_score = sum([1 for score in shooting_moon_scores[player_idx] if score == 0])
+                                mean_moon_score = np.mean(shooting_moon_scores[player_idx]+proactive_moon_scores[player_idx]+final_scores[player_idx])
 
-                            n_mean_moon_score = sum([1 for score in shooting_moon_scores[player_idx] if score == 0])
-                            mean_moon_score = np.mean(shooting_moon_scores[player_idx]+proactive_moon_scores[player_idx]+final_scores[player_idx])
+                                print("--> {:16s}({}): {:3d} points, expose_hearts_ace={}, stats: (n={}/{}/{}, mean={:.3f}/{:.3f}/{:.3f})".format(\
+                                    type(player).__name__, player_idx, scores[player_idx], \
+                                    game.expose_heart_ace, len(final_scores[player_idx]), n_proactive_mean_moon_score, n_mean_moon_score, \
+                                    mean_score, proactive_mean_moon_score, mean_moon_score))
 
-                            print("--> {:16s}({}): {:3d} points, expose_hearts_ace={}, stats: (n={}/{}/{}, mean={:.3f}/{:.3f}/{:.3f})".format(\
-                                type(player).__name__, player_idx, scores[player_idx], \
-                                game.expose_heart_ace, len(final_scores[player_idx]), n_proactive_mean_moon_score, n_mean_moon_score, \
-                                mean_score, proactive_mean_moon_score, mean_moon_score))
+                        game.reset()
+                except Exception as e:
+                    import traceback
 
-                    game.reset()
+                    traceback.print_exc()
 
     stats = []
     for player_idx, scores in enumerate(final_scores):
