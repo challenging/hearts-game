@@ -1,4 +1,7 @@
 import sys
+import time
+
+import numpy as np
 
 from collections import deque
 
@@ -6,11 +9,18 @@ from rules import is_card_valid, is_score_card, card_points, reversed_score
 from game import Game
 
 
-class AlphaGame(Game):
+class IntelligentGame(Game):
     def __init__(self, players, buffer_size=2**15, verbose=False):
         super(AlphaGame, self).__init__(players, verbose)
 
+        self._short_memory = []
         self._memory = deque(maxlen=buffer_size)
+
+
+    def reset(self):
+        super(IntelligentGame, self).reset()
+
+        self._short_memory = []
 
 
     def get_memory(self):
@@ -41,6 +51,25 @@ class AlphaGame(Game):
         return status
 
 
+    def score_func(self, scores, position):
+        rating = [0, 0, 0, 0]
+
+        info = zip(range(4), scores)
+        pre_score, pre_rating, sum_score = None, None, np.array(scores)/np.sum(scores)
+        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
+            tmp_rating = rating_idx
+            if pre_score is not None:
+                if score == pre_score:
+                    tmp_rating = pre_rating
+
+            rating[player_idx] = (tmp_rating/4 + (1-sum_score[player_idx]))/2
+
+            pre_score = score
+            pre_rating = tmp_rating
+
+        return rating[position]
+
+
     def step(self, played_card=None):
         player_hand = self._player_hands[self.current_player_idx]
 
@@ -57,14 +86,13 @@ class AlphaGame(Game):
                 self.trick_nr, played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
 
         cards, probs, values = [], [], []
-        for card, info in played_probs.items():
+        for card, info in results.items():
             cards.append(card)
 
             probs.append(info[0])
             values.append(info[1])
 
-        #self._memory.append([self.current_status(), cards, probs, values, played_card, self.current_player_idx])
-        self._memory.append([cards, probs, values])
+        self._short_memory.append([cards, probs, values, self.current_player_idx])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
@@ -76,9 +104,11 @@ class AlphaGame(Game):
         if len(self.trick) == 4:
             self.round_over()
 
-        if self.trick_nr == 13:
-            self.score()
-            scores = self.player_scores
+            if self.trick_nr == 13:
+                self.score()
+                scores = self.player_scores
 
-            for idx, memory in enumerate(self._memory):
-                memory[-1] = self.score_func(scores, memory[-1])
+                for memory in enumerate(self._short_memory):
+                    memory[-1] = self.score_func(scores, memory[-1])
+
+                    self._memory.append(memory)

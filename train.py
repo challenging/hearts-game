@@ -19,7 +19,7 @@ from card import Suit, Rank, Card
 from card import read_card_games
 from rules import evaluate_players
 
-from alpha_game import AlphaGame as Game
+from alpha_game import IntelligentGame as Game
 from player import StupidPlayer
 from intelligent_player import IntelligentPlayer
 from simulated_player import MonteCarloPlayer6 as MonteCarloPlayer

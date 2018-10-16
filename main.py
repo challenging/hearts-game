@@ -8,8 +8,7 @@ from card import Suit, Rank, Card
 from rules import get_setting_cards, evaluate_players
 
 from player import StupidPlayer, SimplePlayer
-from simulated_player import MonteCarloPlayer, MonteCarloPlayer3
-from simulated_player import MonteCarloPlayer4, MonteCarloPlayer5, MonteCarloPlayer6
+from simulated_player import MonteCarloPlayer, MonteCarloPlayer4, MonteCarloPlayer5
 from new_simulated_player import MonteCarloPlayer7
 from new_simple_player import NewSimplePlayer
 from mcts_player import MCTSPlayer
@@ -29,26 +28,17 @@ if __name__ == "__main__":
     if player_ai == "mc7":
         player = MonteCarloPlayer7(verbose=True)
         other_players = [SimplePlayer(verbose=False) for player_idx in range(3)]
-    elif player_ai == "mc6":
-        player = MonteCarloPlayer6(verbose=True)
-        other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
     elif player_ai == "mc5":
         player = MonteCarloPlayer5(verbose=True)
         other_players = [MonteCarloPlayer4(verbose=False) for _ in range(3)]
-    elif player_ai == "mc4":
-        player = MonteCarloPlayer4(verbose=True)
-        other_players = [MonteCarloPlayer3(verbose=False) for _ in range(3)]
-    elif player_ai == "mc3":
-        player = MonteCarloPlayer3(verbose=True)
-        other_players = [MonteCarloPlayer(verbose=False) for _ in range(3)]
     elif player_ai == "mc":
         player = MonteCarloPlayer(verbose=True)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai == "mcts":
-        player = MCTSPlayer(self_player_idx=3, verbose=True, c_puct=1.5)
-        other_players = [MonteCarloPlayer5(verbose=False) for _ in range(3)]
+        player = MCTSPlayer(verbose=True, c_puct=2)
+        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai == "rider":
-        player = RiderPlayer(self_player_idx=3, verbose=True, c_puct=1.5)
+        player = RiderPlayer(verbose=True, c_puct=2)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai == "intelligent":
         #policy = PolicyValueNet()

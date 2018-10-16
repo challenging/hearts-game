@@ -16,15 +16,22 @@ from simulated_player import TIMEOUT_SECOND
 from new_simulated_player import MonteCarloPlayer7
 from strategy_play import greedy_choose
 from expert_play import expert_choose
-from mcts import MCTS, policy_value_fn
+from mcts import MCTS
+from mcts import policy_value_fn
 
 
 class RiderPlayer(MonteCarloPlayer7):
     """AI player based on MCTS"""
-    def __init__(self, self_player_idx, verbose=False, c_puct=2):
+    def __init__(self, verbose=False, c_puct=2):
         super(RiderPlayer, self).__init__(verbose=verbose)
 
-        self.mcts = MCTS(policy_value_fn, self_player_idx, c_puct)
+        self.c_puct = c_puct
+
+
+    def set_position(self, idx):
+        super(RiderPlayer, self).set_position(idx)
+
+        self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
 
 
     def reset(self):
@@ -70,7 +77,9 @@ class RiderPlayer(MonteCarloPlayer7):
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 
 
-    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
+    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND-0.05):
+        stime = time.time()
+
         game.are_hearts_broken()
 
         hand_cards = game._player_hands[self.position]
@@ -80,11 +89,23 @@ class RiderPlayer(MonteCarloPlayer7):
             self.get_simple_game_info(copy.deepcopy(game))
 
         played_card = \
-            self.mcts.get_move(hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func, game.trick_nr+1, game.is_heart_broken, game.expose_heart_ace, True)
+            self.mcts.get_move(hand_cards, 
+                               remaining_cards, 
+                               score_cards, 
+                               init_trick, 
+                               void_info, 
+                               must_have, 
+                               selection_func, 
+                               game.trick_nr+1, 
+                               game.is_heart_broken, 
+                               game.expose_heart_ace, 
+                               True, 
+                               simulation_time_limit)
 
         played_card_str = transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]])
 
-        self.say("Hand card: {}, Validated card: {}, Picked card: {}", hand_cards, valid_cards, played_card_str)
+        self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
+            time.time()-stime, hand_cards, valid_cards, played_card_str)
 
         #self.mcts.print_tree()
 

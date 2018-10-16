@@ -182,7 +182,8 @@ class BrainBot(LowPlayBot):
                 self.say("{}'s decision_time_info is {}", current_player_name, self.decision_time_info[current_player_name])
 
             self.game.trick.append(last_card)
-            self.player.seen_cards.append(last_card)
+            #self.player.seen_cards.append(last_card)
+            self.player.see_played_trick(last_card)
         else:
             self.say("found empty self.round_cards_history", self.round_cards_history)
 

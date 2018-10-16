@@ -90,7 +90,9 @@ class MonteCarloPlayer(SimplePlayer):
                 results = [res.get() for res in mul_result]
 
                 for card, score in results:
-                    winning_score[card].append(score)
+                    if score is not None:
+                        winning_score[card].append(score)
+
             pool.close()
 
             played_card = self.select_card(game, valid_cards, winning_score)
@@ -119,27 +121,32 @@ class MonteCarloPlayer(SimplePlayer):
 
 
     def run_simulation(self, game, hand_cards, played_card):
-        remaining_cards = self.get_remaining_cards(hand_cards)
+        self_score = None
 
-        current_trick_nr = game.trick_nr
-        game.verbose = False
-        game.players = self.get_players(game)
+        try:
+            remaining_cards = self.get_remaining_cards(hand_cards)
 
-        game = self.redistribute_cards(game, remaining_cards[:])
+            current_trick_nr = game.trick_nr
+            game.verbose = False
+            game.players = self.get_players(game)
 
-        game.step(played_card)
+            game = self.redistribute_cards(game, remaining_cards[:])
 
-        for _ in range(4-len(game.trick)):
-            game.step()
+            game.step(played_card)
 
-        for _ in range(13-game.trick_nr):
-            game.play_trick()
+            for _ in range(4-len(game.trick)):
+                game.step()
 
-        self.overwrite_game_rule(current_trick_nr, game)
+            for _ in range(13-game.trick_nr):
+                game.play_trick()
 
-        game.score()
+            self.overwrite_game_rule(current_trick_nr, game)
 
-        self_score = self.score_func(game.player_scores)
+            game.score()
+
+            self_score = self.score_func(game.player_scores)
+        except:
+            pass
 
         return played_card, self_score
 

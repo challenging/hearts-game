@@ -17,14 +17,19 @@ from mcts import TreeNode, MCTS
 
 from simulated_player import TIMEOUT_SECOND
 from new_simulated_player import MonteCarloPlayer7
+from strategy_play import random_choose
 
 
 class MCTSPlayer(RiderPlayer):
     """AI player based on MCTS"""
-    def __init__(self, self_player_idx, verbose=False, c_puct=2):
-        super(MCTSPlayer, self).__init__(self_player_idx=self_player_idx, verbose=verbose)
+    def __init__(self, verbose=False, c_puct=2):
+        super(MCTSPlayer, self).__init__(verbose=verbose, c_puct=c_puct)
 
-        self.mcts = [MCTS(policy_value_fn, self_player_idx, c_puct) for _ in range(self.num_of_cpu)]
+
+    def set_position(self, idx):
+        super(MCTSPlayer, self).set_position(idx)
+
+        self.mcts = [MCTS(policy_value_fn, self.position, self.c_puct) for _ in range(self.num_of_cpu)]
 
 
     def reset(self):
@@ -39,11 +44,24 @@ class MCTSPlayer(RiderPlayer):
 
         card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
+        is_found = []
+        is_not_found = []
         for idx in range(self.num_of_cpu):
-            self.mcts[idx].update_with_move(card)
+            is_reset = self.mcts[idx].update_with_move(card)
+
+            if not is_reset:
+                is_found.append(idx)
+            else:
+                is_not_found.append(idx)
+
+        if is_found and is_not_found:
+            for idx in is_not_found:
+                self.mcts[idx] = self.mcts[np.random.choice(is_found)]
 
 
-    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
+    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND-0.05):
+        stime = time.time()
+
         game.are_hearts_broken()
 
         hand_cards = game._player_hands[self.position]
@@ -65,14 +83,17 @@ class MCTSPlayer(RiderPlayer):
                                              game.trick_nr+1, 
                                              game.is_heart_broken, 
                                              game.expose_heart_ace, 
-                                             False)) for idx in range(self.num_of_cpu)]
+                                             False,
+                                             simulation_time_limit)) for idx in range(self.num_of_cpu)]
 
         results = [res.get() for res in mul_result]
 
         cards = defaultdict(int)
-        for sub_results in results:
-            for played_card, info in sub_results.items():
-                cards[played_card] += info[0]
+        for idx, mcts in enumerate(results):
+            for played_card, node in sorted(mcts._root._children.items(), key=lambda x: x[1]._n_visits):
+                cards[played_card] += node._n_visits
+
+            self.mcts[idx] = mcts
 
         for played_card, n_visits in sorted(cards.items(), key=lambda x: x[1]):
             played_card = transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]])
@@ -80,6 +101,6 @@ class MCTSPlayer(RiderPlayer):
 
         pool.close()
 
-        self.say("Hand card: {}, Validated card: {}, Picked card: {}", hand_cards, valid_cards, played_card)
+        self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", (time.time()-stime), hand_cards, valid_cards, played_card)
 
         return played_card

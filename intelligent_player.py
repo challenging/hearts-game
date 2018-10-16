@@ -7,21 +7,9 @@ import numpy as np
 from card import INDEX_TO_NUM, INDEX_TO_SUIT, SUIT_TO_INDEX, NUM_TO_INDEX
 from card import transform, translate_hand_cards
 
-from mcts import MCTS
+from mcts import MCTS, policy_value_fn
 from simulated_player import TIMEOUT_SECOND
 from new_simulated_player import MonteCarloPlayer7
-
-
-def policy_value_fn(trick_nr, state):
-    """a function that takes in a state and outputs a list of (action, probability)
-    tuples and a score for the state"""
-
-    valid_cards = state.get_myself_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1)
-    valid_moves = translate_hand_cards(valid_cards, is_bitmask=True)
-
-    action_probs = np.ones(len(valid_moves)) / len(valid_moves)
-
-    return zip(valid_moves, action_probs), 0
 
 
 class IntelligentPlayer(MonteCarloPlayer7):

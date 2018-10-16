@@ -35,15 +35,14 @@ class TreeNode(object):
     prior probability P, and its visit-count-adjusted prior score u.
     """
 
-    def __init__(self, parent, prior_p, self_player_idx, player_idx):
+    def __init__(self, parent, prior_p, player_idx):
         self._parent = parent
 
-        self._self_player_idx = self_player_idx
         self._player_idx = player_idx
 
         self._children = {}  # a map from action to TreeNode
         self._n_visits = 0
-        self._Q = 0
+        self._Q = [0, 0, 0, 0]
         self._u = 0
         self._P = prior_p
 
@@ -56,19 +55,19 @@ class TreeNode(object):
 
         for action, prob in action_priors:
             if action not in self._children:
-                self._children[action] = TreeNode(self, prob, self._self_player_idx, player_idx)
+                self._children[action] = TreeNode(self, prob, player_idx)
 
 
-    def select(self, c_puct):
+    def select(self, c_puct, player_idx):
         """Select action among children that gives maximum action value Q
         plus bonus u(P).
         Return: A tuple of (action, next_node)
         """
 
-        return sorted(self._children.items(), key=lambda act_node: -act_node[1].get_value(c_puct))
+        return sorted(self._children.items(), key=lambda act_node: -act_node[1].get_value(c_puct, player_idx))
 
 
-    def update(self, leaf_value):
+    def update(self, scores):
         """Update node values from leaf evaluation.
         leaf_value: the value of subtree evaluation from the current player's
             --perspective.
@@ -77,7 +76,10 @@ class TreeNode(object):
         self._n_visits += 1
 
         # Update Q, a running average of values for all visits.
-        self._Q += (leaf_value - self._Q) / self._n_visits
+        for player_idx in range(4):
+            multiply = (1 if self._player_idx == player_idx else -1)
+
+            self._Q[player_idx] += (scores[player_idx]*multiply - self._Q[player_idx]) / self._n_visits
 
 
     def update_recursive(self, scores):
@@ -90,10 +92,10 @@ class TreeNode(object):
         if self._player_idx is None:
             self._n_visits += 1
         else:
-            self.update(scores[self._player_idx]*(1 if self._self_player_idx == self._player_idx else -1))
+            self.update(scores)
 
 
-    def get_value(self, c_puct):
+    def get_value(self, c_puct, player_idx):
         """Calculate and return the value for this node.
         It is a combination of leaf evaluations Q, and this node's prior
         adjusted for its visit count, u.
@@ -102,7 +104,7 @@ class TreeNode(object):
         """
         self._u = (c_puct * self._P * np.sqrt(self._parent._n_visits) / (1 + self._n_visits))
 
-        return self._Q + self._u
+        return self._Q[player_idx] + self._u
 
 
     def is_leaf(self):
@@ -118,7 +120,7 @@ class TreeNode(object):
 class MCTS(object):
     """A simple implementation of Monte Carlo Tree Search."""
 
-    def __init__(self, policy_value_fn, self_player_idx, c_puct=5):
+    def __init__(self, policy_value_fn, self_player_idx, c_puct=2):
         """
         policy_value_fn: a function that takes in a board state and outputs
             a list of (action, probability) tuples and also a score in [-1, 1]
@@ -131,7 +133,7 @@ class MCTS(object):
         """
 
         self._self_player_idx = self_player_idx
-        self._root = TreeNode(None, 1.0, self_player_idx, None)
+        self._root = TreeNode(None, 1.0, None)
 
         self._policy = policy_value_fn
         self._c_puct = c_puct
@@ -162,7 +164,7 @@ class MCTS(object):
                 break
 
             is_valid = False
-            for played_card, node in node.select(self._c_puct):
+            for played_card, node in node.select(self._c_puct, state.start_pos):
                 suit, rank = played_card[0], played_card[1]
                 if valid_cards.get(suit, 0) & rank:
                     state.step(trick_nr, selection_func, played_card)
@@ -173,67 +175,19 @@ class MCTS(object):
             if not is_valid:
                 break
 
-        action_probs, _ = self._policy(trick_nr, state)
-        action_probs = list(action_probs)
+        action_probs, action_scores = self._policy(trick_nr, state)
 
         # Check for end of game
         if not state.is_finished:
             node.expand(state.start_pos, action_probs)
 
-        # Evaluate the leaf node by random rollout
-        #leaf_value = self._evaluate_rollout(state)
-        # Update value and visit count of nodes in this traversal.
-        #node.update_recursive(-leaf_value)
-
-        scores = self._evaluate_rollout(trick_nr, state, selection_func)
-        node.update_recursive(scores)
+        node.update_recursive(action_scores)
 
 
-    def _evaluate_rollout(self, trick_nr, state, selection_func):
-        """Use the rollout policy to play until the end of the game,
-        returning +1 if the current player wins, -1 if the opponent wins,
-        and 0 if it is a tie.
-        """
-
-        while not state.is_finished:
-            state.step(trick_nr, selection_func)
-
-        scores, _ = state.score()
-        rating = [0, 0, 0, 0]
-
-        info = zip(range(4), scores)
-        pre_score, pre_rating, sum_score = None, None, np.array(scores)/np.sum(scores)
-        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
-            tmp_rating = rating_idx
-            if pre_score is not None:
-                if score == pre_score:
-                    tmp_rating = pre_rating
-
-            rating[player_idx] = (tmp_rating/4 + (1-sum_score[player_idx]))/2
-
-            pre_score = score
-            pre_rating = tmp_rating
-
-        return rating
-
-
-    def get_move(self, 
-                 hand_cards, 
-                 remaining_cards, 
-                 score_cards, 
-                 init_trick, 
-                 void_info, 
-                 must_have, 
-                 selection_func, 
-                 trick_nr, 
-                 is_heart_broken, 
-                 expose_heart_ace, 
-                 is_only_played_card=False, 
-                 simulation_time_limit=TIMEOUT_SECOND-0.1):
-
+    def get_move(self, hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func, trick_nr, is_heart_broken, expose_heart_ace, is_only_played_card=False):
         stime = time.time()
 
-        simulation_cards = redistribute_cards(int(time.time()*1000)/1024, 
+        simulation_cards = redistribute_cards(int(time.time()*1000), 
                                               self._self_player_idx, 
                                               copy.deepcopy(hand_cards), 
                                               init_trick[-1][1], 
@@ -242,29 +196,37 @@ class MCTS(object):
                                               void_info)
 
         for simulation_card in simulation_cards:
-            try:
-                for player_idx, cards in enumerate(simulation_card):
-                    simulation_card[player_idx] = str_to_bitmask(cards)
+            for player_idx, cards in enumerate(simulation_card):
+                simulation_card[player_idx] = str_to_bitmask(cards)
 
-                sm = SimpleGame(position=self._self_player_idx, 
-                                hand_cards=simulation_card, 
-                                void_info=copy.deepcopy(void_info),
-                                score_cards=copy.deepcopy(score_cards), 
-                                is_hearts_broken=is_heart_broken, 
-                                expose_hearts_ace=expose_heart_ace, 
-                                tricks=copy.deepcopy(init_trick))
+            sm = SimpleGame(position=self._self_player_idx, 
+                            hand_cards=simulation_card, 
+                            void_info=copy.deepcopy(void_info),
+                            score_cards=copy.deepcopy(score_cards), 
+                            is_hearts_broken=is_heart_broken, 
+                            expose_hearts_ace=expose_heart_ace, 
+                            tricks=copy.deepcopy(init_trick))
 
-                self._playout(trick_nr, sm, selection_func)
-            except Exception as e:
-                pass
+            self._playout(trick_nr, sm, selection_func)
 
-            if time.time()-stime > simulation_time_limit:
+            if time.time()-stime > TIMEOUT_SECOND:
                 break
 
+        results = defaultdict(list)
+        total_n_visits = 0
+        for played_card, node in sorted(self._root._children.items(), key=lambda x: x[1]._n_visits):
+            print("---->", transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]]), node.get_value(self._c_puct), node._n_visits)
+
+            results[played_card] = [node._n_visits, node.get_value(self._c_puct)]
+            total_n_visits += node._n_visits
+
+        for info in results.values():
+            info[0] /= total_n_visits
+
         if is_only_played_card:
-            return sorted(self._root._children.items(), key=lambda x: -x[1]._n_visits)[0][0]
+            return played_card
         else:
-            return self
+            return results
 
 
     def update_with_move(self, last_move):
@@ -272,21 +234,16 @@ class MCTS(object):
         about the subtree.
         """
 
-        is_reset = True
         if last_move in self._root._children:
             self._root = self._root._children[last_move]
             self._root._parent = None
             self._player_idx = None
-
-            is_reset = False
 
             #print("reset the root to be {}".format(last_move))
         else:
             self._root = TreeNode(None, 1.0, self._self_player_idx, None)
 
             #print("reset the root because {} is NOT found".format(last_move))
-
-        return is_reset
 
 
     def print_tree(self, node=None, card=None, depth=0):
