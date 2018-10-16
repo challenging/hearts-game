@@ -3,8 +3,8 @@ import sys
 from sample_bot import PokerSocket
 from brain_bot import BrainBot
 
-from simulated_player import MonteCarloPlayer5
 from new_simulated_player import MonteCarloPlayer7
+from mcts_player import MCTSPlayer
 
 def main():
     argv_count=len(sys.argv)
@@ -22,7 +22,7 @@ def main():
         token = "12345678"
         connect_url = "ws://localhost:8080/"
 
-    bot = BrainBot(player_name, MonteCarloPlayer7(verbose=True))
+    bot = BrainBot(player_name, MCTSPlayer(verbose=True))
     print("use the player - {}".format(type(bot.player).__name__))
 
     myPokerSocket = PokerSocket(player_name, player_number, token, connect_url, bot)

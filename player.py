@@ -82,7 +82,7 @@ class Player(object):
         """
         return NotImplemented
 
-    def see_played_trick(self, card):
+    def see_played_trick(self, card, game):
         """
         Allows the player to have a look at all four cards in the trick being played.
         """

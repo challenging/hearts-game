@@ -1,7 +1,6 @@
 """This module containts the abstract class Player and some implementations."""
 import sys
 
-import copy
 import time
 
 import numpy as np
@@ -40,12 +39,30 @@ class RiderPlayer(MonteCarloPlayer7):
         self.mcts.update_with_move(-1)
 
 
-    def see_played_trick(self, card):
-        super(RiderPlayer, self).see_played_trick(card)
+    def see_played_trick(self, card, game):
+        super(RiderPlayer, self).see_played_trick(card, game)
 
         card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
         self.mcts.update_with_move(card)
+
+        hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
+            self.get_simple_game_info(game)
+
+        self.mcts.get_move(hand_cards, 
+                           remaining_cards, 
+                           score_cards, 
+                           init_trick, 
+                           void_info, 
+                           must_have, 
+                           selection_func, 
+                           game.trick_nr+1, 
+                           game.is_heart_broken, 
+                           game.expose_heart_ace, 
+                           True, 
+                           0.15)
+
+        self.mcts.print_tree()
 
 
     def get_simple_game_info(self, state):
@@ -59,7 +76,7 @@ class RiderPlayer(MonteCarloPlayer7):
         for player_idx, cards in enumerate(state._cards_taken):
             score_cards.append(card_to_bitmask(cards))
 
-        init_trick = [[None, state.trick]]
+        init_trick = [[None, state.trick[:]]]
         for trick_idx, (winner_index, trick) in enumerate(init_trick):
             for card_idx, card in enumerate(trick):
                 for suit, rank in str_to_bitmask([card]).items():
@@ -86,7 +103,7 @@ class RiderPlayer(MonteCarloPlayer7):
         valid_cards = self.get_valid_cards(hand_cards, game)
 
         hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
-            self.get_simple_game_info(copy.deepcopy(game))
+            self.get_simple_game_info(game)
 
         played_card = \
             self.mcts.get_move(hand_cards, 

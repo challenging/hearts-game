@@ -271,7 +271,7 @@ class Game(object):
         self.trick.append(played_card)
 
         for i in range(4):
-            self.players[i].see_played_trick(self.trick[-1])
+            self.players[i].see_played_trick(self.trick[-1], self)
 
         self.current_player_idx = (self.current_player_idx+1)%4
         if len(self.trick) == 4:

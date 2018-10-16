@@ -183,7 +183,7 @@ class BrainBot(LowPlayBot):
 
             self.game.trick.append(last_card)
             #self.player.seen_cards.append(last_card)
-            self.player.see_played_trick(last_card)
+            self.player.see_played_trick(last_card, self.game)
         else:
             self.say("found empty self.round_cards_history", self.round_cards_history)
 

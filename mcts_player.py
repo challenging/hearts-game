@@ -1,7 +1,6 @@
 """This module containts the abstract class Player and some implementations."""
 import sys
 
-import copy
 import time
 
 import numpy as np
@@ -39,8 +38,8 @@ class MCTSPlayer(RiderPlayer):
             self.mcts[idx].update_with_move(-1)
 
 
-    def see_played_trick(self, card):
-        super(RiderPlayer, self).see_played_trick(card)
+    def see_played_trick(self, card, game):
+        super(RiderPlayer, self).see_played_trick(card, game)
 
         card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
@@ -58,6 +57,24 @@ class MCTSPlayer(RiderPlayer):
             for idx in is_not_found:
                 self.mcts[idx] = self.mcts[np.random.choice(is_found)]
 
+        if is_found:
+            hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
+                self.get_simple_game_info(game)
+
+            for idx in range(self.num_of_cpu):
+                self.mcts[idx].get_move(hand_cards, 
+                                        remaining_cards, 
+                                        score_cards, 
+                                        init_trick, 
+                                        void_info, 
+                                        must_have, 
+                                        selection_func, 
+                                        game.trick_nr+1, 
+                                        game.is_heart_broken, 
+                                        game.expose_heart_ace, 
+                                        False,
+                                        0.11)
+
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND-0.05):
         stime = time.time()
@@ -68,7 +85,7 @@ class MCTSPlayer(RiderPlayer):
         valid_cards = self.get_valid_cards(hand_cards, game)
 
         hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
-            self.get_simple_game_info(copy.deepcopy(game))
+            self.get_simple_game_info(game)
 
         pool = mp.Pool(processes=self.num_of_cpu)
 
