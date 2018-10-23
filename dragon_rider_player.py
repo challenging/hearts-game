@@ -3,7 +3,8 @@ import sys
 
 import time
 
-import numpy as np
+#import numpy as np
+from random import choice, shuffle
 
 from collections import defaultdict
 
@@ -13,7 +14,7 @@ from card import card_to_bitmask, str_to_bitmask, translate_hand_cards, transfor
 
 from simulated_player import TIMEOUT_SECOND
 from new_simulated_player import MonteCarloPlayer7
-from strategy_play import greedy_choose
+from strategy_play import greedy_choose, random_choose
 from expert_play import expert_choose
 from mcts import MCTS
 from mcts import policy_value_fn
@@ -49,20 +50,25 @@ class RiderPlayer(MonteCarloPlayer7):
         hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
             self.get_simple_game_info(game)
 
-        if remaining_cards:
-            print("remaining_cards", remaining_cards)
-            self.mcts.get_move(hand_cards, 
-                               remaining_cards, 
-                               score_cards, 
-                               init_trick, 
-                               void_info, 
-                               must_have, 
-                               selection_func, 
-                               game.trick_nr+1, 
-                               game.is_heart_broken, 
-                               game.expose_heart_ace, 
-                               True, 
-                               0.15)
+        if remaining_cards and len(init_trick[-1][1]) < 4 and len(game._player_hands[self.position]) > 0 and len(game._player_hands[self.position]) < 13:
+            try:
+                self.mcts.get_move(hand_cards, 
+                                   remaining_cards, 
+                                   score_cards, 
+                                   init_trick, 
+                                   void_info, 
+                                   must_have, 
+                                   selection_func, 
+                                   game.trick_nr+1, 
+                                   game.is_heart_broken, 
+                                   game.expose_heart_ace, 
+                                   True, 
+                                   0.15,
+                                   False)
+            except:
+                self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
+
+                print("error in seen_cards")
 
 
     def get_simple_game_info(self, state):
@@ -89,12 +95,23 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = np.random.choice([expert_choose, greedy_choose], size=4, p=[0.5, 0.5])
+        #selection_func = [choice([expert_choose, greedy_choose]) for _ in range(4)]
+
+        num_of_suit = [0, 0, 0, 0]
+        for card in state._player_hands[self.position]:
+            num_of_suit[card.suit.value] += 1
+
+        if state.trick_nr < 5 and any([True if num < 2 or num > 5 else False for num in num_of_suit]):
+            selection_func = [greedy_choose]*4
+        else:
+            selection_func = [choice([expert_choose, greedy_choose]) for _ in range(4)]
+            shuffle(selection_func)
+        #print(selection_func)
 
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 
 
-    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND-0.05):
+    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
         stime = time.time()
 
         game.are_hearts_broken()
@@ -117,15 +134,14 @@ class RiderPlayer(MonteCarloPlayer7):
                                game.is_heart_broken, 
                                game.expose_heart_ace, 
                                True, 
-                               simulation_time_limit)
+                               simulation_time_limit,
+                               True)
 
-        played_card_str = transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]])
+        played_card = transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]])
 
         self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
-            time.time()-stime, hand_cards, valid_cards, played_card_str)
+            time.time()-stime, hand_cards, valid_cards, played_card)
 
         #self.mcts.print_tree()
-
-        played_card = played_card_str
 
         return played_card

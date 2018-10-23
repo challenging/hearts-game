@@ -5,7 +5,9 @@ import sys
 import time
 import copy
 
-import numpy as np
+#import numpy as np
+import statistics
+from random import choice
 
 from collections import defaultdict
 
@@ -13,9 +15,9 @@ from card import Rank, Suit, Card, Deck
 
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
 from card import EMPTY_CARDS, FULL_CARDS, RANK_SUM
-from card import card_to_bitmask, str_to_bitmask, bitmask_to_str, count_points, transform
+from card import card_to_bitmask, str_to_bitmask, bitmask_to_str, count_points
 
-from rules import is_card_valid
+from rules import is_card_valid, transform
 from redistribute_cards import redistribute_cards
 from strategy_play import random_choose, greedy_choose
 from expert_play import expert_choose
@@ -31,7 +33,7 @@ class SimpleGame(object):
                  hand_cards,
                  void_info=None,
                  score_cards=None,
-                 is_hearts_broken=False,
+                 is_hearts_borken=False,
                  is_show_pig_card=False,
                  is_show_double_card=False,
                  has_point_players=set(),
@@ -60,7 +62,6 @@ class SimpleGame(object):
         else:
             self.score_cards = score_cards
 
-            #if not self.is_show_pig_card or not self.is_show_double_card:
             for cards in self.score_cards:
                 if not self.is_show_pig_card or not self.is_show_double_card:
                     self.check_show_pig_card(cards)
@@ -71,8 +72,17 @@ class SimpleGame(object):
             self.check_shoot_the_moon(self.score_cards)
 
         self.tricks = tricks
+        if self.tricks:
+            cards = {0: 0, 1:0 , 2:0, 3:0}
+            for _ , tmp_cards in self.tricks:
+                for suit, rank in tmp_cards:
+                    cards.setdefault(suit, rank)
+                    cards[suit] |= rank
 
-        self.is_hearts_broken = is_hearts_broken
+            if cards:
+                self.handle_current_info(cards)
+
+        self.is_hearts_broken = is_hearts_borken
         self.expose_hearts_ace = 2 if expose_hearts_ace else 1
 
         self.played_card = None
@@ -100,6 +110,7 @@ class SimpleGame(object):
 
 
     def check_shoot_the_moon(self, score_cards):
+        #print("score_cards", score_cards)
         for player_idx, cards in enumerate(score_cards):
             if cards[SUIT_TO_INDEX["S"]] & NUM_TO_INDEX["Q"]:
                 self.has_point_players.add(player_idx)
@@ -143,11 +154,11 @@ class SimpleGame(object):
             return False
 
 
-    def get_myself_valid_cards(self, hand_cards, current_round_idx=None):
-        return self.get_valid_cards(copy.copy(hand_cards), current_round_idx)
-
-
     def get_valid_cards(self, cards, current_round_idx):
+        return self.get_myself_valid_cards(copy.copy(cards), current_round_idx)
+
+
+    def get_myself_valid_cards(self, cards, current_round_idx=None):
         if current_round_idx is None:
             current_round_idx = len(self.tricks)
 
@@ -212,7 +223,7 @@ class SimpleGame(object):
 
 
     def just_run_one_step(self, current_round_idx, selection_func):
-        valid_cards = self.get_myself_valid_cards(self.hand_cards[self.position], current_round_idx)
+        valid_cards = self.get_valid_cards(self.hand_cards[self.position], current_round_idx)
 
         ccards, played_card = selection_func(self.position, 
                                              valid_cards, 
@@ -243,7 +254,7 @@ class SimpleGame(object):
                 self.current_info[suit][1] ^= rank
 
             if played_card is None:
-                valid_cards = self.get_myself_valid_cards(self.hand_cards[self.position], current_round_idx)
+                valid_cards = self.get_valid_cards(self.hand_cards[self.position], current_round_idx)
                 candicated_cards, played_card = first_choose(\
                     self.position, valid_cards, current_trick[1], self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players, self.current_info, self.void_info)
 
@@ -255,7 +266,7 @@ class SimpleGame(object):
             for trick_idx in range(4-len(current_trick[1])):
                 player_idx = (self.position+(trick_idx+1))%4
 
-                valid_cards = self.get_myself_valid_cards(self.hand_cards[player_idx], current_round_idx)
+                valid_cards = self.get_valid_cards(self.hand_cards[player_idx], current_round_idx)
                 #if sum(valid_cards.values()) == 0:
                 #    print(1111, current_round_idx, player_idx, "--->", self.hand_cards, valid_cards)
 
@@ -284,7 +295,6 @@ class SimpleGame(object):
             self.score_cards[start_pos][suit] |= rank
 
         self.post_round_end()
-
         if IS_DEBUG:
             print("trick_no={}, trick={}, is_hearts_broken={}, is_show_pig_card={}, is_show_double_card={}, has_point_players={}, winning_card={}, start_pos={}".format(\
                 current_round_idx, self.translate_trick_cards(), self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players,\
@@ -293,6 +303,7 @@ class SimpleGame(object):
             for player_idx in range(4):
                 print("\tplayer-{}'s hand_cards is {}".format(player_idx, sorted(self.translate_hand_cards(self.hand_cards[player_idx]))))
 
+        candicated_cards = [[], [], [], []]
         for round_idx in range(13-current_round_idx):
             self.tricks.append([None, []])
 
@@ -302,7 +313,7 @@ class SimpleGame(object):
                 if start_pos == self.position:
                     current_index = trick_idx
 
-                valid_cards = self.get_myself_valid_cards(self.hand_cards[start_pos])
+                valid_cards = self.get_valid_cards(self.hand_cards[start_pos], len(self.tricks))
                 #if sum(valid_cards.values()) == 0:
                 #    print(2222, round_idx, current_round_idx, start_pos, "--->", self.hand_cards[start_pos], valid_cards)
 
@@ -332,10 +343,10 @@ class SimpleGame(object):
 
             self.tricks[-1][0] = (start_pos+3)%4
 
+            self.post_round_end()
+
             for suit, rank in self.tricks[-1][1]:
                 self.score_cards[start_pos][suit] |= rank
-
-            self.post_round_end()
 
             if IS_DEBUG:
                 print("trick_no={}, trick={}, is_hearts_broken={}, is_show_pig_card={}, is_show_double_card={}, has_point_players={}, winning_card={}, start_pos={}".format(\
@@ -365,8 +376,8 @@ class SimpleGame(object):
         scores = [count_points(cards, self.expose_hearts_ace) for player_idx, cards in enumerate(self.score_cards)]
 
         is_my_shoot_the_moon = False
-        max_score = np.max(scores)
-        if np.sum([1 for score in scores if score == 0]) == 3:
+        max_score = max(scores)
+        if sum([1 for score in scores if score == 0]) == 3:
             for player_idx, score in enumerate(scores):
                 scores[player_idx] = max_score if score == 0 else 0
 
@@ -404,8 +415,8 @@ class SimpleGame(object):
         cards = []
 
         for suit, ranks in hand_cards.items():
-            bit_mask = 1
-            while bit_mask <= 4096:
+            bit_mask = NUM_TO_INDEX["2"]
+            while bit_mask <= NUM_TO_INDEX["A"]:
                 if hand_cards[suit] & bit_mask:
                     cards.append(transform(INDEX_TO_NUM[bit_mask], INDEX_TO_SUIT[suit]))
 
@@ -417,8 +428,8 @@ class SimpleGame(object):
     def translate_taken_cards(self, hand_cards):
         cards = []
 
-        bit_mask = 1
-        while bit_mask <= 4096:
+        bit_mask = NUM_TO_INDEX["2"]
+        while bit_mask <= NUM_TO_INDEX["A"]:
             if hand_cards[SUIT_TO_INDEX["H"]] & bit_mask:
                 cards.append(transform(INDEX_TO_NUM[bit_mask], "H"))
 
@@ -444,7 +455,7 @@ class SimpleGame(object):
 
 
 def simulation(current_round_idx, position, hand_cards, tricks,
-               void_info={}, score_cards=None, is_hearts_broken=False, expose_hearts_ace=False, played_card=None, selection_func=None,
+               void_info={}, score_cards=None, is_hearts_borken=False, expose_hearts_ace=False, played_card=None, selection_func=None,
                proactive_mode=None):
 
     sm = None
@@ -456,7 +467,7 @@ def simulation(current_round_idx, position, hand_cards, tricks,
                         hand_cards=hand_cards, 
                         void_info=void_info,
                         score_cards=score_cards, 
-                        is_hearts_broken=is_hearts_broken, 
+                        is_hearts_borken=is_hearts_borken, 
                         expose_hearts_ace=expose_hearts_ace, 
                         tricks=tricks)
 
@@ -465,11 +476,11 @@ def simulation(current_round_idx, position, hand_cards, tricks,
                 print("player-{}'s hand_cards is {}".format(player_idx, sm.translate_hand_cards(hand_cards[player_idx])))
 
         if proactive_mode:
-            ff = dict([[player_idx, random_choose if player_idx == position else np.random.choice(selection_func)] for player_idx in range(4)])
+            ff = dict([[player_idx, random_choose if player_idx == position else choice(selection_func)] for player_idx in range(4)])
         elif len(selection_func) == 1:
-            ff = dict([[player_idx, np.random.choice(selection_func)] for player_idx in range(4)])
+            ff = dict([[player_idx, choice(selection_func)] for player_idx in range(4)])
         else:
-            ff = dict(zip(range(4),  np.random.choice(selection_func, size=4, p=[0.5, 0.5])))
+            ff = dict(zip(range(4), [choice(selection_func) for _ in range(4)]))
 
         sm.run(current_round_idx, played_card=played_card, selection_func=ff)
         scores, num_of_shoot_the_moon = sm.score()
@@ -480,6 +491,8 @@ def simulation(current_round_idx, position, hand_cards, tricks,
 
         return sm.played_card, scores, sm.score_cards, num_of_shoot_the_moon
     except:
+        raise
+
         for player_idx, cards in enumerate(hand_cards):
             print("player-{}'s hand_cards is {}".format(player_idx, sm.translate_hand_cards(hand_cards[player_idx])))
         print()
@@ -531,7 +544,8 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
         rating = [0, 0, 0, 0]
 
         info = zip(range(4), scores)
-        pre_score, pre_rating, sum_score = None, None, np.array(scores)/np.sum(scores)
+        total_score = sum(scores)
+        pre_score, pre_rating, sum_score = None, None, [score/total_score for score in scores]
         for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
             tmp_rating = rating_idx
             if pre_score is not None:
@@ -553,7 +567,7 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
 
 
 def one_step_simulation(current_round_idx, position, hand_cards, tricks,
-                   void_info={}, score_cards=None, is_hearts_broken=False, expose_hearts_ace=False, played_card=None, selection_func=None):
+                   void_info={}, score_cards=None, is_hearts_borken=False, expose_hearts_ace=False, played_card=None, selection_func=None):
 
     for player_idx, cards in enumerate(hand_cards):
         hand_cards[player_idx] = str_to_bitmask(cards)
@@ -562,7 +576,7 @@ def one_step_simulation(current_round_idx, position, hand_cards, tricks,
                     hand_cards=hand_cards, 
                     void_info=void_info, 
                     score_cards=score_cards, 
-                    is_hearts_broken=is_hearts_broken, 
+                    is_hearts_borken=is_hearts_borken, 
                     expose_hearts_ace=expose_hearts_ace, 
                     tricks=tricks)
 
@@ -588,7 +602,7 @@ def run_one_step(current_round_idx, position, init_trick, hand_cards, is_hearts_
 
     for simulation_card in simulation_cards:
         card = one_step_simulation(current_round_idx, 
-                                   position, 
+                                   osition, 
                                    simulation_card, 
                                    copy.deepcopy(init_trick), 
                                    void_info,
@@ -618,17 +632,35 @@ if __name__ == "__main__":
     hand_4 = "".replace(" ", "")
     """
 
+    """
+    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.king)]]]
+    hand_1 = "8H, 6H, 7D, 6S, 5C, 4D, 4S, 3C, 3D, 3S, QS, AH, KH".replace(" ", "")
+    hand_2 = "JS, 9H, TS, 9S, 8C, 8D, 8S, 5S, 3H, AS, KS, AD".replace(" ", "")
+    hand_3 = "9C, 9D, 7H, 7S, 5H, 6C, 6D, 4H, 2H, QD, TH, JC".replace(" ", "")
+    hand_4 = "JH, TC, QC, JD, TD, 7C, 5D, 4C, 2D, 2S, AC, QH, KD".replace(" ", "")
+    """
+
+    """
+    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.ace)]]]
+    hand_1 = "TD, 9S, 6H, 7C, 7D, 7S, 6S, 5D, 4S, 3D, QH, KD, JD".replace(" ", "")
+    hand_2 = "TC, TH, 8C, 6D, 5C, 5S, 3H, 2H, 2D, QS, KS, AD".replace(" ", "")
+    hand_3 = "JS, TS, 9C, 9D, 8D, 5H, 4H, 4D, 3C, 3S, KH, JC".replace(" ", "")
+    hand_4 = "KC, QC, QD, 9H, 8H, 7H, 8S, 6C, 4C, 2S, AS, AH, JH".replace(" ", "")
+    """
+
+    """
+    init_trick = [[None, [Card(Suit.clubs, Rank.two), Card(Suit.clubs, Rank.five)]]]
+    hand_1 = "9C, 7H, 7C, 7D, 5H, 6D, 5D, 4D, 2D, 2S, AS, AH, KD".replace(" ", "")
+    hand_2 = "JH, TC, QC, TH, TS, 8C, 7S, 4H, 3C, AC, AD, QH".replace(" ", "")
+    hand_3 = "8H, 9D, 9S, 6H, 6C, 3H, 2H, 3D, 3S, QS, JS, 9H".replace(" ", "")
+    hand_4 = "QD, JC, JD, TD, 8D, 8S, 6S, 5S, 4C, 4S, KS, KH, KC".replace(" ", "")
+    """
+
     init_trick = [[None, []]]
     hand_1 = "JH, TC, 7H, 8C, 6H, 5H, 6C, 3H, 2H, 3S, QS, QC, 9H".replace(" ", "")
     hand_2 = "TH, JD, 8H, 9S, 8S, 5C, 5S, 4D, 4S, 2S, AS, KC, QD".replace(" ", "")
     hand_3 = "AH, 9D, 7C, 7D, 6S, 4H, 5D, 4C, 3D, 2D, AD, QH, KD".replace(" ", "")
     hand_4 = "JC, JS, TD, TS, 9C, 8D, 7S, 6D, 3C, 2C, KS, KH, AC".replace(" ", "")
-
-    #init_trick = [[None, [Card(Suit.clubs, Rank.two)]]]
-    #hand_1 = "JH, TC, 7H, 8C, 6H, 5H, 6C, 3H, 2H, 3S, QS, QC, 9H".replace(" ", "")
-    #hand_2 = "TH, JD, 8H, 9S, 8S, 5C, 5S, 4D, 4S, 2S, AS, KC, QD".replace(" ", "")
-    #hand_3 = "AH, 9D, 7D, 6S, 4H, 5D, 4C, 3D, 2D, AD, QH, KD".replace(" ", "")
-    #hand_4 = "JC, JS, TD, TS, 9C, 8D, 7S, 6D, 3C, 7C, KS, KH, AC".replace(" ", "")
 
     hand_cards = [[transform(card[0], card[1]) for card in hand_1.split(",")],
                   [transform(card[0], card[1]) for card in hand_2.split(",")],
@@ -643,7 +675,6 @@ if __name__ == "__main__":
     score_cards = None
     must_have = {}
     void_info = {}
-    proactive_mode = None
 
     IS_DEBUG = True
 
@@ -663,7 +694,6 @@ if __name__ == "__main__":
                                                          selection_func,
                                                          must_have, 
                                                          void_info,
-                                                         proactive_mode,
                                                          0.935)) for seed in range(1)]
 
     results = defaultdict(list)
@@ -675,4 +705,4 @@ if __name__ == "__main__":
     pool.close()
 
     for played_card, scores in results.items():
-        print(played_card, len(scores), np.mean(scores))
+        print(played_card, len(scores), statistics.mean([score[0] for score in scores]))
