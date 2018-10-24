@@ -4,7 +4,7 @@ import copy
 import time
 import random
 
-from random import shuffle, choice
+from random import shuffle, choice, randint
 
 TIME_LIMIT = 0.2
 
@@ -39,13 +39,11 @@ def get_hand_cards_number(position, hand_cards, trick, fixed_cards):
     return numbers
 
 
-def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers):
-    #fixed_cards = get_fixed_cards(cards, must_have)
-    #numbers = get_hand_cards_number(position, hand_cards, trick, fixed_cards)
-
+def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers, random_void=False):
+    num = [0, 0, 0 ,0 , 0]
     while True:
         copy_cards = copy.deepcopy(hand_cards)
-        remaining_cards = copy.deepcopy(cards)
+        remaining_cards = copy.copy(cards)
 
         shuffle(remaining_cards)
 
@@ -57,19 +55,57 @@ def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers)
 
                 prev_number += number
 
+        random_void_suit = 4
+        if random_void:
+            random_void_suit = randint(0, 4)
+
+        if random_void_suit < 4:
+            selected_player = choice([player_idx for player_idx in range(4) if player_idx != position])
+            another_selected_player = choice([player_idx for player_idx in range(4) if player_idx != position and player_idx != selected_player])
+
+            #print("player-", selected_player, copy_cards[selected_player])
+            #print("player-", another_selected_player, copy_cards[another_selected_player])
+
+            card_idx = 0
+            for idx, card_1 in enumerate(copy_cards[selected_player]):
+                if card_1.suit.value == random_void_suit:
+                    for iidx in range(card_idx, len(copy_cards[another_selected_player])):
+                        card_2 = copy_cards[another_selected_player][iidx]
+                        if card_2.suit.value != random_void_suit:
+                            copy_cards[selected_player][idx], copy_cards[another_selected_player][iidx] = \
+                                copy_cards[another_selected_player][iidx], copy_cards[selected_player][idx]
+
+                            #print("switch", copy_cards[selected_player][idx], copy_cards[another_selected_player][iidx])
+
+                            break
+
+            #print("player-", selected_player, copy_cards[selected_player])
+            #print("player-", another_selected_player, copy_cards[another_selected_player])
+
+        """
+        if random_void:
+            num[random_void_suit] += 1
+            print(random_void_suit, num)
+            print(copy_cards[selected_player])
+            print(copy_cards[another_selected_player])
+            print()
+        """
+
         yield copy_cards
 
 
 def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, void_info={}):
-    #np.random.seed(seed)
     random.seed(seed)
 
     fixed_cards = get_fixed_cards(cards, must_have)
     numbers = get_hand_cards_number(position, hand_cards, trick, fixed_cards)
-    #print("---->", fixed_cards, numbers, cards)
+
+    random_void = False
+    if len(cards) > 19:
+        random_void = True
 
     if sum([void for info in void_info.values() for void in info.values()]) == 0:
-        for hand_cards in simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers):
+        for hand_cards in simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers, random_void):
             yield hand_cards
     elif len(cards) < 9:
         for hand_cards in simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers):
@@ -122,6 +158,7 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
 
                             #print("find void_player", player_idx, card, remaining_cards, len(copy_cards[player_idx]), len(fixed_cards.get(player_idx, [])), num_hand_cards, number)
                         elif num_hand_cards > number:
+                            print("find void_player", player_idx, card, remaining_cards, len(copy_cards[player_idx]), len(fixed_cards.get(player_idx, [])), num_hand_cards, number)
                             raise
 
                     if not void_players:

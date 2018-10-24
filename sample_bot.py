@@ -5,13 +5,11 @@ import sys
 import json
 import logging
 
-from scipy.stats import describe
-
 from abc import abstractmethod
 from websocket import create_connection
 
 from card import Card, Suit, Rank
-from card import transform
+from rules import transform
 
 
 class Log(object):
@@ -22,20 +20,21 @@ class Log(object):
 
         if os.path.exists("/log"):
             hdlr = logging.FileHandler('/log/hearts_logs.log')
-        else:
-            hdlr = logging.FileHandler('hearts_logs.log')
 
-        formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-        hdlr.setFormatter(formatter)
-        self.logger.addHandler(hdlr)
-        self.logger.setLevel(logging.INFO)
+            formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+            hdlr.setFormatter(formatter)
+            self.logger.addHandler(hdlr)
+            self.logger.setLevel(logging.INFO)
+
 
     def show_message(self,msg):
         if self.is_debug:
             print(msg)
 
+
     def save_logs(self,msg):
         self.logger.info(msg)
+
 
 IS_DEBUG = False
 system_log = Log(IS_DEBUG)
@@ -377,7 +376,8 @@ class PokerSocket(object):
            self.ws.close()
 
     def doListen(self):
-        try:
+        #try:
+        if True:
             self.ws = create_connection(self.connect_url)
             self.ws.send(json.dumps({
                 "eventName": "join",
@@ -397,9 +397,9 @@ class PokerSocket(object):
                 system_log.show_message(data)
                 system_log.save_logs(data)
                 self.takeAction(event_name, data)
-        except Exception as e:
-            system_log.show_message(e)
-            self.doListen()
+        #except Exception as e:
+        #    system_log.show_message(e)
+        #    self.doListen()
 
 class LowPlayBot(PokerBot):
 

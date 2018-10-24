@@ -56,9 +56,13 @@ class TreeNode(object):
 
 
     def expand(self, player_idx, action_priors):
+        #print("for {} to extend {}".format(player_idx, action_priors))
         for action, prob in action_priors:
             if action not in self._children:
                 self._children[action] = TreeNode(self, prob, self._self_player_idx, player_idx)
+            else:
+                self._children[action]._player_idx = player_idx
+                self._children[action]._P = prob
 
 
     def select(self, c_puct):
@@ -85,7 +89,7 @@ class TreeNode(object):
 
 
     def get_value(self, c_puct):
-        self._u = (c_puct * self._P * sqrt(self._parent._n_visits) / (1 + self._n_visits))
+        self._u = (c_puct * sqrt(self._parent._n_visits) / (1 + self._n_visits))
 
         return self._Q/(1e-16+self._n_visits) + self._u
 
@@ -112,8 +116,6 @@ class MCTS(object):
 
         self.ratio_reset = [0, 0]
 
-        print("start...")
-
 
     def _playout(self, trick_nr, state, selection_func):
         #node = self._root
@@ -127,7 +129,7 @@ class MCTS(object):
             valid_cards = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1)
             valid_moves = translate_hand_cards(valid_cards, is_bitmask=True)
             for card in valid_moves:
-                if card not in node._children:
+                if card not in node._children or node._children[card]._P == 0:
                     is_all_traverse = False
 
                     break
@@ -135,19 +137,22 @@ class MCTS(object):
             if not is_all_traverse:
                 break
 
-            is_valid = False
-            for played_card, node in node.select(self._c_puct):
+            is_found = False
+            for played_card, n in node.select(self._c_puct):
                 suit, rank = played_card[0], played_card[1]
 
-                #if node._player_idx == 3: print(node._player_idx, node._P, node._n_visits, node.get_value(self._c_puct))
+                #if n._player_idx == 3 and trick_nr > 4:
+                #    print(is_all_traverse, valid_moves, n._player_idx, played_card, n._P)
+
                 if valid_cards.get(suit, 0) & rank:
-                    #if node._player_idx == 3: print("---->", node._player_idx, node._P, node._n_visits, node.get_value(self._c_puct))
                     state.step(trick_nr, selection_func, played_card)
-                    is_valid = True
+                    is_found = True
+
+                    node = n
 
                     break
 
-            if not is_valid:
+            if not is_found:
                 break
 
         # Check for end of game
@@ -165,8 +170,6 @@ class MCTS(object):
 
         scores, _ = state.score()
         sum_score = sum(scores)
-
-        #return [1-(score/sum_score) for score in scores]
 
         rating = [0, 0, 0, 0]
 
@@ -188,6 +191,7 @@ class MCTS(object):
 
     def get_move(self, 
                  hand_cards, 
+                 valid_cards,
                  remaining_cards, 
                  score_cards, 
                  init_trick, 
@@ -210,6 +214,8 @@ class MCTS(object):
                                               remaining_cards, 
                                               must_have, 
                                               void_info)
+
+        valid_cards = str_to_bitmask(valid_cards)
 
         for simulation_card in simulation_cards:
             max_len_cards, min_min_cards = -1, 99
@@ -252,20 +258,23 @@ class MCTS(object):
         if is_only_played_card:
             if is_print:
                 for k, v in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
-                    if v._n_visits > 0:
-                        say("{}: {} times", transform(INDEX_TO_NUM[k[1]], INDEX_TO_SUIT[k[0]]), v._n_visits)
+                    if v._n_visits > 0 and valid_cards.get(k[0], 0) & k[1]:
+                        say("{}: {} times, percentage: {:.4f}%", transform(INDEX_TO_NUM[k[1]], INDEX_TO_SUIT[k[0]]), v._n_visits, v._P*100)
+
+                    if v._P == 0:
+                        break
 
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
-                if node._n_visits > 0 and node._P > 0:
+                if node._n_visits > 0 and node._P > 0 and valid_cards.get(played_card[0], 0) & played_card[1]:
                     return played_card
         else:
             results = {}
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
-                if node._P > 0 and node._n_visits > 0:
+                if node._P > 0 and node._n_visits > 0 and valid_cards.get(played_card[0], 0) & played_card[1]:
                     results.setdefault(played_card, 0)
                     results[played_card] = node._n_visits
+
             return results
-            #return self
 
 
     def update_with_move(self, last_move):
@@ -273,21 +282,21 @@ class MCTS(object):
         about the subtree.
         """
 
-        if last_move in self.start_node._children:#self._root._children:
-            #self._root = self._root._children[last_move]
-            #self._root._parent = None
-
+        if last_move in self.start_node._children:
             self.start_node = self.start_node._children[last_move]
             self.ratio_reset[0] += 1
 
             #print("reset the root to be {}".format(last_move))
         else:
             self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
-            #if self.start_node._parent is None:
-            #    self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
-            #else:
-            #    mean_prob = mean([node._P for node in self.start_node._parent._children.values()])
-            #    self.start_node._parent.expand(self._self_player_idx, (last_move, mean_prob))
+
+            """
+            if self.start_node._parent is None:
+                self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
+            else:
+                mean_prob = mean([node._P for node in self.start_node._parent._children.values()])
+                self.start_node._parent.expand(self._self_player_idx, [[last_move, mean_prob]])
+            """
 
             self.ratio_reset[1] += 1
 

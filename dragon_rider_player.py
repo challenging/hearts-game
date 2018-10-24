@@ -32,6 +32,8 @@ class RiderPlayer(MonteCarloPlayer7):
         super(RiderPlayer, self).set_position(idx)
 
         #if not hasattr(self, "mcts"):
+        #    self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
+
         self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
 
 
@@ -47,18 +49,18 @@ class RiderPlayer(MonteCarloPlayer7):
 
         self.say("steal time({}) to simulate to game results", card)
 
-        #self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
-
         card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
         self.mcts.update_with_move(card)
 
+        valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
         hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
             self.get_simple_game_info(game)
 
         if len(game._player_hands[self.position]) > 0:
             try:
                 self.mcts.get_move(hand_cards, 
+                                   valid_cards,
                                    remaining_cards, 
                                    score_cards, 
                                    init_trick, 
@@ -106,11 +108,11 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
+        """
         num_of_suit = [0, 0, 0, 0]
         for card in state._player_hands[self.position]:
             num_of_suit[card.suit.value] += 1
 
-        """
         if state.trick_nr < 6 and any([True if num < 2 or num > 5 else False for num in num_of_suit]):
             selection_func = [greedy_choose]
         elif is_void:
@@ -118,7 +120,7 @@ class RiderPlayer(MonteCarloPlayer7):
         else:
             selection_func = [expert_choose, greedy_choose] #[choice([expert_choose, greedy_choose]) for _ in range(4)]
         """
-        selection_func = [greedy_choose]
+        selection_func = [expert_choose]
 
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 
@@ -131,14 +133,14 @@ class RiderPlayer(MonteCarloPlayer7):
 
         game.are_hearts_broken()
 
-        hand_cards = game._player_hands[self.position]
-        valid_cards = self.get_valid_cards(hand_cards, game)
-
         hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
             self.get_simple_game_info(game)
 
+        valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
+
         played_card = \
             self.mcts.get_move(hand_cards, 
+                               valid_cards,
                                remaining_cards, 
                                score_cards, 
                                init_trick, 

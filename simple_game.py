@@ -600,7 +600,7 @@ def run_one_step(current_round_idx, position, init_trick, hand_cards, is_hearts_
 
     for simulation_card in simulation_cards:
         card = one_step_simulation(current_round_idx, 
-                                   osition, 
+                                   position, 
                                    simulation_card, 
                                    copy.deepcopy(init_trick), 
                                    void_info,

@@ -2,7 +2,6 @@ import sys
 
 import time
 
-import numpy as np
 import multiprocessing as mp
 
 from functools import cmp_to_key
@@ -12,14 +11,15 @@ from collections import defaultdict
 from card import Deck, Suit, Rank, Card
 from card import card_to_bitmask
 
-from simulated_player import MonteCarloPlayer5, COUNT_CPU
+from simulated_player import TIMEOUT_SECOND, COUNT_CPU
+from simulated_player import MonteCarloPlayer5
 
 from simple_game import run_simulation
 from strategy_play import random_choose, greedy_choose
 from expert_play import expert_choose
 
 
-TIMEOUT_SECOND = 0.90
+TIMEOUT_SECOND = 0.935
 
 
 def sorted_suits(xs, ys):
@@ -53,22 +53,22 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
 
         point_of_suit = 0
         for suit, cards in hand_cards.items():
-            point_of_suit = np.sum(cards)
+            point_of_suit = sum(cards)
             if suit == Suit.hearts:
-                if (point_of_suit > 7 and len(cards) > 5):
+                if ((point_of_suit > 7 and len(cards) > 5)) or ((point_of_suit > 6 and len(cards) > 6)) or ((point_of_suit > 6 and len(cards) > 6)):
                     self.proactive_mode.add(suit)
             else:
-                if (point_of_suit > 6 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
+                if (point_of_suit > 6 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
-                elif (point_of_suit > 5 and len(cards) > 5) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
+                elif (point_of_suit > 5 and len(cards) > 5) and (len(hand_cards[Suit.hearts]) > 2 and sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
-                elif (point_of_suit > 4 and len(cards) > 6) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
+                elif (point_of_suit > 4 and len(cards) > 6) and (len(hand_cards[Suit.hearts]) > 2 and sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
 
         if not self.proactive_mode:
-            points = np.sum([v for vv in hand_cards.values() for v in vv])
+            points = sum([v for vv in hand_cards.values() for v in vv])
 
-            if points > 15 and np.sum(hand_cards[Suit.hearts]) > 3:
+            if points > 19 and sum(hand_cards[Suit.hearts]) > 3:
                 pass_low_card = True
 
         return hand_cards, pass_low_card
@@ -176,7 +176,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         for player_idx, cards in enumerate(game._cards_taken):
             taken_cards.append(card_to_bitmask(cards))
 
-        init_trick = [[None, game.trick]]
+        init_trick = [[None, game.trick[:]]]
 
         void_info = {}
         for player_idx, info in enumerate(game.lacking_cards):
@@ -191,31 +191,14 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}, is_heart_broken={}, expose_heart_ace={}", \
             self.proactive_mode, selection_func, self.num_of_cpu, game.is_heart_broken, game.expose_heart_ace)
 
-        pool = mp.Pool(processes=self.num_of_cpu)
-        mul_result = [pool.apply_async(run_simulation, args=(seed,
-                                                             game.trick_nr+1, 
-                                                             self.position, 
-                                                             init_trick, 
-                                                             hand_cards, 
-                                                             game.is_heart_broken, 
-                                                             game.expose_heart_ace, 
-                                                             remaining_cards, 
-                                                             taken_cards, 
-                                                             played_card, 
-                                                             selection_func, 
-                                                             must_have, 
-                                                             void_info, 
-                                                             None,
-                                                             TIMEOUT_SECOND-0.02)) for seed in range(self.num_of_cpu)]
-
-        partial_results = [res.get() for res in mul_result]
+        row = run_simulation(1, game.trick_nr+1, self.position, init_trick, hand_cards, game.is_heart_broken, game.expose_heart_ace, remaining_cards, taken_cards, played_card, selection_func, must_have, void_info, None, TIMEOUT_SECOND)
 
         results = defaultdict(list)
-        for row in partial_results:
-            for card, info in row.items():
-                results[card].extend(info)
+        #for row in partial_results:
+        for card, info in row.items():
+            results[card].extend(info)
 
-        pool.close()
+        #pool.close()
 
         min_score = sys.maxsize
         for card, info in results.items():

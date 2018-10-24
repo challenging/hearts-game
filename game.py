@@ -234,10 +234,13 @@ class Game(object):
         if self.verbose:
             print()
             print("the information about lacking cards are")
+            info = []
             for player_idx in range(4):
                 is_lacking = any([l for l in self.lacking_cards[player_idx].values()])
                 if is_lacking:
-                    print("Player-{} lacks of {}".format(player_idx, [suit for suit, is_lacking in self.lacking_cards[player_idx].items() if is_lacking]))
+                    info.append("Player-{} lacks of {}".format(player_idx, [suit for suit, is_lacking in self.lacking_cards[player_idx].items() if is_lacking]))
+            print(",".join(info))
+
             print()
             print("the winning_player_index is {}({}, {}), is_heart_broken: {}, expose_heart_ace: {}".format(\
                 winning_player_index, self.current_player_idx, winning_index, self.is_heart_broken, self.expose_heart_ace))
@@ -270,12 +273,12 @@ class Game(object):
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
 
-        for i in range(4):
-            self.players[i].see_played_trick(self.trick[-1], self)
-
         self.current_player_idx = (self.current_player_idx+1)%4
         if len(self.trick) == 4:
             self.round_over()
+
+        for i in range(4):
+            self.players[i].see_played_trick(played_card, self)
 
 
     def player_index_with_two_of_clubs(self):

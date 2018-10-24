@@ -392,11 +392,11 @@ if __name__ == "__main__":
     hand_3 = "AH, 9D, 7C, 7D, 6S, 4H, 5D, 4C, 3D, 2D, AD, QH, KD".replace(" ", "")
     hand_4 = "JC, JS, TD, TS, 9C, 8D, 7S, 6D, 3C, 2C, KS, KH, AC".replace(" ", "")
 
-    init_trick = [[None, [Card(Suit.clubs, Rank.two)]]]
-    hand_1 = "AS, KC, TC, QS, 9H, 8H, TH, 7C, 7S, AC, KS, JH, QC".replace(" ", "")
-    hand_2 = "JD, 3S, 2D, 6D, 4C, 2H, AH, 5D, 6S, 7D, 9D, JC, 5S".replace(" ", "")
-    hand_3 = "4S, 5C, AD, 9C, 8S, 7H, 3D, 4D, 6H, 9S, QH, 5H".replace(" ", "")
-    hand_4 = "QD, TD, TS, 8C, 8D, 6C, 4H, 3H, 3C, 2S, KH, KD, JS".replace(" ", "")
+    init_trick = [[None, []]]
+    hand_1 = "6C, 7C, JC, QC, 2S, 5S, 6S, 9S, QS, AS, 6H, 7H, KH".replace(" ", "")
+    hand_2 = "8C, AC, 3D, 4D, 7D, 8S, TS, JS, KS, 2H, 4H, 5H, QH".replace(" ", "")
+    hand_3 = "4C, 2D, 5D, 8D, 9D, TD, JD, KD, 4S, 7S, 3H, 8H, AH".replace(" ", "")
+    hand_4 = "2C, 3C, 5C, 9C, TC, KC, 6D, QD, AD, 3S, 9H, TH, JH".replace(" ", "")
 
     hand_cards = [[transform(card[0], card[1]) for card in hand_1.split(",")],
                   [transform(card[0], card[1]) for card in hand_2.split(",")],

@@ -6,12 +6,11 @@ import copy
 import time
 
 import logging
-import numpy as np
+
+from statistics import mean
 
 from abc import abstractmethod
-from pprint import pprint
-from collections import defaultdict, deque
-from scipy.stats import describe
+from collections import defaultdict
 
 from websocket import create_connection
 
@@ -21,7 +20,7 @@ from game import Game
 from player import SimplePlayer
 
 from card import Card, Suit, Rank, Deck
-from card import transform
+from rules import transform
 
 
 IS_DEBUG = False
@@ -41,10 +40,9 @@ class BrainBot(LowPlayBot):
         self.player_names = []
 
         self.game = None
-        self.prev_turn_end_time = None
 
         self.other_info = {}
-        self.decision_time_info = {}
+        self.is_first_play = False
 
         self.early_lacking = False
         self.num_early_lacking = 0
@@ -119,22 +117,15 @@ class BrainBot(LowPlayBot):
     def turn_end(self, data):
         super(BrainBot, self).turn_end(data)
 
-        decision_time = sys.maxsize
+        if not self.is_first_play:
+            self.game._player_hands[self.player.position] = self.get_cards(data)
 
-        stime = time.time()
-        if self.prev_turn_end_time is None:
-            self.prev_turn_end_time = stime
-        else:
-            decision_time = stime-self.prev_turn_end_time
-
-            self.prev_turn_end_time = stime
 
         def find_leading_suit():
             leading_idx = int(len(self.round_cards_history)/4)*4
             leading_card = self.round_cards_history[leading_idx][1]
             current_card = self.round_cards_history[-1][1]
 
-            #self.say("(leading_card, current_card) = ({}, {})", leading_card, current_card)
             return leading_idx, leading_card.suit, leading_card.suit != current_card.suit
 
         current_player_name, last_card = self.round_cards_history[-1]
@@ -142,56 +133,25 @@ class BrainBot(LowPlayBot):
         leading_idx, is_lacking = None, False
         if self.round_cards_history:
             if len(self.round_cards_history)%4 > 0:
-            #if current_player_name != self.player_name:
                 leading_idx, leading_suit, is_lacking = find_leading_suit()
-                #self.say("(leading_idx, leading_suit, is_lacking) = ({}, {}, {}), (player_names, current_player_name) = {}, {})", \
-                #    leading_idx, leading_suit, is_lacking, [player.name for player in self.game.players], current_player_name)
 
                 if is_lacking:
                     for player_idx, player in enumerate(self.game.players):
                         if player.name == current_player_name:
                             self.game.lacking_cards[player_idx][leading_suit] = True
-                            #self.say("set info of lacking_cards is {}", self.game.lacking_cards)
 
                             break
-                else:
-                    if (self.game.trick_nr != 0 and self.game.trick) and current_player_name != self.player_name and len(self.decision_time_info.get(current_player_name, [])) > 2:
-                        array = np.array(self.decision_time_info[current_player_name])
-                        n = np.sum(array > 1)
-
-                        if decision_time < 0.8 and n > 4:
-                            self.other_info.setdefault("lacking_info", {})
-
-                            player_idx = [idx for idx in range(4) if self.player_names[idx] == current_player_name][0]
-                            self.other_info["lacking_info"].setdefault(player_idx, [])
-                            self.other_info["lacking_info"][player_idx].append(leading_suit)
-
-                            self.say("------> Player-{} lacks of {}({}) because of {:.4f} seconds, {}",\
-                                current_player_name, leading_suit, last_card, decision_time, n)
-
-                            if not self.early_lacking and self.game.trick_nr < 6:
-                                self.early_lacking = True
-                                self.num_early_lacking += 1
-
-                            #print(self.early_lacking, self.num_shooting_moon_lacking_info, self.num_shooting_moon, self.num_early_lacking)
-
-            if isinstance(decision_time, float) and current_player_name != self.player_name and len(self.round_cards_history) > 1 and self.game.trick_nr < 6:
-                self.decision_time_info.setdefault(current_player_name, deque(maxlen=8))
-                self.decision_time_info[current_player_name].append(decision_time)
-
-                self.say("{}'s decision_time_info is {}", current_player_name, self.decision_time_info[current_player_name])
 
             self.game.trick.append(last_card)
-            #self.player.seen_cards.append(last_card)
-            self.player.see_played_trick(last_card, self.game)
+            self.game.players[self.player.position].see_played_trick(last_card, self.game)
         else:
             self.say("found empty self.round_cards_history", self.round_cards_history)
 
-        #print(self.round_cards_history)
-        #print(self.pick_history)
 
 
     def pick_card(self, data):
+        self.is_first_play = True
+
         candidate_cards = []
         for card in data['self']['candidateCards']:
             candidate_cards.append(transform(card[0], card[1]))
@@ -200,39 +160,26 @@ class BrainBot(LowPlayBot):
         for card_str in data['self']['cards']:
             card = transform(card_str[0], card_str[1])
             self.my_hand_cards.append(card)
-        self.game._player_hands[self.player.position] = self.my_hand_cards
 
-        message = "My Cards:{}".format(self.game._player_hands[self.player.position])
-        #self.say(message)
-        system_log.show_message(message)
+        #message = "My Cards:{}".format(self.game._player_hands[self.player.position])
+        #system_log.show_message(message)
 
-        message = "Pick Card Event Content:{}".format(data)
-        system_log.show_message(message)
+        #message = "Pick Card Event Content:{}".format(data)
+        #system_log.show_message(message)
 
-        message = "Candidate Cards:{}".format(candidate_cards)
-        system_log.show_message(message)
-        system_log.save_logs(message)
+        #message = "Candidate Cards:{}".format(candidate_cards)
+        #system_log.show_message(message)
 
         #print("players's position", self.player.position, self.player.proactive_mode, self.player.seen_cards)
         #print("current trick", self.game.trick)
         #print("current hand cards", self.game._player_hands[self.player.position])
 
-        """
-        deck = Deck()
-        for idx in range(1, len(self.game.trick)+1):
-            player_idx = (self.player.position+(4-idx))%4
-            self.game._player_hands[player_idx] = np.random.choice(deck.cards, len(self.my_hand_cards)-1, replace=False).tolist()
-
-        for idx in range(1, 4-len(self.game.trick)):
-            player_idx = (self.player.position+idx)%4
-            self.game._player_hands[player_idx] = np.random.choice(deck.cards, len(self.my_hand_cards), replace=False).tolist()
-        """
-
         self.game.current_player_idx = self.player.position
         self.game._player_hands[self.player.position] = self.my_hand_cards
+
         played_card = self.game.players[self.player.position].play_card(self.game, self.other_info)
 
-        message = "Pick Card:{} from {}".format(played_card, candidate_cards)
+        message = "Pick Card:{}, Candicated Card: {}, Hand Card: {}".format(played_card, candidate_cards, self.game._player_hands[self.player.position])
         self.say(message)
 
         system_log.show_message(message)
@@ -247,14 +194,12 @@ class BrainBot(LowPlayBot):
             self.my_hand_cards.append(transform(card[0], card[1]))
 
         expose_card = []
-        """
-        if self.proactive_mode:
+        if not self.proactive_mode:
             for card in self.my_hand_cards:
                 if card == Card(Suit.hearts, Rank.ace):
                     expose_card.append(str(card))
 
                     break
-        """
 
         message = "Expose Cards:{}".format(expose_card)
         system_log.show_message(message)
@@ -269,10 +214,6 @@ class BrainBot(LowPlayBot):
         self.player_names, current_player_idx, players = [], None, []
         for player_idx, player in enumerate(data['players']):
             try:
-                #if player['exposedCards'] != [] and len(player['exposedCards']) > 0 and player['exposedCards'] is not None:
-                #    expose_player = player['playerName']
-                #    expose_card = player['exposedCards'][0]
-
                 self.player_names.append(player["playerName"])
 
                 p = None
@@ -338,6 +279,8 @@ class BrainBot(LowPlayBot):
             if self.game.trick_nr == 0:
                 for player_idx in range(4):
                     self.game.players[player_idx].seen_cards = []
+
+                self.is_first_play = False
         except Exception as e:
             system_log.show_message(e)
             system_log.save_logs(e)
@@ -409,10 +352,10 @@ class BrainBot(LowPlayBot):
             system_log.save_logs(message)
 
         for key, scores in ALL_SCORES.items():
-            stats = describe(scores)
-            self.say("Player - {} gets (num_shooting_moon_lacking_info, num_shooting_moon, num_early_lacking = {},{},{}), (n={}, mean={:.2f}, std={:.2f}, minmax={})", \
+            #stats = describe(scores)
+            self.say("Player - {} gets (num_shooting_moon_lacking_info, num_shooting_moon, num_early_lacking = {},{},{}), (n={}, mean={:.4f})", \
                 key, self.num_shooting_moon_lacking_info, self.num_shooting_moon, self.num_early_lacking, \
-                stats.nobs, stats.mean, stats.variance**0.5, stats.minmax)
+                len(scores), mean(scores))
 
 
     def reset_status(self):
@@ -424,7 +367,7 @@ class BrainBot(LowPlayBot):
 
         self.expose_card = False
 
-        self.prev_turn_end_time = None
         self.other_info = {}
+        self.is_first_play = False
 
         self.early_lacking = False

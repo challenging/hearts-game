@@ -135,11 +135,16 @@ def get_setting_cards():
                     "AS,KS,TS,9S,KH,QH,TH,7H,6H,5H,5C,KD,QD"]
                   ]
 
-    card_string = [["2C, 8C, JD, QD, 2S, 3S, 4S, 8S, JS, KS, 9H, JH, QH",
-                    "TC, JC, 2D, 6D, 7D, 8D, 9D, TD, 5S, 7S, 9S, AS, 7H",
-                    "3C, 6C, 9C, QC, AC, 3D, 4D, KD, 6S, TS, QS, 3H, 5H",
-                    "4C, 5C, 7C, KC, 5D, AD, 2H, 4H, 6H, 8H, TH, KH, AH"],
-                  ]
+    """
+    card_string = [["2C, 6C, TC, KC, 2D, 8D, QD, 8S, JS, 3H, 6H, 9H, TH",
+                    "7C, 8C, QC, 3D, 9D, KD, TS, QS, 2H, 4H, 5H, 8H, AH",
+                    "3C, 7D, TD, JD, AD, 5S, 6S, 9S, AS, 7H, JH, QH, KH",
+                    "4C, 5C, 9C, JC, AC, 4D, 5D, 6D, 2S, 3S, 4S, 7S, KS"]]
+    """
+    card_string = [["6C, 7C, JC, QC, AC, 2S, 5S, 6S, 9S, KS, 6H, 7H, QH",
+                    "8C, 3D, 4D, 7D, TD, JD, KD, 8S, TS, JS, 2H, 4H, 5H",
+                    "4C, KC, 2D, 5D, 8D, 9D, QD, 4S, 7S, 3H, 8H, TH, AH",
+                    "2C, 3C, 5C, 9C, TC, 6D, AD, 3S, QS, AS, 9H, JH, KH"]]
 
 
     return transform_cards(card_string)
