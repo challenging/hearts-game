@@ -1,11 +1,11 @@
 """This module containts the abstract class Player and some implementations."""
+import os
 import sys
 
 import copy
 import time
 
-#import numpy as np
-from random import shuffle, randint
+from random import shuffle, randint, choice
 from statistics import mean
 from math import sqrt
 
@@ -19,6 +19,20 @@ from simulated_player import TIMEOUT_SECOND
 
 from step_game import StepGame
 from redistribute_cards import redistribute_cards
+
+
+OUT_FILE = None
+
+def say(message, *formatargs):
+    global OUT_FILE
+
+    message = message.format(*formatargs)
+    if os.path.exists("/log"):
+        if OUT_FILE is None: OUT_FILE = open("/log/mcts.log", "a", 1)
+
+        OUT_FILE.write("{}\n".format(message))
+    else:
+        print(message)
 
 
 def policy_value_fn(trick_nr, state):
@@ -89,14 +103,21 @@ class MCTS(object):
 
     def __init__(self, policy_value_fn, self_player_idx, c_puct=5):
         self._self_player_idx = self_player_idx
+
         self._root = TreeNode(None, 1.0, self_player_idx, None)
+        self.start_node = self._root
 
         self._policy = policy_value_fn
         self._c_puct = c_puct
 
+        self.ratio_reset = [0, 0]
+
+        print("start...")
+
 
     def _playout(self, trick_nr, state, selection_func):
-        node = self._root
+        #node = self._root
+        node = self.start_node
         while not state.is_finished:
             if node.is_leaf():
                 break
@@ -182,7 +203,7 @@ class MCTS(object):
 
         stime = time.time()
 
-        simulation_cards = redistribute_cards(randint(0, 256), 
+        simulation_cards = redistribute_cards(randint(0, 128), 
                                               self._self_player_idx, 
                                               copy.deepcopy(hand_cards), 
                                               init_trick[-1][1], 
@@ -205,32 +226,46 @@ class MCTS(object):
                 try:
                     sm = StepGame(trick_nr,
                                   position=self._self_player_idx, 
-                                  hand_cards=copy.deepcopy(simulation_card), 
-                                  void_info=copy.deepcopy(void_info),
+                                  hand_cards=simulation_card,
+                                  void_info=void_info,
                                   score_cards=copy.deepcopy(score_cards), 
                                   is_hearts_broken=is_heart_broken, 
                                   expose_hearts_ace=expose_heart_ace, 
                                   tricks=copy.deepcopy(init_trick))
 
-                    #shuffle(selection_func)
+                    if len(init_trick[-1][1]) == 4:
+                        sm.post_round_end()
+
+                    selection_func = [choice(selection_func) for _ in range(4)]
                     self._playout(trick_nr, sm, selection_func)
                 except Exception as e:
                     for player_idx, cards in enumerate(simulation_card):
-                        print("player-{}'s hand_cards is {}".format(player_idx, cards, simulation_card[player_idx]))
+                        say("player-{}'s hand_cards is {}", player_idx, cards)
 
-                    raise
+                    import traceback
+                    traceback.print_exc()
+
 
             if time.time()-stime > simulation_time_limit:
                 break
 
         if is_only_played_card:
             if is_print:
-                for k, v in sorted(self._root._children.items(), key=lambda x: -x[1]._n_visits):
-                    if v._n_visits > 0: print(transform(INDEX_TO_NUM[k[1]], INDEX_TO_SUIT[k[0]]), v._n_visits)
+                for k, v in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
+                    if v._n_visits > 0:
+                        say("{}: {} times", transform(INDEX_TO_NUM[k[1]], INDEX_TO_SUIT[k[0]]), v._n_visits)
 
-            return sorted(self._root._children.items(), key=lambda x: -x[1]._n_visits)[0][0]
+            for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
+                if node._n_visits > 0 and node._P > 0:
+                    return played_card
         else:
-            return self
+            results = {}
+            for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
+                if node._P > 0 and node._n_visits > 0:
+                    results.setdefault(played_card, 0)
+                    results[played_card] = node._n_visits
+            return results
+            #return self
 
 
     def update_with_move(self, last_move):
@@ -238,21 +273,26 @@ class MCTS(object):
         about the subtree.
         """
 
-        is_reset = True
-        if last_move in self._root._children:
-            self._root = self._root._children[last_move]
-            self._root._parent = None
-            self._player_idx = None
+        if last_move in self.start_node._children:#self._root._children:
+            #self._root = self._root._children[last_move]
+            #self._root._parent = None
 
-            is_reset = False
+            self.start_node = self.start_node._children[last_move]
+            self.ratio_reset[0] += 1
 
             #print("reset the root to be {}".format(last_move))
         else:
-            self._root = TreeNode(None, 1.0, self._self_player_idx, None)
+            self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
+            #if self.start_node._parent is None:
+            #    self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
+            #else:
+            #    mean_prob = mean([node._P for node in self.start_node._parent._children.values()])
+            #    self.start_node._parent.expand(self._self_player_idx, (last_move, mean_prob))
 
-            print("reset the root because {} is NOT found".format(last_move))
+            self.ratio_reset[1] += 1
 
-        return is_reset
+            say("reset the root because {} is NOT found", last_move)
+            say("the reset ratio: {}", self.ratio_reset)
 
 
     def print_tree(self, node=None, card=None, depth=0):
@@ -261,7 +301,7 @@ class MCTS(object):
         if node._parent:
             card_str = transform(INDEX_TO_NUM[card[1]], INDEX_TO_SUIT[card[0]])
 
-            print("****"*depth, card_str, node, node._n_visits, node.get_value(self._c_puct), node._parent)
+            say("{} {} {} {} {} {}", "****"*depth, card_str, node, node._n_visits, node.get_value(self._c_puct), node._parent)
 
         for card, children in node._children.items():
             self.print_tree(children, card, depth+1)

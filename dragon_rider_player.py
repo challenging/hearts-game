@@ -31,17 +31,23 @@ class RiderPlayer(MonteCarloPlayer7):
     def set_position(self, idx):
         super(RiderPlayer, self).set_position(idx)
 
+        #if not hasattr(self, "mcts"):
         self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
 
 
     def reset(self):
         super(RiderPlayer, self).reset()
 
-        self.mcts.update_with_move(-1)
+        #self.mcts.start_node = self.mcts._root
+        self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
 
 
     def see_played_trick(self, card, game):
         super(RiderPlayer, self).see_played_trick(card, game)
+
+        self.say("steal time({}) to simulate to game results", card)
+
+        #self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
 
         card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
@@ -50,7 +56,7 @@ class RiderPlayer(MonteCarloPlayer7):
         hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
             self.get_simple_game_info(game)
 
-        if remaining_cards and len(init_trick[-1][1]) < 4 and len(game._player_hands[self.position]) > 0 and len(game._player_hands[self.position]) < 13:
+        if len(game._player_hands[self.position]) > 0:
             try:
                 self.mcts.get_move(hand_cards, 
                                    remaining_cards, 
@@ -63,20 +69,23 @@ class RiderPlayer(MonteCarloPlayer7):
                                    game.is_heart_broken, 
                                    game.expose_heart_ace, 
                                    True, 
-                                   0.15,
+                                   0.185,
                                    False)
-            except:
+            except Exception as e:
                 self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
+                #self.mcts.start_node = self.mcts._root
 
-                print("error in seen_cards")
+                self.say("error in seen_cards: {}", e)
+
+                raise
 
 
     def get_simple_game_info(self, state):
         hand_cards = [[] if player_idx != self.position else state._player_hands[player_idx] for player_idx in range(4)]
 
         remaining_cards = Deck().cards
-        for card in state.players[0].seen_cards + hand_cards[self.position]:
-            remaining_cards.remove(card)
+        for card in state.players[self.position].seen_cards + hand_cards[self.position]:
+            if card in remaining_cards: remaining_cards.remove(card)
 
         score_cards = []
         for player_idx, cards in enumerate(state._cards_taken):
@@ -88,31 +97,37 @@ class RiderPlayer(MonteCarloPlayer7):
                 for suit, rank in str_to_bitmask([card]).items():
                     trick[card_idx] = [suit, rank]
 
-        void_info = {}
+        is_void, void_info = False, {}
         for player_idx, info in enumerate(state.lacking_cards):
             if player_idx != self.position:
                 void_info[player_idx] = info
 
-        must_have = state.players[self.position].transfer_cards
+                is_void |= any([v for v in info.values()])
 
-        #selection_func = [choice([expert_choose, greedy_choose]) for _ in range(4)]
+        must_have = state.players[self.position].transfer_cards
 
         num_of_suit = [0, 0, 0, 0]
         for card in state._player_hands[self.position]:
             num_of_suit[card.suit.value] += 1
 
-        if state.trick_nr < 5 and any([True if num < 2 or num > 5 else False for num in num_of_suit]):
-            selection_func = [greedy_choose]*4
+        """
+        if state.trick_nr < 6 and any([True if num < 2 or num > 5 else False for num in num_of_suit]):
+            selection_func = [greedy_choose]
+        elif is_void:
+            selection_func = [greedy_choose]
         else:
-            selection_func = [choice([expert_choose, greedy_choose]) for _ in range(4)]
-            shuffle(selection_func)
-        #print(selection_func)
+            selection_func = [expert_choose, greedy_choose] #[choice([expert_choose, greedy_choose]) for _ in range(4)]
+        """
+        selection_func = [greedy_choose]
 
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
         stime = time.time()
+
+        self.say("Player-{}, the information of lacking_card is {}", \
+            self.position, [(player_idx, k) for player_idx, info in enumerate(game.lacking_cards) for k, v in info.items() if v])
 
         game.are_hearts_broken()
 
@@ -141,7 +156,5 @@ class RiderPlayer(MonteCarloPlayer7):
 
         self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
             time.time()-stime, hand_cards, valid_cards, played_card)
-
-        #self.mcts.print_tree()
 
         return played_card

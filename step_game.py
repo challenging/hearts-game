@@ -77,17 +77,6 @@ class StepGame(SimpleGame):
                     candicated_cards[suit] = info[1]
                     candicated_cards[suit] ^= self.hand_cards[self.position].get(suit, 0)
 
-                """
-                if self.init_round_idx == current_round_idx:
-                    for suit, is_void in self.void_info[self.start_pos].items():
-                        if is_void:
-                            del candicated_cards[suit]
-
-                            #print("del", self.start_pos, suit)
-                """
-                #else:
-                #    print("not the init round")
-
                 valid_cards = candicated_cards
                 if current_round_idx == 1:
                     del valid_cards[SUIT_TO_INDEX["H"]]
@@ -199,10 +188,15 @@ class StepGame(SimpleGame):
                                        self.void_info)
 
         #print(len(self.tricks), len(self.tricks[-1][1]), self.start_pos, self.hand_cards, valid_cards, played_card)
+        #for player_idx, cards in enumerate(self.hand_cards):
+        #    print(self.translate_hand_cards(cards))
+
         if played_card is None:
             #print("--->", self.start_pos, self.tricks[-1], self.hand_cards, valid_cards, self.is_hearts_broken)
-            #if len(self.tricks) > 2: print("<---", self.tricks[-2], self.start_pos, self.hand_cards)
+            #if len(self.tricks) > 2:
+            #    print("<---", self.tricks[-2], self.start_pos, self.hand_cards)
             #print()
+
             raise Exception("Impossible to get 'None' of played_card")
 
         if self.played_card is None:

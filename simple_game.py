@@ -262,27 +262,26 @@ class SimpleGame(object):
 
             self.add_card_to_trick(self.position, played_card)
             self.remove_card(self.hand_cards[self.position], played_card)
+            #print("1--->", self.position, self.hand_cards[self.position], valid_cards, played_card)
 
             for trick_idx in range(4-len(current_trick[1])):
                 player_idx = (self.position+(trick_idx+1))%4
 
                 valid_cards = self.get_valid_cards(self.hand_cards[player_idx], current_round_idx)
-                #if sum(valid_cards.values()) == 0:
-                #    print(1111, current_round_idx, player_idx, "--->", self.hand_cards, valid_cards)
-
                 _, played_card = selection_func[player_idx](player_idx, 
-                                                valid_cards, 
-                                                current_trick[1], 
-                                                self.hand_cards[player_idx].get(SUIT_TO_INDEX["S"], 0) & NUM_TO_INDEX["Q"] > 0,
-                                                self.is_hearts_broken, 
-                                                self.is_show_pig_card, 
-                                                self.is_show_double_card, 
-                                                self.has_point_players, 
-                                                self.current_info, 
-                                                self.void_info)
+                                                            valid_cards, 
+                                                            current_trick[1], 
+                                                            self.hand_cards[player_idx].get(SUIT_TO_INDEX["S"], 0) & NUM_TO_INDEX["Q"] > 0,
+                                                            self.is_hearts_broken, 
+                                                            self.is_show_pig_card, 
+                                                            self.is_show_double_card, 
+                                                            self.has_point_players, 
+                                                            self.current_info, 
+                                                            self.void_info)
 
                 self.add_card_to_trick(player_idx, played_card)
                 self.remove_card(self.hand_cards[player_idx], played_card)
+                #print("2--->", player_idx, self.hand_cards[player_idx], valid_cards, played_card)
 
             winning_index, winning_card = self.winning_index(current_trick)
             start_pos = (self.position+(winning_index-current_index))%4
@@ -313,7 +312,8 @@ class SimpleGame(object):
                 if start_pos == self.position:
                     current_index = trick_idx
 
-                valid_cards = self.get_valid_cards(self.hand_cards[start_pos], len(self.tricks))
+                valid_cards = self.get_valid_cards(self.hand_cards[start_pos], None)
+                #print("3--->", start_pos, self.hand_cards[start_pos], valid_cards, played_card)
                 #if sum(valid_cards.values()) == 0:
                 #    print(2222, round_idx, current_round_idx, start_pos, "--->", self.hand_cards[start_pos], valid_cards)
 
@@ -330,8 +330,6 @@ class SimpleGame(object):
 
                 if start_pos == self.position and self.played_card is None:
                     self.played_card = played_card
-
-                #print("--->", start_pos, played_card)
 
                 self.add_card_to_trick(start_pos, played_card)
                 self.remove_card(self.hand_cards[start_pos], played_card)
