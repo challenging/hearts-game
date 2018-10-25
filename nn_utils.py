@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import numpy as np
-
 from card import Suit, Rank, Card, Deck
 
+
+NONE_CARD_INDEX = 0
 
 def card2v(card):
     return card.suit.value*13+(card.rank.value-2)+1
@@ -55,24 +55,38 @@ def v2card(v):
     return Card(suit, rank)
 
 
-def played_prob_to_v(played_prob):
-    cards, probs = [], []
-    for idx, prob in enumerate(played_prob):
-        #v.append([card2v(card), prob])
+def full_cards(cards):
+    results = []
 
-        cards
+    if isinstance(cards, list):
+        for card in Deck().cards:
+            if card in cards:
+                results.append(card2v(card))
+            else:
+                results.append(NONE_CARD_INDEX)
+    elif isinstance(cards, dict):
+        for card in Deck().cards:
+            results.append(cards[card])
 
-    cards, probs = [], []
-    for card, prob in v:
-        cards.append(card)
-        probs.append(prob)
+    return results
 
-    return cards, probs
+
+def limit_cards(cards, num_slot):
+    results = []
+
+    for card in cards:
+        results.append(card2v(card))
+
+    for _ in range(num_slot-len(results)):
+        results.append(NONE_CARD_INDEX)
+
+    return results
+
 
 
 if __name__ == "__main__":
     for card in Deck().cards:
         print(card, card2v(card), v2card(card2v(card)))
 
-    print(38, v2card(38))
+    print(0, v2card(0))
     print(Card(Suit.clubs, Rank.ten), card2v(Card(Suit.clubs, Rank.ten)))

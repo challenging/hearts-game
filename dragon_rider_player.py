@@ -108,19 +108,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        """
-        num_of_suit = [0, 0, 0, 0]
-        for card in state._player_hands[self.position]:
-            num_of_suit[card.suit.value] += 1
-
-        if state.trick_nr < 6 and any([True if num < 2 or num > 5 else False for num in num_of_suit]):
-            selection_func = [greedy_choose]
-        elif is_void:
-            selection_func = [greedy_choose]
-        else:
-            selection_func = [expert_choose, greedy_choose] #[choice([expert_choose, greedy_choose]) for _ in range(4)]
-        """
-        selection_func = [expert_choose]
+        selection_func = [random_choose]
 
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 

@@ -173,6 +173,27 @@ def transform_cards(card_strings):
     return cardss
 
 
+def get_rating(scores):
+    sum_score = sum(scores)
+
+    rating = [0, 0, 0, 0]
+
+    info = zip(range(4), scores)
+    pre_score, pre_rating = None, None
+    for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
+        tmp_rating = rating_idx
+        if pre_score is not None:
+            if score == pre_score:
+                tmp_rating = pre_rating
+
+        rating[player_idx] = tmp_rating/4 + (1-score/sum_score)
+
+        pre_score = score
+        pre_rating = tmp_rating
+
+    return rating
+
+
 def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verbose=True):
     from game import Game
 
@@ -261,7 +282,6 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                                 mean_score, proactive_mean_moon_score, mean_moon_score))
 
                     game.reset()
-                    #sys.exit(1)
 
 
 if __name__ == "__main__":

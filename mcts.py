@@ -15,6 +15,8 @@ from card import Suit, Rank, Card, Deck
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
 from card import card_to_bitmask, str_to_bitmask, translate_hand_cards, transform
 
+from rules import get_rating
+
 from simulated_player import TIMEOUT_SECOND
 
 from step_game import StepGame
@@ -84,7 +86,11 @@ class TreeNode(object):
         if self._player_idx is None:
             self._n_visits += 1
         else:
-            v = scores[self._self_player_idx]*(1 if self._self_player_idx == self._player_idx else -1)
+            if self._self_player_idx == self._player_idx:
+                v = scores[self._self_player_idx]
+            else:
+                v = scores[self._player_idx]
+
             self.update(v)
 
 
@@ -118,7 +124,6 @@ class MCTS(object):
 
 
     def _playout(self, trick_nr, state, selection_func):
-        #node = self._root
         node = self.start_node
         while not state.is_finished:
             if node.is_leaf():
@@ -140,9 +145,6 @@ class MCTS(object):
             is_found = False
             for played_card, n in node.select(self._c_puct):
                 suit, rank = played_card[0], played_card[1]
-
-                #if n._player_idx == 3 and trick_nr > 4:
-                #    print(is_all_traverse, valid_moves, n._player_idx, played_card, n._P)
 
                 if valid_cards.get(suit, 0) & rank:
                     state.step(trick_nr, selection_func, played_card)
@@ -169,24 +171,8 @@ class MCTS(object):
             state.step(trick_nr, selection_func)
 
         scores, _ = state.score()
-        sum_score = sum(scores)
 
-        rating = [0, 0, 0, 0]
-
-        info = zip(range(4), scores)
-        pre_score, pre_rating = None, None
-        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
-            tmp_rating = rating_idx
-            if pre_score is not None:
-                if score == pre_score:
-                    tmp_rating = pre_rating
-
-            rating[player_idx] = tmp_rating/4 + (1-score/sum_score)
-
-            pre_score = score
-            pre_rating = tmp_rating
-
-        return rating
+        return get_rating(scores)
 
 
     def get_move(self, 
@@ -270,9 +256,9 @@ class MCTS(object):
         else:
             results = {}
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
-                if node._P > 0 and node._n_visits > 0 and valid_cards.get(played_card[0], 0) & played_card[1]:
-                    results.setdefault(played_card, 0)
-                    results[played_card] = node._n_visits
+                #if node._P > 0 and node._n_visits > 0 and valid_cards.get(played_card[0], 0) & played_card[1]:
+                results.setdefault(played_card, 0)
+                results[played_card] = node._n_visits
 
             return results
 

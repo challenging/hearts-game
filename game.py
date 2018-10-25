@@ -80,11 +80,12 @@ class Game(object):
         verbose = self.verbose
         self.verbose = True
 
+        self.say("trick_nr: {:2d}, leading_position: {}, is_heart_broken: {}, expose_hearts_ace: {}", \
+            self.trick_nr, self.current_player_idx, self.is_heart_broken, self.expose_heart_ace)
+        self.say("="*128)
         for player_idx, (player, hand_cards, taken_cards, lacking_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken, self.lacking_cards)):
-            self.say("trick_nr: {:2d}, current_trick: {}, leading_position: {}", self.trick_nr, self.trick, self.current_player_idx)
-            self.say("lacking_info: {}, is_heart_broken: {}, expose_hearts_ace: {}", lacking_cards, self.is_heart_broken, self.expose_heart_ace)
-            self.say("position: {}, name:{:18s}, hand_cards: {}, score: {:3d}, taken_cards: {}",\
-                player_idx, type(player).__name__, sorted(hand_cards), self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)]))
+            self.say("position: {}, name:{:18s}, lacking_info: {}, hand_cards: {}, score: {:3d}, taken_cards: {}",\
+                player_idx, type(player).__name__, lacking_cards, sorted(hand_cards), self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)]))
         self.verbose = verbose
 
 

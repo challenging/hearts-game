@@ -10,7 +10,7 @@ import multiprocessing as mp
 from functools import cmp_to_key
 from scipy.stats import describe
 from collections import defaultdict
-from random import shuffle, choice
+from random import choice
 
 from card import Suit, Rank, Card, Deck, POINT_CARDS
 from player import StupidPlayer, SimplePlayer, MinCardPlayer, MaxCardPlayer
