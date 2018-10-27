@@ -266,7 +266,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
                             scores[player_idx] = score
 
-                    if verbose:
+                    if verbose and final_scores[player_idx]:
                         for player_idx, player in enumerate(players):
                             mean_score = statistics.mean(final_scores[player_idx])
 
@@ -282,6 +282,12 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                                 mean_score, proactive_mean_moon_score, mean_moon_score))
 
                     game.reset()
+                    break
+                break
+            break
+        break
+
+    return final_scores, proactive_moon_scores, shooting_moon_scores
 
 
 if __name__ == "__main__":

@@ -204,7 +204,6 @@ def str_to_bitmask(cards):
     global NUM_TO_INDEX, SUIT_TO_INDEX
 
     hand_cards = {}
-    #print(cards)
     for card in cards:
         card = str(card)
         rank, suit = card[0], card[1]
@@ -230,6 +229,20 @@ def card_to_bitmask(cards):
         hand_cards[suit] |= rank
 
     return hand_cards
+
+
+def batch_bitmask_to_card(suit, ranks):
+    bitmask = NUM_TO_INDEX["2"]
+
+    while bitmask <= NUM_TO_INDEX["A"]:
+        if ranks & bitmask:
+            yield bitmask_to_card(suit, bitmask)
+
+        bitmask <<= 1
+
+
+def bitmask_to_card(suit, rank):
+    return transform(INDEX_TO_NUM[rank], INDEX_TO_SUIT[suit])
 
 
 def count_points(cards, expose_hearts_ace):

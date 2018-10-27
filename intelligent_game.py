@@ -27,9 +27,10 @@ class IntelligentGame(Game):
 
     def step(self, played_card=None):
         hand_cards = self._player_hands[self.current_player_idx]
+        #print("Hand cards: {}".format(hand_cards))
 
         if played_card is None:
-            played_card, results = self.players[self.current_player_idx].play_card(self, simulation_time_limit=0.01)
+            played_card, results = self.players[self.current_player_idx].play_card(self, simulation_time_limit=4)
 
             #print("Pick {} card from {} for this trick({})".format(played_card, hand_cards, self.trick))
 
@@ -53,7 +54,9 @@ class IntelligentGame(Game):
         score_cards = copy.deepcopy(self._cards_taken)
         remaining_cards = self.players[0].get_remaining_cards(hand_cards)
 
-        self._short_memory.append([remaining_cards[:], self.trick[:], must_cards, score_cards, played_cards, probs, self.current_player_idx])
+        valid_cards = self.players[self.current_player_idx].get_valid_cards(hand_cards, self)
+
+        self._short_memory.append([remaining_cards[:], self.trick[:], must_cards, score_cards, valid_cards, played_cards, probs, self.current_player_idx])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)

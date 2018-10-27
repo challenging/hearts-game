@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from card import Suit, Rank, Card, Deck
+from card import bitmask_to_card, batch_bitmask_to_card
 
 
 NONE_CARD_INDEX = 0
@@ -82,6 +83,79 @@ def limit_cards(cards, num_slot):
 
     return results
 
+
+def transform_game_info_to_nn(state, trick_nr):
+    a_memory = []
+
+    remaining_cards = []
+    for suit, info in enumerate(state.current_info):
+        remaining_cards.extend(list(batch_bitmask_to_card(suit, info[1])))
+    a_memory.append(remaining_cards)
+    #remaining_cards = full_cards(remaining_cards)
+
+    trick_cards = [bitmask_to_card(suit, rank) for suit, rank in state.tricks[-1][1]]
+    a_memory.append(trick_cards)
+
+    must_cards = [[], [], [], []]
+    for player_idx in range(4):
+        must_cards[player_idx] = state.must_have.get(player_idx, [])
+    a_memory.append(must_cards)
+
+    score_cards = [[], [], [], []]
+    for player_idx, cards in enumerate(state.score_cards):
+        for suit, ranks in enumerate(cards):
+            score_cards[player_idx].extend(list(batch_bitmask_to_card(suit, ranks)))
+
+        #score_cards[player_idx] = full_cards(score_cards[player_idx])
+    a_memory.append(score_cards)
+
+    valid_cards = []
+    for (suit, rank), prob in state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1, is_playout=False):
+        if prob > 0:
+            valid_cards.append(bitmask_to_card(suit, rank))
+    #valid_cards = full_cards(valid_cards)
+    a_memory.append(valid_cards)
+
+    #print_a_memory(a_memory)
+
+    return full_cards(remaining_cards), \
+           limit_cards(trick_cards, 3), \
+           limit_cards(must_cards[0], 4), limit_cards(must_cards[1], 4), limit_cards(must_cards[2], 4), limit_cards(must_cards[3], 4), \
+           full_cards(score_cards[0]), full_cards(score_cards[1]), full_cards(score_cards[2]), full_cards(score_cards[3]), \
+           full_cards(valid_cards)
+
+
+def print_a_memory(played_data):
+    remaining_cards = played_data[0]
+    trick_cards = played_data[1]
+    must_cards = played_data[2]
+    score_cards = played_data[3]
+    valid_cards = played_data[4]
+    played_cards = played_data[5] if len(played_data) > 5 else None
+    probs = played_data[6] if len(played_data) > 6 else None
+    score = played_data[7] if len(played_data) > 7 else None
+
+    print("remaining_cards:", [(card, card2v(card)) for card in remaining_cards])
+    print("remaining_cards:", full_cards(remaining_cards))
+
+    print("    trick_cards:", [(card, card2v(card)) for card in trick_cards])
+    print("    trick_cards:", limit_cards(trick_cards, 4))
+
+    print("     must_cards:", [[(card, card2v(card)) for card in cards] for cards in must_cards])
+    print("     must_cards:", [limit_cards(cards, 4) for cards in must_cards])
+
+    print("    score_cards:", [[(card, card2v(card)) for card in cards] for cards in score_cards])
+    print("    score_cards:", [limit_cards(cards, 52) for cards in score_cards])
+
+    print("    valid_cards:", valid_cards)
+    print("    valid_cards:", full_cards(valid_cards))
+
+    if played_cards:
+        print("   played_cards:", [(card, card2v(card)) for card in played_cards])
+        print("          probs:", probs)
+        print("          probs:", full_cards(dict(zip(played_cards, probs))))
+        print("          score:", score)
+        print()
 
 
 if __name__ == "__main__":

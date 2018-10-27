@@ -5,7 +5,6 @@ import sys
 import time
 import copy
 
-
 from random import choice
 from collections import defaultdict
 from statistics import mean
@@ -40,7 +39,8 @@ class StepGame(SimpleGame):
                  is_show_double_card=False,
                  has_point_players=set(),
                  expose_hearts_ace=False,
-                 tricks=[]):
+                 tricks=[],
+                 must_have={}):
 
         super(StepGame, self).__init__(position,
                                        hand_cards,
@@ -52,6 +52,8 @@ class StepGame(SimpleGame):
                                        has_point_players,
                                        expose_hearts_ace,
                                        tricks)
+
+        self.must_have = must_have
 
         self.init_round_idx = init_round_idx
 
@@ -67,7 +69,6 @@ class StepGame(SimpleGame):
             valid_cards = {}
 
             if self.start_pos == self.position:
-            #if self.init_round_idx == current_round_idx and self.start_pos == self.position:
                 valid_cards = self.get_valid_cards(copy.copy(self.hand_cards[self.start_pos]), current_round_idx)
                 #print("enter", self.start_pos, self.init_round_idx, current_round_idx, valid_cards)
             else:

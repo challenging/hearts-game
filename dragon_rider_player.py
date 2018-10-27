@@ -10,21 +10,21 @@ from collections import defaultdict
 
 from card import Deck, Card, Suit, Rank
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
-from card import card_to_bitmask, str_to_bitmask, translate_hand_cards, transform
+from card import card_to_bitmask, bitmask_to_card, str_to_bitmask
 
 from simulated_player import TIMEOUT_SECOND
 from new_simulated_player import MonteCarloPlayer7
 from strategy_play import greedy_choose, random_choose
 from expert_play import expert_choose
 from mcts import MCTS
-from mcts import policy_value_fn
 
 
 class RiderPlayer(MonteCarloPlayer7):
     """AI player based on MCTS"""
-    def __init__(self, verbose=False, c_puct=2):
+    def __init__(self, policy, c_puct, verbose=False):
         super(RiderPlayer, self).__init__(verbose=verbose)
 
+        self.policy = policy
         self.c_puct = c_puct
 
 
@@ -32,22 +32,22 @@ class RiderPlayer(MonteCarloPlayer7):
         super(RiderPlayer, self).set_position(idx)
 
         #if not hasattr(self, "mcts"):
-        #    self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
+        #    self.mcts = MCTS(policy, self.position, self.c_puct)
 
-        self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
+        self.mcts = MCTS(self.policy, self.position, self.c_puct)
 
 
     def reset(self):
         super(RiderPlayer, self).reset()
 
         #self.mcts.start_node = self.mcts._root
-        self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
+        self.mcts = MCTS(self.policy, self.position, self.c_puct)
 
 
     def see_played_trick(self, card, game):
         super(RiderPlayer, self).see_played_trick(card, game)
 
-        self.say("steal time({}) to simulate to game results", card)
+        #self.say("steal time({}) to simulate to game results", card)
 
         card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
@@ -74,12 +74,17 @@ class RiderPlayer(MonteCarloPlayer7):
                                    0.185,
                                    False)
             except Exception as e:
-                self.mcts = MCTS(policy_value_fn, self.position, self.c_puct)
+                #self.mcts = MCTS(policy, self.position, self.c_puct)
                 #self.mcts.start_node = self.mcts._root
 
                 self.say("error in seen_cards: {}", e)
 
-                raise
+                #raise
+        #else:
+        #    if game.get_game_winners():
+        #        rating = get_rating(game.player_scores)
+
+        #        self.mcts.start_node.update_recursive(rating)
 
 
     def get_simple_game_info(self, state):
@@ -142,7 +147,7 @@ class RiderPlayer(MonteCarloPlayer7):
                                simulation_time_limit,
                                True)
 
-        played_card = transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]])
+        played_card = bitmask_to_card(played_card[0], played_card[1])
 
         self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
             time.time()-stime, hand_cards, valid_cards, played_card)

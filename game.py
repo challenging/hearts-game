@@ -77,16 +77,12 @@ class Game(object):
 
 
     def print_game_status(self):
-        verbose = self.verbose
-        self.verbose = True
-
         self.say("trick_nr: {:2d}, leading_position: {}, is_heart_broken: {}, expose_hearts_ace: {}", \
             self.trick_nr, self.current_player_idx, self.is_heart_broken, self.expose_heart_ace)
         self.say("="*128)
         for player_idx, (player, hand_cards, taken_cards, lacking_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken, self.lacking_cards)):
             self.say("position: {}, name:{:18s}, lacking_info: {}, hand_cards: {}, score: {:3d}, taken_cards: {}",\
                 player_idx, type(player).__name__, lacking_cards, sorted(hand_cards), self.count_points(taken_cards), sorted([card for card in taken_cards if is_score_card(card)]))
-        self.verbose = verbose
 
 
     def print_hand_cards(self):
@@ -234,15 +230,16 @@ class Game(object):
 
         if self.verbose:
             print()
-            print("the information about lacking cards are")
-            info = []
-            for player_idx in range(4):
-                is_lacking = any([l for l in self.lacking_cards[player_idx].values()])
-                if is_lacking:
-                    info.append("Player-{} lacks of {}".format(player_idx, [suit for suit, is_lacking in self.lacking_cards[player_idx].items() if is_lacking]))
-            print(",".join(info))
+            if any([l for player_idx in range(4) for l in self.lacking_cards[player_idx].values()]):
+                print("the information about lacking cards are")
+                info = []
+                for player_idx in range(4):
+                    is_lacking = any([l for l in self.lacking_cards[player_idx].values()])
+                    if is_lacking:
+                        info.append("Player-{} lacks of {}".format(player_idx, [suit for suit, is_lacking in self.lacking_cards[player_idx].items() if is_lacking]))
+                print(",".join(info))
+                print()
 
-            print()
             print("the winning_player_index is {}({}, {}), is_heart_broken: {}, expose_heart_ace: {}".format(\
                 winning_player_index, self.current_player_idx, winning_index, self.is_heart_broken, self.expose_heart_ace))
             print("player {}({}) win this {:2d} trick by {} card based on {}".format(\

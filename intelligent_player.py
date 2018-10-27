@@ -4,10 +4,11 @@ import time
 import numpy as np
 
 from card import INDEX_TO_NUM, INDEX_TO_SUIT
-from card import transform
+from card import bitmask_to_card
 
 from dragon_rider_player import RiderPlayer
 from simulated_player import TIMEOUT_SECOND
+from intelligent_mcts import IntelligentMCTS
 
 
 def softmax(x):
@@ -19,11 +20,22 @@ def softmax(x):
 
 class IntelligentPlayer(RiderPlayer):
     """AI player based on MCTS"""
-    def __init__(self, policy, c_puct, verbose=False):
-        super(RiderPlayer, self).__init__(verbose=verbose)
+    def __init__(self, policy, c_puct, is_self_play=False, verbose=False):
+        super(IntelligentPlayer, self).__init__(policy, c_puct, verbose=verbose)
 
-        self.policy = policy
-        self.c_puct = c_puct
+        self.is_self_play = is_self_play
+
+
+    def set_position(self, idx):
+        super(RiderPlayer, self).set_position(idx)
+
+        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct)
+
+
+    def reset(self):
+        super(RiderPlayer, self).reset()
+
+        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct)
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND, temp=1e-3):
@@ -52,15 +64,33 @@ class IntelligentPlayer(RiderPlayer):
                                simulation_time_limit,
                                True)
 
-        cards, probs = [], []
-        for played_card, n_visits in sorted(results.items(), key=lambda x: x[1]):
-            cards.append(transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]]))
-            probs.append(n_visits)
+        #print("results", results)
+        #self.mcts.print_tree()
 
-        probs = softmax(1/temp*np.log(np.array(probs) + 1e-10))
+        valid_cards, valid_probs = [], []
+        for card, n_visits in sorted(results.items(), key=lambda x: x[1]):
+            if n_visits > 0:
+                valid_cards.append(bitmask_to_card(card[0], card[1]))
+                valid_probs.append(n_visits)
+        valid_probs = softmax(1/temp*np.log(np.array(valid_probs) + 1e-10))
 
+        if self.is_self_play:
+            cards, probs = [], []
+            for card, n_visits in sorted(results.items(), key=lambda x: x[1]):
+                cards.append(bitmask_to_card(card[0], card[1]))
+                probs.append(n_visits)
 
-        self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
-            time.time()-stime, hand_cards, valid_cards, played_card)
+            probs = softmax(1/temp*np.log(np.array(probs) + 1e-10))
 
-        return transform(INDEX_TO_NUM[played_card[1]], INDEX_TO_SUIT[played_card[0]]), zip(cards, probs)
+            move = np.random.choice(
+                    valid_cards,
+                    p=0.75*valid_probs + 0.25*np.random.dirichlet(0.3*np.ones(len(valid_probs))))
+
+            return move, zip(cards, probs)
+        else:
+            move = np.random.choice(valid_cards, p=valid_probs)
+
+            self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
+                time.time()-stime, hand_cards, valid_cards, move)
+
+            return move
