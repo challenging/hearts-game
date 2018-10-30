@@ -8,11 +8,12 @@ from game import Game
 
 
 class IntelligentGame(Game):
-    def __init__(self, players, buffer_size=2**15, verbose=False):
+    def __init__(self, players, buffer_size=2**15, simulation_time_limit=1, verbose=False):
         super(IntelligentGame, self).__init__(players, verbose)
 
         self._short_memory = []
         self._memory = deque(maxlen=buffer_size)
+        self.simulation_time_limit = simulation_time_limit
 
 
     def reset(self):
@@ -27,12 +28,11 @@ class IntelligentGame(Game):
 
     def step(self, played_card=None):
         hand_cards = self._player_hands[self.current_player_idx]
-        #print("Hand cards: {}".format(hand_cards))
 
         if played_card is None:
-            played_card, results = self.players[self.current_player_idx].play_card(self, simulation_time_limit=4)
+            played_card, results = self.players[self.current_player_idx].play_card(self, simulation_time_limit=self.simulation_time_limit)
 
-            #print("Pick {} card from {} for this trick({})".format(played_card, hand_cards, self.trick))
+            #self.say("Pick {} card from {} for this trick({})", played_card, hand_cards, self.trick)
 
         if not is_card_valid(hand_cards, self.trick, played_card, self.trick_nr, self.is_heart_broken):
             raise ValueError('{} round - Player {} ({}) played an invalid card {}({}) to the trick {}.'.format(\
@@ -56,25 +56,24 @@ class IntelligentGame(Game):
 
         valid_cards = self.players[self.current_player_idx].get_valid_cards(hand_cards, self)
 
+        #if self.trick_nr < 11:
         self._short_memory.append([remaining_cards[:], self.trick[:], must_cards, score_cards, valid_cards, played_cards, probs, self.current_player_idx])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
 
+        for i in range(4):
+            self.players[i].see_played_trick(played_card, self)
+
         self.current_player_idx = (self.current_player_idx+1)%4
         if len(self.trick) == 4:
             self.round_over()
-
-        for i in range(4):
-            self.players[i].see_played_trick(played_card, self)
 
 
     def round_over(self):
         super(IntelligentGame, self).round_over()
 
         if self.trick_nr == 13:
-            self.print_game_status()
-
             self.score()
             scores = self.player_scores
 

@@ -6,7 +6,7 @@ import random
 
 from random import shuffle, choice, randint
 
-TIME_LIMIT = 0.2
+from card import Suit
 
 
 def get_fixed_cards(cards, must_have):
@@ -20,23 +20,6 @@ def get_fixed_cards(cards, must_have):
                 cards.remove(card)
 
     return fixed_cards
-
-
-def get_hand_cards_number(position, hand_cards, trick, fixed_cards):
-    numbers = {0: 0, 1: 0, 2: 0, 3: 0}
-
-    for idx in range(1, len(trick)+1):
-        player_idx = (position+(4-idx))%4
-
-        numbers[player_idx] = len(hand_cards[position])-1-len(fixed_cards.get(player_idx, []))
-
-    for idx in range(1, 4-len(trick)):
-        player_idx = (position+idx)%4
-        numbers[player_idx] = len(hand_cards[position])-len(fixed_cards.get(player_idx, []))
-
-    del numbers[position]
-
-    return numbers
 
 
 def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers, random_void=False):
@@ -63,9 +46,6 @@ def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers,
             selected_player = choice([player_idx for player_idx in range(4) if player_idx != position])
             another_selected_player = choice([player_idx for player_idx in range(4) if player_idx != position and player_idx != selected_player])
 
-            #print("player-", selected_player, copy_cards[selected_player])
-            #print("player-", another_selected_player, copy_cards[another_selected_player])
-
             card_idx = 0
             for idx, card_1 in enumerate(copy_cards[selected_player]):
                 if card_1.suit.value == random_void_suit:
@@ -75,40 +55,35 @@ def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers,
                             copy_cards[selected_player][idx], copy_cards[another_selected_player][iidx] = \
                                 copy_cards[another_selected_player][iidx], copy_cards[selected_player][idx]
 
-                            #print("switch", copy_cards[selected_player][idx], copy_cards[another_selected_player][iidx])
-
                             break
 
-            #print("player-", selected_player, copy_cards[selected_player])
-            #print("player-", another_selected_player, copy_cards[another_selected_player])
+            for selected_idx in [idx for idx in range(4) if idx != position]:
+                all_hearts = all([card.suit == Suit.hearts for card in copy_cards[selected_idx]])
 
-        """
-        if random_void:
-            num[random_void_suit] += 1
-            print(random_void_suit, num)
-            print(copy_cards[selected_player])
-            print(copy_cards[another_selected_player])
-            print()
-        """
+                if all_hearts:
+                    another_selected_idx = choice([player_idx for player_idx in range(4) if player_idx != position and player_idx != selected_idx])
+
+                    copy_cards[selected_idx][0], copy_cards[another_selected_idx][0] = \
+                        copy_cards[another_selected_idx][0], copy_cards[selected_idx][0]
 
         yield copy_cards
 
 
-def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, void_info={}):
+def redistribute_cards(seed, position, hand_cards, num_hand_cards, trick, cards, must_have={}, void_info={}):
     random.seed(seed)
 
     fixed_cards = get_fixed_cards(cards, must_have)
-    numbers = get_hand_cards_number(position, hand_cards, trick, fixed_cards)
 
-    random_void = False
-    if len(cards) > 19:
-        random_void = True
+    numbers = copy.deepcopy(num_hand_cards)
+    for player_idx in numbers:
+        numbers[player_idx] -= len(fixed_cards.get(player_idx, []))
+    del numbers[position]
+    #print("position: {}, numbers: {}".format(position, numbers))
 
-    if sum([void for info in void_info.values() for void in info.values()]) == 0:
+    random_void = len(cards) > 19
+
+    if sum([1 if is_void else 0 for info in void_info.values() for is_void in info.values()]) == 0 or len(cards) < 9:
         for hand_cards in simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers, random_void):
-            yield hand_cards
-    elif len(cards) < 9:
-        for hand_cards in simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers):
             yield hand_cards
     else:
         sorted_players = []
@@ -128,17 +103,13 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
             for player_idx, _ in sorted_players:
                 copy_cards[player_idx].extend(fixed_cards.get(player_idx, []))
 
-                removed_cards = []
-                for card in remaining_cards:
+                for card in remaining_cards[:]:
                     if void_info[player_idx][card.suit] == False:
                         copy_cards[player_idx].append(card)
-                        removed_cards.append(card)
+                        remaining_cards.remove(card)
 
                         if len(copy_cards[player_idx]) == numbers[player_idx]+len(fixed_cards.get(player_idx, [])):
                             break
-
-                for card in removed_cards:
-                    remaining_cards.remove(card)
 
             for card in remaining_cards[:]:
                 for player_idx in range(4):
@@ -147,6 +118,7 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
 
             while remaining_cards:
                 #print("remaining_cards", remaining_cards)
+
                 for card in remaining_cards[:]:
                     #print("start to handle", card, copy_cards, fixed_cards, numbers)
                     void_players = []
@@ -178,7 +150,7 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
                         for targeted_player_idx in target_players:
                             if player_idx != targeted_player_idx and void_info[targeted_player_idx][card.suit] == False:
                                 for switched_card in copy_cards[targeted_player_idx]:
-                                    if switched_card not in fixed_cards.get(targeted_player_idx, []) and void_info[player_idx][switched_card.suit] == False and card not in removed_cards:
+                                    if switched_card not in fixed_cards.get(targeted_player_idx, []) and void_info[player_idx][switched_card.suit] == False:# and card not in removed_cards:
                                         #print("---> player-{}'s {} card vs. player-{}'s {} card".format(player_idx, card, targeted_player_idx, switched_card))
                                         copy_cards[player_idx].append(switched_card)
 
@@ -198,3 +170,22 @@ def redistribute_cards(seed, position, hand_cards, trick, cards, must_have={}, v
                             remaining_cards.remove(card)
 
             yield copy_cards
+
+
+if __name__ == "__main__":
+    from card import Rank, Suit, Card
+    from card import transform
+
+
+    hand_cards = [[], [], [], [transform(card[0], card[1]) for card in "9D".split(",")]]
+    trick = [[2, 32], [1, 32], [0, 64]]
+    cards = [transform(card[0], card[1]) for card in "QS,2H,5H".split(",")]
+    must_have = {0: [transform(card[0], card[1]) for card in "KH,7C,2C".split(",")]}
+    void_info = {0: {Suit.spades: True, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, \
+                 1: {Suit.spades: True, Suit.hearts: False, Suit.diamonds: True, Suit.clubs: True}, \
+                 2: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}}
+
+    for simulation_cards in redistribute_cards(1, 3, hand_cards, trick, cards, must_have=must_have, void_info=void_info):
+        print(simulation_cards)
+
+        break

@@ -8,7 +8,7 @@ from math import sqrt
 
 from card import Suit, Rank, Card, Deck
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
-from card import card_to_bitmask, bitmask_to_card, str_to_bitmask, translate_hand_cards
+from card import card_to_bitmask, bitmask_to_card, str_to_bitmask, translate_hand_cards, batch_bitmask_to_card
 
 from rules import get_rating
 
@@ -56,20 +56,24 @@ class IntelligentMCTS(MCTS):
             if not is_all_traverse:
                 break
 
-            is_found = False
+            current_start_pos, found_node = state.start_pos, None
             for played_card, n in node.select(self._c_puct):
                 suit, rank = played_card[0], played_card[1]
 
                 if valid_cards.get(suit, 0) & rank:
                     state.step(trick_nr, selection_func, played_card)
-                    is_found = True
-
-                    node = n
+                    found_node = n
 
                     break
 
-            if not is_found:
+            if found_node:
+                for n in node._children.values():
+                    n._player_idx = current_start_pos
+
+                node = found_node
+            else:
                 break
+
 
         # Check for end of game
         scores = [0, 0, 0, 0]
@@ -85,10 +89,12 @@ class IntelligentMCTS(MCTS):
 
 
     def get_move(self, 
+                 first_player_idx, 
                  hand_cards, 
                  valid_cards,
                  remaining_cards, 
                  score_cards, 
+                 num_hand_cards, 
                  init_trick, 
                  void_info, 
                  must_have, 
@@ -105,13 +111,17 @@ class IntelligentMCTS(MCTS):
         simulation_cards = redistribute_cards(randint(0, 128), 
                                               self._self_player_idx, 
                                               copy.deepcopy(hand_cards), 
+                                              num_hand_cards, 
                                               init_trick[-1][1], 
                                               remaining_cards, 
                                               must_have, 
                                               void_info)
 
+        print(valid_cards)
+        time_limit = len(valid_cards)
         valid_cards = str_to_bitmask(valid_cards)
 
+        ratio = [0, 0, 0]
         for simulation_card in simulation_cards:
             max_len_cards, min_min_cards = -1, 99
             for player_idx, cards in enumerate(simulation_card):
@@ -126,7 +136,7 @@ class IntelligentMCTS(MCTS):
             if max_len_cards-min_min_cards < 2:
                 try:
                     sm = StepGame(trick_nr,
-                                  position=self._self_player_idx, 
+                                  position=first_player_idx, 
                                   hand_cards=simulation_card,
                                   void_info=void_info,
                                   score_cards=copy.deepcopy(score_cards), 
@@ -140,15 +150,43 @@ class IntelligentMCTS(MCTS):
 
                     selection_func = [choice(selection_func) for _ in range(4)]
                     self._playout(trick_nr, sm, selection_func)
+
+                    ratio[0] += 1
                 except Exception as e:
-                    for player_idx, cards in enumerate(simulation_card):
-                        say("player-{}'s hand_cards is {}", player_idx, cards)
+                    """
+                    say("1.     trick_nr: {}, position: {}", trick_nr, self._self_player_idx)
+                    say("remaining_cards: {}", remaining_cards)
+                    say(      "void_info: {}", void_info)
+                    say("      must_have: {}", must_have)
+                    say("         tricks: {}", init_trick)
+                    for player_idx in range(4):
+                        say("      hand_card: {}, simulation_cards: {}", hand_cards[player_idx], [list(batch_bitmask_to_card(suit, ranks)) for suit, ranks in simulation_card[player_idx].items()])
 
                     import traceback
                     traceback.print_exc()
 
+                    raise
+                    """
 
-            if time.time()-stime > simulation_time_limit:
+                    ratio[2] += 1
+            else:
+                """
+                say("2.     trick_nr: {}, position: {}", trick_nr, self._self_player_idx)
+                say("remaining_cards: {}", remaining_cards)
+                say(      "void_info: {}", void_info)
+                say("      must_have: {}", must_have)
+                say("         tricks: {}", init_trick)
+                for player_idx in range(4):
+                    say("      hand_card: {}, simulation_cards: {}", hand_cards[player_idx], [list(batch_bitmask_to_card(suit, ranks))for suit, ranks in simulation_card[player_idx].items()])
+
+                raise
+                """
+
+                ratio[1] += 1
+
+            if time.time()-stime > simulation_time_limit*time_limit:
+                #say("player_idx: {}, round: {:2d}, ratio of success/fail: {}", self._self_player_idx, trick_nr, ratio)
+
                 break
 
         if is_only_played_card:

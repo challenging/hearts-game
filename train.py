@@ -7,6 +7,7 @@ An implementation of the training pipeline of AlphaZero for Gomoku
 from __future__ import print_function
 
 import sys
+import time
 
 import numpy as np
 
@@ -37,15 +38,15 @@ class TrainPipeline():
         # training params
         self.learn_rate = 2e-3
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
-        self.c_puct = 2
+        self.c_puct = 3
 
         self.buffer_size = 2**15
-        self.batch_size = 2**9  # mini-batch size for training
+        self.batch_size = 128  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
-        self.play_batch_size = 32
-        self.epochs = 4  # num of train_steps for each update
-        self.check_freq = 2
+        self.play_batch_size = 16
+        self.epochs = 16  # num of train_steps for each update
+        self.check_freq = 4
         self.kl_targ = 0.02
 
         self.best_score = sys.maxsize
@@ -53,14 +54,16 @@ class TrainPipeline():
         # num of simulations used for the pure mcts, which is used as
         # the opponent to evaluate the trained policy
 
-        players = [IntelligentPlayer(policy_value_fn, c_puct=self.c_puct, is_self_play=True, verbose=False) for player_idx in range(4)]
+        players = [IntelligentPlayer(policy_value_fn, c_puct=self.c_puct, is_self_play=True, verbose=(True if player_idx==3 else False)) for player_idx in range(4)]
 
-        self.game = Game(players, verbose=True)
+        self.game = Game(players, simulation_time_limit=4, verbose=True)
 
 
     def collect_selfplay_data(self, n_games):
         """collect self-play data for training"""
         for i in range(n_games):
+            stime = time.time()
+
             self.game.pass_cards(i%4)
             self.game.play()
             self.game.score()
@@ -70,6 +73,8 @@ class TrainPipeline():
             self.episode_len = len(play_data)
 
             self.game.reset()
+
+            print("cost {:.4f} seconds, training game: {:3d}".format(time.time()-stime, i+1))
 
 
     def policy_update(self):
@@ -113,6 +118,9 @@ class TrainPipeline():
                     valid_batch, probs_batch, scores_batch,\
                     self.learn_rate*self.lr_multiplier)
 
+            print("epoch: {:3d}/{:3d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}".format(\
+                i+1, self.epochs, policy_loss, value_loss, loss))
+
             new_probs, new_v = policy.policy_value(\
                 remaining_batch, trick_batch, \
                 must_batch_1, must_batch_2, must_batch_3, must_batch_4, \
@@ -123,8 +131,8 @@ class TrainPipeline():
                     np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)),
                     axis=1))
 
-            if kl > self.kl_targ * 4:  # early stopping if D_KL diverges badly
-                break
+            #if kl > self.kl_targ * 4:  # early stopping if D_KL diverges badly
+            #    break
 
         # adaptively adjust the learning rate
         if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
@@ -132,7 +140,7 @@ class TrainPipeline():
         elif kl < self.kl_targ / 2 and self.lr_multiplier < 10:
             self.lr_multiplier *= 1.5
 
-        print(("kl:{:.5f}, lr_multiplier:{:.3f}, loss:{},").format(kl, self.lr_multiplier, loss))
+        print(("kl:{:.5f}, lr_multiplier:{:.3f}").format(kl, self.lr_multiplier))
 
         return loss, policy_loss, value_loss
 
@@ -191,4 +199,6 @@ class TrainPipeline():
 
 if __name__ == '__main__':
     training_pipeline = TrainPipeline()
-    training_pipeline.run(max(sys.argv[1], 1))
+
+    num_of_games = int(sys.argv[1])
+    training_pipeline.run(max(num_of_games, 1))

@@ -26,6 +26,7 @@ class Player(object):
         self.name = None
         self.position = None
         self.proactive_mode = set()
+        self.num_hand_cards = {0: 13, 1: 13, 2: 13, 3: 13}
 
         self.verbose = verbose
 
@@ -69,24 +70,18 @@ class Player(object):
     def is_pass_card(self, card):
         return card in self.freeze_cards
 
-        #return any([True if card == pass_card else False for pass_card in self.freeze_cards])
-
 
     def play_card(self, game):
-        """
-        Must return a card from the given hand.
-        trick is a list of cards played so far.
-        trick can thus have 0, 1, 2, or 3 elements.
-        are_hearts_broken is a boolean indicating whether the hearts are broken yet.
-        trick_nr is an integer indicating the current trick number, starting with 0.
-        """
         return NotImplemented
+
 
     def see_played_trick(self, card, game):
         """
         Allows the player to have a look at all four cards in the trick being played.
         """
+
         self.seen_cards.append(card)
+        self.num_hand_cards[game.current_player_idx] -= 1
 
 
     def get_leading_suit_and_rank(self, trick):
@@ -252,6 +247,7 @@ class Player(object):
         self.transfer_cards = {}
 
         self.proactive_mode = set()
+        self.num_hand_cards = {0: 13, 1: 13, 2: 13, 3: 13}
 
 
 class StupidPlayer(Player):
@@ -351,10 +347,6 @@ class SimplePlayer(Player):
         safe_cards = [card for card in valid_cards
                       if card.suit != leading_suit or card.rank <= max_rank_in_leading_suit]
 
-        #print(" hand_cards", hand)
-        #print("valid_cards", valid_cards)
-        #print(" safe_cards", safe_cards)
-
         self.say('Valid cards: {}, Safe cards: {}', valid_cards, safe_cards)
 
         if len(safe_cards) > 0:
@@ -362,86 +354,7 @@ class SimplePlayer(Player):
         else:
             queen_of_spades = Card(Suit.spades, Rank.queen)
             # Don't try to take a trick by laying the queen of spades
-            #print(999, hand, valid_cards, hand)
             if valid_cards[0] == queen_of_spades and len(valid_cards) > 1:
                 return valid_cards[1]
             else:
                 return valid_cards[0]
-
-
-class MaxCardPlayer(SimplePlayer):
-    def play_card(self, game):
-        hand = game._player_hands[game.current_player_idx]
-
-        # Lead with a low card
-        if not game.trick:
-            card = None
-            if game.trick_nr == 0:
-                for card in hand:
-                    if card.suit == Suit.clubs and card.rank == Rank.two:
-                        break
-            else:
-                hand.sort(key=lambda card:
-                          100 if not game.is_heart_broken and card.suit == Suit.hearts else
-                          card.rank.value)
-
-                try:
-                    card = hand[0]
-                except IndexError:
-                    raise
-
-            return card
-
-        leading_suit, max_rank_in_leading_suit = self.get_leading_suit_and_rank(game.trick)
-
-        hand.sort(key=self.undesirability, reverse=True)
-        valid_cards = self.get_valid_cards(hand, game)
-
-        non_heart_cards = []
-        for played_card in valid_cards:
-            if played_card.suit == leading_suit and played_card.rank > max_rank_in_leading_suit:
-                played_card = valid_cards[0]
-
-                break
-            else:
-                if played_card.suit != Suit.hearts:
-                    non_heart_cards.append(played_card)
-        else:
-            if non_heart_cards:
-                played_card = non_heart_cards[-1]
-            else:
-                played_card = valid_cards[-1]
-
-        return played_card
-
-
-class MinCardPlayer(SimplePlayer):
-    def play_card(self, game):
-        hand = game._player_hands[game.current_player_idx]
-
-        # Lead with a low card
-        if not game.trick:
-            card = None
-            if game.trick_nr == 0:
-                for card in hand:
-                    if card.suit == Suit.clubs and card.rank == Rank.two:
-                        break
-            else:
-                hand.sort(key=lambda card:
-                          100 if not game.is_heart_broken and card.suit == Suit.hearts else
-                          card.rank.value)
-
-                try:
-                    card = hand[0]
-                except IndexError:
-                    print(hand)
-                    raise
-
-            return card
-
-        hand.sort(key=self.undesirability)
-
-        valid_cards = self.get_valid_cards(hand, game)
-        played_card = valid_cards[0]
-
-        return played_card

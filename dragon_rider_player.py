@@ -12,6 +12,8 @@ from card import Deck, Card, Suit, Rank
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
 from card import card_to_bitmask, bitmask_to_card, str_to_bitmask
 
+from rules import get_rating
+
 from simulated_player import TIMEOUT_SECOND
 from new_simulated_player import MonteCarloPlayer7
 from strategy_play import greedy_choose, random_choose
@@ -28,26 +30,18 @@ class RiderPlayer(MonteCarloPlayer7):
         self.c_puct = c_puct
 
 
-    def set_position(self, idx):
-        super(RiderPlayer, self).set_position(idx)
-
-        #if not hasattr(self, "mcts"):
-        #    self.mcts = MCTS(policy, self.position, self.c_puct)
-
-        self.mcts = MCTS(self.policy, self.position, self.c_puct)
-
-
     def reset(self):
         super(RiderPlayer, self).reset()
 
-        #self.mcts.start_node = self.mcts._root
+        #if not hasattr(self, "mcts"):
+        #    self.mcts = MCTS(self.policy, self.position, self.c_puct)
         self.mcts = MCTS(self.policy, self.position, self.c_puct)
 
 
     def see_played_trick(self, card, game):
         super(RiderPlayer, self).see_played_trick(card, game)
 
-        #self.say("steal time({}) to simulate to game results", card)
+        #self.say("{} steals time({}) to simulate to game results, {}", self.position, card, self.num_hand_cards)
 
         card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
@@ -57,12 +51,19 @@ class RiderPlayer(MonteCarloPlayer7):
         hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
             self.get_simple_game_info(game)
 
+        first_player_idx = (game.current_player_idx+1)%4
+        if len(game.trick) == 4:
+            winning_index, _ = game.winning_index()
+            first_player_index = (game.current_player_idx + winning_index) % 4
+
         if len(game._player_hands[self.position]) > 0:
             try:
-                self.mcts.get_move(hand_cards, 
+                self.mcts.get_move(first_player_idx,
+                                   hand_cards, 
                                    valid_cards,
                                    remaining_cards, 
                                    score_cards, 
+                                   self.num_hand_cards, 
                                    init_trick, 
                                    void_info, 
                                    must_have, 
@@ -79,12 +80,12 @@ class RiderPlayer(MonteCarloPlayer7):
 
                 self.say("error in seen_cards: {}", e)
 
-                #raise
-        #else:
-        #    if game.get_game_winners():
-        #        rating = get_rating(game.player_scores)
+                raise
+        else:
+            if game.get_game_winners():
+                rating = get_rating(game.player_scores)
 
-        #        self.mcts.start_node.update_recursive(rating)
+                self.mcts.start_node.update_recursive(rating)
 
 
     def get_simple_game_info(self, state):
@@ -132,10 +133,12 @@ class RiderPlayer(MonteCarloPlayer7):
         valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
 
         played_card = \
-            self.mcts.get_move(hand_cards, 
+            self.mcts.get_move(game.current_player_idx,
+                               hand_cards, 
                                valid_cards,
                                remaining_cards, 
                                score_cards, 
+                               self.num_hand_cards, 
                                init_trick, 
                                void_info, 
                                must_have, 

@@ -10,7 +10,7 @@ import glob
 import time
 import pickle
 
-import numpy as np
+from random import shuffle
 
 from orderedenum import OrderedEnum
 
@@ -101,7 +101,7 @@ class Deck:
 
         cards = cards if cards is not None else self.cards
 
-        np.random.shuffle(self.cards)
+        shuffle(self.cards)
         for i in range(0, 52, 13):
             yield sorted(self.cards[i:i + 13])
 
@@ -183,7 +183,7 @@ INDEX_TO_NUM = {1:"2", 2:"3", 4:"4", 8:"5", 16:"6", 32:"7", 64:"8", 128:"9", 256
 SUIT_TO_INDEX = {"C":0, "D":1, "S":2, "H":3}
 INDEX_TO_SUIT = {0:"C", 1:"D", 2:"S", 3:"H"}
 
-RANK_SUM = np.sum([2**idx for idx in range(0, 13)])
+RANK_SUM = sum([2**idx for idx in range(0, 13)])
 EMPTY_CARDS = {SUIT_TO_INDEX["C"]: 0, SUIT_TO_INDEX["D"]: 0, SUIT_TO_INDEX["S"]: 0, SUIT_TO_INDEX["H"]: 0}
 FULL_CARDS = {SUIT_TO_INDEX["C"]: RANK_SUM, SUIT_TO_INDEX["D"]: RANK_SUM, SUIT_TO_INDEX["S"]: RANK_SUM, SUIT_TO_INDEX["H"]: RANK_SUM}
 

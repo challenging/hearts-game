@@ -271,12 +271,12 @@ class Game(object):
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
 
+        for i in range(4):
+            self.players[i].see_played_trick(played_card, self)
+
         self.current_player_idx = (self.current_player_idx+1)%4
         if len(self.trick) == 4:
             self.round_over()
-
-        for i in range(4):
-            self.players[i].see_played_trick(played_card, self)
 
 
     def player_index_with_two_of_clubs(self):

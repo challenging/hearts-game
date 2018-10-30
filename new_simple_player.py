@@ -48,6 +48,7 @@ class NewSimplePlayer(MonteCarloPlayer5):
 
         played_card = run_one_step(game.trick_nr+1, 
                                    self.position, 
+                                   self.num_hand_cards,
                                    copy.deepcopy(init_trick), 
                                    hand_cards, 
                                    game.is_heart_broken, 

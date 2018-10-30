@@ -13,7 +13,7 @@ from collections import defaultdict
 from random import choice
 
 from card import Suit, Rank, Card, Deck, POINT_CARDS
-from player import StupidPlayer, SimplePlayer, MinCardPlayer, MaxCardPlayer
+from player import StupidPlayer, SimplePlayer
 
 
 TIMEOUT_SECOND = 0.935

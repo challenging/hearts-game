@@ -191,7 +191,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         self.say("proactive_mode: {}, selection_func={}, num_of_cpu={}, is_heart_broken={}, expose_heart_ace={}", \
             self.proactive_mode, selection_func, self.num_of_cpu, game.is_heart_broken, game.expose_heart_ace)
 
-        row = run_simulation(1, game.trick_nr+1, self.position, init_trick, hand_cards, game.is_heart_broken, game.expose_heart_ace, remaining_cards, taken_cards, played_card, selection_func, must_have, void_info, None, TIMEOUT_SECOND)
+        row = run_simulation(1, game.trick_nr+1, self.position, self.num_hand_cards, init_trick, hand_cards, game.is_heart_broken, game.expose_heart_ace, remaining_cards, taken_cards, played_card, selection_func, must_have, void_info, None, TIMEOUT_SECOND)
 
         results = defaultdict(list)
         #for row in partial_results:

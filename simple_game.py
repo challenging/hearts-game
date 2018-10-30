@@ -498,8 +498,8 @@ def simulation(current_round_idx, position, hand_cards, tricks,
         return None, None, None, None
 
 
-def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
-                   score_cards=None, played_card=None, selection_func=random_choose, must_have={}, void_info={}, 
+def run_simulation(seed, current_round_idx, position, num_hand_cards, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
+                   score_cards=None, played_card=None, selection_func=random_choose, must_have={}, void_info={},
                    proactive_mode=None, simulation_time=0.93):
 
     simulation_time = max(simulation_time, 0.1)
@@ -516,7 +516,7 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
 
     simulations_cards = None
     if cards:
-        simulation_cards = redistribute_cards(seed, position, hand_cards, init_trick[-1][1], cards, must_have, void_info)
+        simulation_cards = redistribute_cards(seed, position, hand_cards, num_hand_cards, init_trick[-1][1], cards, must_have, void_info)
     else:
         simulation_cards = [hand_cards]
 
@@ -581,7 +581,7 @@ def one_step_simulation(current_round_idx, position, hand_cards, tricks,
     return sm.just_run_one_step(current_round_idx, selection_func=selection_func)
 
 
-def run_one_step(current_round_idx, position, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
+def run_one_step(current_round_idx, position, num_hand_cards, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
                  score_cards=None, played_card=None, selection_func=random_choose, must_have={}, void_info={}):
 
     for trick_idx, (winner_index, trick) in enumerate(init_trick):
@@ -594,7 +594,7 @@ def run_one_step(current_round_idx, position, init_trick, hand_cards, is_hearts_
 
     simulations_cards = None
     if cards:
-        simulation_cards = redistribute_cards(1, position, hand_cards, init_trick[-1][1], cards, must_have, void_info)
+        simulation_cards = redistribute_cards(1, position, hand_cards, num_hand_cards, init_trick[-1][1], cards, must_have, void_info)
     else:
         simulation_cards = [hand_cards]
 

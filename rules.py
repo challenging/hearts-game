@@ -282,10 +282,10 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                                 mean_score, proactive_mean_moon_score, mean_moon_score))
 
                     game.reset()
-                    break
-                break
-            break
-        break
+        #            break
+        #        break
+        #    break
+        #break
 
     return final_scores, proactive_moon_scores, shooting_moon_scores
 

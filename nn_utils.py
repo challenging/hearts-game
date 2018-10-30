@@ -113,9 +113,8 @@ def transform_game_info_to_nn(state, trick_nr):
     for (suit, rank), prob in state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1, is_playout=False):
         if prob > 0:
             valid_cards.append(bitmask_to_card(suit, rank))
-    #valid_cards = full_cards(valid_cards)
-    a_memory.append(valid_cards)
 
+    a_memory.append(valid_cards)
     #print_a_memory(a_memory)
 
     return full_cards(remaining_cards), \

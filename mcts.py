@@ -155,10 +155,10 @@ class MCTS(object):
 
         # Check for end of game
         if not state.is_finished:
-            action_probs, scores = self._policy(trick_nr, state)
+            action_probs, _ = self._policy(trick_nr, state)
             node.expand(state.start_pos, action_probs)
 
-        #scores = self._evaluate_rollout(trick_nr, state, selection_func)
+        scores = self._evaluate_rollout(trick_nr, state, selection_func)
         node.update_recursive(scores)
 
 
@@ -170,10 +170,12 @@ class MCTS(object):
 
 
     def get_move(self, 
+                 first_player_idx,
                  hand_cards, 
                  valid_cards,
                  remaining_cards, 
                  score_cards, 
+                 num_hand_cards,
                  init_trick, 
                  void_info, 
                  must_have, 
@@ -183,13 +185,14 @@ class MCTS(object):
                  expose_heart_ace, 
                  is_only_played_card=False, 
                  simulation_time_limit=TIMEOUT_SECOND-0.1,
-                 is_print=False):
+                 not_seen=False):
 
         stime = time.time()
 
         simulation_cards = redistribute_cards(randint(0, 128), 
                                               self._self_player_idx, 
                                               copy.deepcopy(hand_cards), 
+                                              num_hand_cards, 
                                               init_trick[-1][1], 
                                               remaining_cards, 
                                               must_have, 
@@ -197,6 +200,7 @@ class MCTS(object):
 
         valid_cards = str_to_bitmask(valid_cards)
 
+        #print("first_player_idx", first_player_idx)
         for simulation_card in simulation_cards:
             max_len_cards, min_min_cards = -1, 99
             for player_idx, cards in enumerate(simulation_card):
@@ -211,8 +215,8 @@ class MCTS(object):
             if max_len_cards-min_min_cards < 2:
                 try:
                     sm = StepGame(trick_nr,
-                                  position=self._self_player_idx, 
-                                  hand_cards=simulation_card,
+                                  position=first_player_idx, 
+                                  hand_cards=copy.deepcopy(simulation_card),
                                   void_info=void_info,
                                   score_cards=copy.deepcopy(score_cards), 
                                   is_hearts_broken=is_heart_broken, 
@@ -232,12 +236,18 @@ class MCTS(object):
                     import traceback
                     traceback.print_exc()
 
+                    raise
+            else:
+                for player_idx, cards in enumerate(simulation_card):
+                    say("player-{}'s hand_cards is {}", player_idx, cards)
+
+                raise
 
             if time.time()-stime > simulation_time_limit:
                 break
 
         if is_only_played_card:
-            if is_print:
+            if not_seen:
                 for k, v in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
                     if v._n_visits > 0 and valid_cards.get(k[0], 0) & k[1]:
                         say("{}: {} times, percentage: {:.4f}%", bitmask_to_card(k[0], k[1]), v._n_visits, v._P*100)
@@ -269,14 +279,6 @@ class MCTS(object):
             #print("reset the root to be {}".format(last_move))
         else:
             self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
-
-            """
-            if self.start_node._parent is None:
-                self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
-            else:
-                mean_prob = mean([node._P for node in self.start_node._parent._children.values()])
-                self.start_node._parent.expand(self._self_player_idx, [[last_move, mean_prob]])
-            """
 
             #say("reset the root because {} is NOT found", last_move)
 
