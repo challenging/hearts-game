@@ -3,6 +3,7 @@ import copy
 from collections import deque
 
 from rules import is_card_valid, get_rating
+from nn_utils import print_a_memory
 
 from game import Game
 
@@ -82,4 +83,9 @@ class IntelligentGame(Game):
                 self._short_memory[idx][-1] = rating
 
             self._memory.extend(self._short_memory)
+
+            #print(1111)
+            #for m in self._short_memory:
+            #    print_a_memory(m)
+
             self._short_memory = []

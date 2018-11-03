@@ -68,7 +68,7 @@ class StepGame(SimpleGame):
             full_cards = copy.copy(FULL_CARDS)
             valid_cards = {}
 
-            if self.start_pos == self.position:
+            if self.start_pos == self.position and False:
                 valid_cards = self.get_valid_cards(copy.copy(self.hand_cards[self.start_pos]), current_round_idx)
                 #print("enter", self.start_pos, self.init_round_idx, current_round_idx, valid_cards)
             else:
@@ -76,7 +76,9 @@ class StepGame(SimpleGame):
 
                 for suit, info in enumerate(self.current_info):
                     candicated_cards[suit] = info[1]
-                    candicated_cards[suit] ^= self.hand_cards[self.position].get(suit, 0)
+
+                    if self.position != self.start_pos:
+                        candicated_cards[suit] ^= self.hand_cards[self.position].get(suit, 0)
 
                 valid_cards = candicated_cards
                 if current_round_idx == 1:
@@ -86,7 +88,6 @@ class StepGame(SimpleGame):
                         valid_cards[SUIT_TO_INDEX["S"]] ^= NUM_TO_INDEX["Q"]
 
                 #print("no enter", self.start_pos, self.init_round_idx, current_round_idx, valid_cards)
-
 
             probs, size = [], 0
             for suit, ranks in full_cards.items():

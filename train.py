@@ -1,11 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-An implementation of the training pipeline of AlphaZero for Gomoku
-@author: Junxiao Song
-"""
-
-from __future__ import print_function
-
 import sys
 import time
 
@@ -38,13 +30,13 @@ class TrainPipeline():
         # training params
         self.learn_rate = 2e-3
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
-        self.c_puct = 3
+        self.c_puct = 2
 
         self.buffer_size = 2**15
         self.batch_size = 128  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
-        self.play_batch_size = 16
+        self.play_batch_size = 8
         self.epochs = 16  # num of train_steps for each update
         self.check_freq = 4
         self.kl_targ = 0.02
@@ -54,9 +46,9 @@ class TrainPipeline():
         # num of simulations used for the pure mcts, which is used as
         # the opponent to evaluate the trained policy
 
-        players = [IntelligentPlayer(policy_value_fn, c_puct=self.c_puct, is_self_play=True, verbose=(True if player_idx==3 else False)) for player_idx in range(4)]
+        players = [IntelligentPlayer(policy_value_fn, c_puct=self.c_puct, is_self_play=True, verbose=(True if player_idx>-1 else False)) for player_idx in range(4)]
 
-        self.game = Game(players, simulation_time_limit=4, verbose=True)
+        self.game = Game(players, simulation_time_limit=16, verbose=True)
 
 
     def collect_selfplay_data(self, n_games):

@@ -85,8 +85,8 @@ class PolicyValueNet(object):
         self.action_fc = tf.layers.dense(inputs=input3, units=52, activation=tf.nn.softmax)
 
         # 4 Value Networks
-        self.evaluation_fc1 = tf.layers.dense(input3, units=16, activation=tf.nn.relu)
-        self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=4, activation=tf.nn.relu)
+        self.evaluation_fc1 = tf.layers.dense(input3, units=32, activation=tf.nn.relu)
+        self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=16, activation=tf.nn.relu)
         self.evaluation_fc3 = tf.layers.dense(inputs=self.evaluation_fc2, units=4, activation=tf.nn.tanh)
 
         # Define the Loss function
@@ -130,7 +130,7 @@ class PolicyValueNet(object):
                      score_cards_1, score_cards_2, score_cards_3, score_cards_4, \
                      valid_cards):
 
-        log_act_probs, value = self.session.run([self.action_fc, self.evaluation_fc2],
+        log_act_probs, value = self.session.run([self.action_fc, self.evaluation_fc3],
                                                 feed_dict={self.remaining_cards: remaining_cards,
                                                            self.trick_cards: trick_cards,
                                                            self.must_cards_1: must_cards_1,
@@ -143,6 +143,7 @@ class PolicyValueNet(object):
                                                            self.score_cards_4: score_cards_4,
                                                            self.valid_cards: valid_cards})
 
+        #act_probs = log_act_probs
         act_probs = np.exp(log_act_probs)
 
         return act_probs, value

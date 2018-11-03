@@ -4,11 +4,12 @@ import sys
 import copy
 import time
 
-import numpy as np
 import multiprocessing as mp
 
+from statistics import mean
+from random import randint
+
 from functools import cmp_to_key
-from scipy.stats import describe
 from collections import defaultdict
 from random import choice
 
@@ -28,11 +29,11 @@ class MonteCarloPlayer(SimplePlayer):
 
 
     def winning_score_func(self, scores):
-        return np.mean(scores)
+        return mean(scores)
 
 
     def no_choice(self, played_card):
-        time.sleep(np.random.randint(9000, 9200)*0.0001)
+        time.sleep(randint(9000, 9200)*0.0001)
 
         return played_card
 
@@ -48,17 +49,13 @@ class MonteCarloPlayer(SimplePlayer):
                 min_score = score
                 played_card = card
 
-            stats = describe(winning_score[card])
-            self.say("{} {}, simulation: {} round --> valid_cards: {}, simulate {} card --> average_score {:.3f}, (mean={:.2f}, std={:.2}, minmax={})",
+            self.say("{} {}, simulation: {} round --> valid_cards: {}, simulate {} card --> average_score {:.3f}",
                 game.trick_nr,
                 type(self).__name__,
                 len(winning_score[card]),
                 valid_cards,
                 card,
-                np.mean(winning_score[card]),
-                stats.mean,
-                stats.variance**0.5,
-                stats.minmax)
+                mean(winning_score[card]))
 
         return played_card
 
@@ -170,25 +167,6 @@ class MonteCarloPlayer3(MonteCarloPlayer):
         else:
             return self_score-min_score
 
-        """
-        rating = [0, 0, 0, 0]
-
-        info = list(zip(range(4), scores))
-        pre_score, pre_rating, norm_score = None, None, np.array(scores)/np.sum(scores)
-        for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
-            tmp_rating = rating_idx
-            if pre_score is not None:
-                if score == pre_score:
-                    tmp_rating = pre_rating
-
-            rating[player_idx] = (4-tmp_rating)/4 + norm_score[player_idx]
-
-            pre_score = score
-            pre_rating = tmp_rating
-
-        return rating[self.position]
-        """
-
 
 class MonteCarloPlayer4(MonteCarloPlayer3):
     def __init__(self, verbose=False):
@@ -243,22 +221,22 @@ class MonteCarloPlayer5(MonteCarloPlayer4):
 
         point_of_suit = 0
         for suit, cards in hand_cards.items():
-            point_of_suit = np.sum(cards)
+            point_of_suit = sum(cards)
             if suit == Suit.hearts:
                 if (point_of_suit > 7 and len(cards) > 5):# or (point_of_suit > 5 and len(cards) > 4) or (point_of_suit > 4 and len(cards) > 5):
                     self.proactive_mode.add(suit)
             else:
-                if (point_of_suit > 6 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
+                if (point_of_suit > 6 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
-                elif (point_of_suit > 5 and len(cards) > 5) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
+                elif (point_of_suit > 5 and len(cards) > 5) and (len(hand_cards[Suit.hearts]) > 2 and sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
-                elif (point_of_suit > 4 and len(cards) > 6) and (len(hand_cards[Suit.hearts]) > 2 and np.sum(hand_cards[Suit.hearts]) > 3):
+                elif (point_of_suit > 4 and len(cards) > 6) and (len(hand_cards[Suit.hearts]) > 2 and sum(hand_cards[Suit.hearts]) > 3):
                     self.proactive_mode.add(suit)
 
         if not self.proactive_mode:
-            points = np.sum([v for vv in hand_cards.values() for v in vv])
+            points = sum([v for vv in hand_cards.values() for v in vv])
 
-            if points > 18 and np.sum(hand_cards[Suit.hearts]) > 3:
+            if points > 18 and sum(hand_cards[Suit.hearts]) > 3:
                 pass_low_card = True
 
         return hand_cards, pass_low_card

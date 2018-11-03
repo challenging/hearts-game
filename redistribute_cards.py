@@ -69,16 +69,16 @@ def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers,
         yield copy_cards
 
 
-def redistribute_cards(seed, position, hand_cards, num_hand_cards, trick, cards, must_have={}, void_info={}):
+def redistribute_cards(seed, position, hand_cards, num_hand_cards, trick, cards, must_have={}, void_info={}, not_seen=True):
     random.seed(seed)
 
     fixed_cards = get_fixed_cards(cards, must_have)
+    #print("numbers", num_hand_cards)
 
     numbers = copy.deepcopy(num_hand_cards)
     for player_idx in numbers:
         numbers[player_idx] -= len(fixed_cards.get(player_idx, []))
     del numbers[position]
-    #print("position: {}, numbers: {}".format(position, numbers))
 
     random_void = len(cards) > 19
 

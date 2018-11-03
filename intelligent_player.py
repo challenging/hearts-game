@@ -3,10 +3,11 @@ import time
 
 import numpy as np
 
-from card import INDEX_TO_NUM, INDEX_TO_SUIT
+from card import NUM_TO_INDEX, SUIT_TO_INDEX
 from card import bitmask_to_card, card_to_bitmask
 
-from strategy_play import random_choose
+from strategy_play import random_choose, greedy_choose
+from expert_play import expert_choose
 
 from dragon_rider_player import RiderPlayer
 from simulated_player import TIMEOUT_SECOND
@@ -17,6 +18,8 @@ from intelligent_mcts import IntelligentMCTS
 def softmax(x):
     probs = np.exp(x - np.max(x))
     probs /= np.sum(probs)
+
+    #probs = x/np.sum(x)
 
     return probs
 
@@ -35,11 +38,19 @@ class IntelligentPlayer(RiderPlayer):
         self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct)
 
 
+    def see_played_trick(self, card, game):
+        super(RiderPlayer, self).see_played_trick(card, game)
+
+        card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
+
+        self.mcts.update_with_move(card)
+
+
     def get_simple_game_info(self, game):
         hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
             super(IntelligentPlayer, self).get_simple_game_info(game)
 
-        selection_func = [random_choose]
+        selection_func = [expert_choose]
 
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 
@@ -54,6 +65,14 @@ class IntelligentPlayer(RiderPlayer):
 
         vcards = self.get_valid_cards(game._player_hands[self.position], game)
         bit_vcards = card_to_bitmask(vcards)
+
+        etime = simulation_time_limit
+        if game.trick_nr > 11:
+            etime /= 3
+        elif game.trick_nr > 8:
+            etime /= 2
+        elif game.trick_nr > 5:
+            etime /= 1.5
 
         results = \
             self.mcts.get_move(game.current_player_idx, 
@@ -70,7 +89,7 @@ class IntelligentPlayer(RiderPlayer):
                                game.is_heart_broken, 
                                game.expose_heart_ace, 
                                False, 
-                               simulation_time_limit,
+                               etime, 
                                True)
 
         valid_cards, valid_probs = [], []
@@ -81,14 +100,13 @@ class IntelligentPlayer(RiderPlayer):
                 valid_probs.append(n_visits)
 
         if valid_cards:
-            valid_probs = softmax(1/temp*np.log(np.array(valid_probs) + 1e-10))
+            valid_probs = softmax(1/temp*np.log(np.array(valid_probs) + 1e-16))
         else:
             self.say("use simple valid_cards - {}", vcards)
 
             valid_cards = vcards
             valid_probs = [1.0/len(valid_cards) for _ in range(len(valid_cards))]
-            valid_probs = softmax(1/temp*np.log(np.array(valid_probs) + 1e-10))
-
+            valid_probs = softmax(1/temp*np.log(np.array(valid_probs) + 1e-16))
 
         if self.is_self_play:
             cards, probs = [], []
@@ -97,14 +115,16 @@ class IntelligentPlayer(RiderPlayer):
                 probs.append(n_visits)
 
                 if probs[-1] > 0:
-                    self.say("Played Card: {}, {} times", cards[-1], probs[-1])
-            probs = softmax(1/temp*np.log(np.array(probs) + 1e-10))
+                    self.say("Player-{}, played card: {}, {} times", self.position, cards[-1], probs[-1])
+
+            probs = softmax(1/temp*np.log(np.array(probs) + 1e-16))
 
             move = np.random.choice(
                     valid_cards,
                     p=0.75*valid_probs + 0.25*np.random.dirichlet(0.3*np.ones(len(valid_probs))))
 
-            #print("---> played_cards", self.position, valid_cards)
+            self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
+                time.time()-stime, hand_cards, valid_cards, move)
 
             return move, zip(cards, probs)
         else:

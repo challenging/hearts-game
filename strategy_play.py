@@ -1,5 +1,4 @@
-import numpy as np
-
+from random import choice
 from collections import defaultdict
 
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
@@ -55,7 +54,7 @@ def random_choose(position, cards, trick, own_pig_card, is_hearts_broken=False, 
 
             bit_mask <<= 1
 
-    return candicated_cards, candicated_cards[np.random.choice(len(candicated_cards))]
+    return candicated_cards, choice(candicated_cards)
 
 
 def greedy_choose(position, cards, trick, own_pig_card, is_hearts_broken=False, is_pig_card_taken=False, is_double_taken=False, players_with_point=set(), game_info=None, void_info={}):

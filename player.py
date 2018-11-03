@@ -2,8 +2,6 @@
 import os
 import copy
 
-import numpy as np
-
 from random import shuffle, choice
 
 from card import Suit, Rank, Card, Deck
@@ -141,15 +139,16 @@ class Player(object):
 
         shuffle(remaining_cards)
         for idx in range(len(game._player_hands)):
-           if idx != self.position:
-               cards = fixed_cards.get(idx, [])
-               game._player_hands[idx] = np.random.choice(remaining_cards, len(game._player_hands[idx])-len(cards), replace=False).tolist()
+            if idx != self.position:
+                cards = fixed_cards.get(idx, [])
+                game._player_hands[idx] = remaining_cards[:len(game._player_hands[idx])-len(cards)]
+                #choice(remaining_cards, len(game._player_hands[idx])-len(cards), replace=False).tolist()
 
-               for used_card in game._player_hands[idx]:
-                   remaining_cards.remove(used_card)
+                for used_card in game._player_hands[idx]:
+                    remaining_cards.remove(used_card)
 
-               if cards:
-                   game._player_hands[idx].extend(cards)
+                if cards:
+                    game._player_hands[idx].extend(cards)
 
         if remaining_cards:
            self.say("Error in redistributing cards, {}, {}, {}", type(self).__name__, remaining_cards, [len(v) for v in game._player_hands])

@@ -41,7 +41,7 @@ class RiderPlayer(MonteCarloPlayer7):
     def see_played_trick(self, card, game):
         super(RiderPlayer, self).see_played_trick(card, game)
 
-        #self.say("{} steals time({}) to simulate to game results, {}", self.position, card, self.num_hand_cards)
+        self.say("steal time({}) to simulate to game results", card)
 
         card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
@@ -58,7 +58,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         if len(game._player_hands[self.position]) > 0:
             try:
-                self.mcts.get_move(first_player_idx,
+                self.mcts.get_move(first_player_idx, 
                                    hand_cards, 
                                    valid_cards,
                                    remaining_cards, 
@@ -75,9 +75,6 @@ class RiderPlayer(MonteCarloPlayer7):
                                    0.185,
                                    False)
             except Exception as e:
-                #self.mcts = MCTS(policy, self.position, self.c_puct)
-                #self.mcts.start_node = self.mcts._root
-
                 self.say("error in seen_cards: {}", e)
 
                 raise
@@ -114,7 +111,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [random_choose]
+        selection_func = [expert_choose]
 
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 
@@ -151,6 +148,8 @@ class RiderPlayer(MonteCarloPlayer7):
                                True)
 
         played_card = bitmask_to_card(played_card[0], played_card[1])
+
+        #self.mcts.print_tree()
 
         self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
             time.time()-stime, hand_cards, valid_cards, played_card)
