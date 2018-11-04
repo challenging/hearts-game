@@ -109,7 +109,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [expert_choose]
+        selection_func = [random_choose]
 
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 

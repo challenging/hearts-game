@@ -99,7 +99,7 @@ class IntelligentPlayer(RiderPlayer):
                 valid_cards.append(bitmask_to_card(card[0], card[1]))
                 valid_probs.append(n_visits)
 
-        valid_probs = softmax(valid_probs)
+        valid_probs = softmax(valid_probs, temp)
 
         if self.is_self_play:
             cards, probs = [], []
@@ -110,7 +110,7 @@ class IntelligentPlayer(RiderPlayer):
                 if probs[-1] > 0:
                     self.say("Player-{}, played card: {}, {} times", self.position, cards[-1], probs[-1])
 
-            probs = softmax(probs)
+            probs = softmax(probs, temp)
 
             move = np.random.choice(
                     valid_cards,

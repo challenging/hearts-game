@@ -43,6 +43,7 @@ class TreeNode(object):
             self._n_visits += 1
         else:
             v = scores[self._player_idx]
+            #print(self._self_player_idx, self._player_idx, scores, v)
 
             self.update(v)
 

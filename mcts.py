@@ -13,7 +13,7 @@ from card import get_remaining_cards
 
 from rules import get_rating
 
-from tree import TreeNode, LevelNode
+from tree import TreeNode
 
 from simulated_player import TIMEOUT_SECOND
 
@@ -41,10 +41,8 @@ def policy_value_fn(trick_nr, state):
     global REMAINING_CARDS
 
     if REMAINING_CARDS:
-        #print(1111)
         results = REMAINING_CARDS
     else:
-        #print(2222)
         results = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1, is_playout=False)
 
     return results, 0
@@ -54,14 +52,13 @@ class MCTS(object):
     def __init__(self, policy_value_fn, self_player_idx, c_puct=5):
         self._self_player_idx = self_player_idx
 
-        self._root = TreeNode(None, 1.0, self_player_idx, None)
-        self.start_node = self._root
+        self.start_node = TreeNode(None, 1.0, self_player_idx, None)
 
         self._policy = policy_value_fn
         self._c_puct = c_puct
 
 
-    def _playout(self, trick_nr, state, selection_func):
+    def _playout(self, trick_nr, state, selection_func, c_puct):
         node = self.start_node
         while not state.is_finished:
             if node.is_leaf():
@@ -90,7 +87,9 @@ class MCTS(object):
                 break
 
             current_start_pos, found_node = state.start_pos, None
-            for played_card, n in node.select(self._c_puct):
+
+            #print("self._c_puct", c_puct)
+            for played_card, n in node.select(c_puct):
                 suit, rank = played_card[0], played_card[1]
 
                 if valid_cards.get(suit, 0) & rank and n._P > 0:
@@ -103,11 +102,10 @@ class MCTS(object):
 
                     break
             else:
-                print("is_not_valid_card")
+                #print("is_not_valid_card")
 
                 break
 
-        #print(state.is_finished, state.hand_cards)
         self._post_playout(node, trick_nr, state, selection_func)
 
 
@@ -116,8 +114,8 @@ class MCTS(object):
             action_probs, _ = self._policy(trick_nr, state)
             node.expand(state.start_pos, action_probs)
 
-        scores = self._evaluate_rollout(trick_nr, state, selection_func)
-        node.update_recursive(scores)
+        rating = self._evaluate_rollout(trick_nr, state, selection_func)
+        node.update_recursive(rating)
 
 
     def _evaluate_rollout(self, trick_nr, state, selection_func):
@@ -164,7 +162,13 @@ class MCTS(object):
 
         vcards = str_to_bitmask(valid_cards) if not_seen else None
 
-        ratio = [0, 0]
+        c_puct = self._c_puct
+        if trick_nr >= 10:
+            c_puct *= 0.6
+        elif trick_nr >= 6:
+            c_puct *= 0.8
+
+        ratio, stats_shoot_the_moon = [0, 0], {}
         for simulation_card in simulation_cards:
             for player_idx, cards in enumerate(simulation_card):
                 simulation_card[player_idx] = str_to_bitmask(cards)
@@ -187,10 +191,17 @@ class MCTS(object):
                     sm.post_round_end()
 
                 selection_func = [choice(selection_func) for _ in range(4)]
-                self._playout(trick_nr, sm, selection_func)
+                self._playout(trick_nr, sm, selection_func, c_puct)
+
+                scores, is_shoot_the_moon = sm.score()
+                if is_shoot_the_moon:
+                    shooter = scores.index(0)
+                    stats_shoot_the_moon.setdefault(shooter, 0)
+                    stats_shoot_the_moon[shooter] += 1
 
                 ratio[0] += 1
             except Exception as e:
+                """
                 for player_idx, cards in enumerate(simulation_card):
                     say("player-{}'s hand_cards is {}", player_idx, cards)
 
@@ -198,10 +209,20 @@ class MCTS(object):
                 traceback.print_exc()
 
                 raise
+                """
                 ratio[1] += 1
 
             if time.time()-stime > simulation_time_limit:
-                say("ratio of success/failed is {}", ratio)
+                shooter = None
+                if stats_shoot_the_moon != {}:
+                    for shooter, num in stats_shoot_the_moon.items():
+                        break
+
+                if shooter:
+                    say("ratio of success/failed is {}, shooter: {}, {}, {:.4f}%", \
+                        ratio, shooter, num, num*100/ratio[0])
+                else:
+                    say("ratio of success/failed is {}", ratio)
 
                 break
 
@@ -243,7 +264,7 @@ class MCTS(object):
 
 
     def print_tree(self, node=None, card=None, depth=0):
-        node = self._root if node is None else node
+        node = self.start_node if node is None else node
 
         if node._parent:
             card_str = bitmask_to_str(card[0], card[1])

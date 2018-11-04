@@ -152,21 +152,16 @@ class StepGame(SimpleGame):
 
             return winning_index, winning_card
 
-        #print("step_1", self.start_pos, self.hand_cards)
         if self.start_pos == self.position:
             self.current_index = len(self.tricks[-1][1])
 
-        #print("step_2", self.start_pos, self.hand_cards)
-
-        valid_cards = None
+        valid_cards, func = None, None
         if played_card is None:
             valid_cards = self.get_valid_cards(self.hand_cards[self.start_pos], current_round_idx)
-            #print("--->", self.start_pos, self.get_valid_cards(self.hand_cards[self.start_pos], current_round_idx, is_playout=False))
 
             func = selection_func[self.start_pos]
-            if self.start_pos == self.position:
-                if self.played_card is None:
-                    func = random_choose
+            if self.start_pos == self.position and self.played_card is None:
+                func = random_choose
 
             ccards, played_card = func(self.start_pos, 
                                        valid_cards, 
@@ -178,21 +173,14 @@ class StepGame(SimpleGame):
                                        self.has_point_players, 
                                        self.current_info, 
                                        self.void_info)
-
-        #print(len(self.tricks), len(self.tricks[-1][1]), self.start_pos, self.hand_cards, valid_cards, played_card)
-        #for player_idx, cards in enumerate(self.hand_cards):
-        #    print(self.translate_hand_cards(cards))
+            #print(self.start_pos, "func", func, valid_cards)
 
         if played_card is None:
-            #print("--->", self.start_pos, self.tricks[-1], self.hand_cards, valid_cards, self.is_hearts_broken)
-            #if len(self.tricks) > 2:
-            #    print("<---", self.tricks[-2], self.start_pos, self.hand_cards)
-            #print()
-
             raise Exception("Impossible to get 'None' of played_card")
 
-        if self.played_card is None:
+        if self.start_pos == self.position and self.played_card is None:
             self.played_card = played_card
+            #print(self.start_pos, "setting.....", func, self.played_card)
 
         self.add_card_to_trick(self.start_pos, played_card)
         self.remove_card(self.hand_cards[self.start_pos], played_card)

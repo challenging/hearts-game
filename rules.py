@@ -135,16 +135,10 @@ def get_setting_cards():
                     "AS,KS,TS,9S,KH,QH,TH,7H,6H,5H,5C,KD,QD"]
                   ]
 
-    """
-    card_string = [["2C, 6C, TC, KC, 2D, 8D, QD, 8S, JS, 3H, 6H, 9H, TH",
-                    "7C, 8C, QC, 3D, 9D, KD, TS, QS, 2H, 4H, 5H, 8H, AH",
-                    "3C, 7D, TD, JD, AD, 5S, 6S, 9S, AS, 7H, JH, QH, KH",
-                    "4C, 5C, 9C, JC, AC, 4D, 5D, 6D, 2S, 3S, 4S, 7S, KS"]]
-    """
-    card_string = [["6C, 7C, JC, QC, AC, 2S, 5S, 6S, 9S, KS, 6H, 7H, QH",
-                    "8C, 3D, 4D, 7D, TD, JD, KD, 8S, TS, JS, 2H, 4H, 5H",
-                    "4C, KC, 2D, 5D, 8D, 9D, QD, 4S, 7S, 3H, 8H, TH, AH",
-                    "2C, 3C, 5C, 9C, TC, 6D, AD, 3S, QS, AS, 9H, JH, KH"]]
+    card_string = [["5C, 7C, JC, QC, KC, AC, 4D, QD, 3S, 4S, 5S, 8S, 9S",
+                    "2C, 3C, TC, 3D, 7D, TS, JS, KS, 3H, 5H, 7H, 8H, 9H",
+                    "8C, 2D, 5D, 8D, TD, JD, AD, 2S, 6S, 7S, 2H, 6H, TH",
+                    "4C, 6C, 9C, 6D, 9D, KD, QS, AS, 4H, JH, QH, KH, AH"]]
 
 
     return transform_cards(card_string)
@@ -291,6 +285,8 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
 
 if __name__ == "__main__":
-    hand = transform_cards(["8C, TC, 3S, QS, 4H, 5H, 9H, AH"])
-    for card in hand[0]:
-        print(card, is_card_valid(hand[0], trick=(), card=card, trick_nr=4, is_broken=False))
+    scores = [208, 208, 208, 0]
+    print(scores, get_rating(scores))
+
+    scores = [0, 0, 14, 16]
+    print(scores, get_rating(scores))

@@ -70,6 +70,8 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
 
             if points > 19 and sum(hand_cards[Suit.hearts]) > 3:
                 pass_low_card = True
+            elif points > 16 and sum(hand_cards[Suit.hearts]) > 6:
+                pass_low_card = True
 
         return hand_cards, pass_low_card
 
