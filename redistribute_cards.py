@@ -6,7 +6,7 @@ import random
 
 from random import shuffle, choice, randint
 
-from card import Suit
+from card import Suit, SPADES_Q
 
 
 def get_fixed_cards(cards, must_have):
@@ -65,6 +65,21 @@ def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers,
 
                     copy_cards[selected_idx][0], copy_cards[another_selected_idx][0] = \
                         copy_cards[another_selected_idx][0], copy_cards[selected_idx][0]
+                else:
+                    num_of_suits = {}
+                    for card in copy_cards[selected_idx]:
+                        num_of_suits.setdefault(card.suit, [])
+                        num_of_suits[card.suit].append(card)
+
+                    if len(num_of_suits.get(Suit.spades, [])) == 1 and num_of_suits[Suit.spades][0] == SPADES_Q and len(num_of_suits.get(Suit.hearts, [])) == 11:
+                        another_selected_idx = choice([player_idx for player_idx in range(4) if player_idx != position and player_idx != selected_idx])
+
+                        for switched_card_idx in range(len(copy_cards[another_selected_idx])):
+                            if copy_cards[another_selected_idx][switched_card_idx].suit != Suit.hearts:
+                                copy_cards[selected_idx][0], copy_cards[another_selected_idx][switched_card_idx] = \
+                                    copy_cards[another_selected_idx][switched_card_idx], copy_cards[selected_player][0]
+
+                                break
 
         yield copy_cards
 
