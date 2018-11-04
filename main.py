@@ -32,7 +32,7 @@ if __name__ == "__main__":
         player = MonteCarloPlayer(verbose=True)
         other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     elif player_ai == "rider":
-        player = RiderPlayer(policy=policy_value_fn, c_puct=80, verbose=True)
+        player = RiderPlayer(policy=policy_value_fn, c_puct=128, verbose=True)
         other_players = [NewSimplePlayer(verbose=False) for _ in range(3)]
     else:
         player = SimplePlayer(verbose=False)

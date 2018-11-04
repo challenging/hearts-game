@@ -33,8 +33,6 @@ class RiderPlayer(MonteCarloPlayer7):
     def reset(self):
         super(RiderPlayer, self).reset()
 
-        #if not hasattr(self, "mcts"):
-        #    self.mcts = MCTS(self.policy, self.position, self.c_puct)
         self.mcts = MCTS(self.policy, self.position, self.c_puct)
 
 

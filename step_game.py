@@ -65,37 +65,26 @@ class StepGame(SimpleGame):
         if is_playout:
             return self.get_myself_valid_cards(copy.copy(cards), current_round_idx)
         else:
-            full_cards = copy.copy(FULL_CARDS)
-            valid_cards = {}
+            candicated_cards = {}
+            for suit, info in enumerate(self.current_info):
+                candicated_cards[suit] = info[1]
 
-            if self.start_pos == self.position and False:
-                valid_cards = self.get_valid_cards(copy.copy(self.hand_cards[self.start_pos]), current_round_idx)
-                #print("enter", self.start_pos, self.init_round_idx, current_round_idx, valid_cards)
-            else:
-                candicated_cards = {}
+                if self.position != self.start_pos:
+                    candicated_cards[suit] ^= self.hand_cards[self.position].get(suit, 0)
 
-                for suit, info in enumerate(self.current_info):
-                    candicated_cards[suit] = info[1]
+            if current_round_idx == 1:
+                del candicated_cards[SUIT_TO_INDEX["H"]]
 
-                    if self.position != self.start_pos:
-                        candicated_cards[suit] ^= self.hand_cards[self.position].get(suit, 0)
-
-                valid_cards = candicated_cards
-                if current_round_idx == 1:
-                    del valid_cards[SUIT_TO_INDEX["H"]]
-
-                    if valid_cards[SUIT_TO_INDEX["S"]] & NUM_TO_INDEX["Q"]:
-                        valid_cards[SUIT_TO_INDEX["S"]] ^= NUM_TO_INDEX["Q"]
-
-                #print("no enter", self.start_pos, self.init_round_idx, current_round_idx, valid_cards)
+                if candicated_cards[SUIT_TO_INDEX["S"]] & NUM_TO_INDEX["Q"]:
+                    candicated_cards[SUIT_TO_INDEX["S"]] ^= NUM_TO_INDEX["Q"]
 
             probs, size = [], 0
-            for suit, ranks in full_cards.items():
+            for suit, ranks in FULL_CARDS.items():
                 bit_mask = NUM_TO_INDEX["2"]
 
                 while bit_mask <= NUM_TO_INDEX["A"]:
                     prob = 0.0
-                    if valid_cards.get(suit, 0) & bit_mask:
+                    if candicated_cards.get(suit, 0) & bit_mask:
                         prob = 1.0
 
                         size += 1
@@ -105,6 +94,7 @@ class StepGame(SimpleGame):
                     bit_mask <<= 1
 
             #print("--->******", current_round_idx, self.current_info, self.start_pos, self.hand_cards, valid_cards)
+
             return [[card, prob/size] for card, prob in probs]
 
 

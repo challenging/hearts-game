@@ -282,6 +282,42 @@ def translate_hand_cards(hand_cards, is_bitmask=False):
     return cards
 
 
+def get_remaining_cards(trick_nr, init_trick, score_cards):
+    played_cards = {}
+    for cards in score_cards:
+        for suit, ranks in enumerate(cards):
+            played_cards.setdefault(suit, 0)
+            played_cards[suit] |= ranks
+
+    for suit, rank in init_trick[-1][1]:
+        played_cards[suit] |= rank
+
+    if trick_nr == 1:
+        played_cards[SUIT_TO_INDEX["H"]] = 8191
+        played_cards[SUIT_TO_INDEX["S"]] |= NUM_TO_INDEX["Q"]
+
+    probs, size = [], 0
+    for suit, ranks in FULL_CARDS.items():
+        bit_mask = NUM_TO_INDEX["2"]
+
+        while bit_mask <= NUM_TO_INDEX["A"]:
+            prob = 0.0
+            if played_cards.get(suit, 0) & bit_mask == 0:
+                prob = 1.0
+
+                size += 1
+
+            probs.append([(suit, bit_mask), prob])
+
+            bit_mask <<= 1
+
+    results = []
+    if trick_nr != 1 or (trick_nr == 1 and len(init_trick[-1][1]) > 0):
+        results = [[card, prob/size] for card, prob in probs]
+
+    return results
+
+
 if __name__ == "__main__":
     num_of_games = int(sys.argv[1])
     filepath_in = "game/game_{:04d}/game_{}.pkl".format(num_of_games, int(time.time()))

@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 
@@ -18,8 +19,7 @@ from new_simulated_player import MonteCarloPlayer7
 from nn import PolicyValueNet
 from nn_utils import card2v, v2card, full_cards, limit_cards, print_a_memory
 
-#from mcts import policy_value_fn
-#policy = policy_value_fn
+BASEPATH_MODEL = "model_softmax"
 
 policy = PolicyValueNet()
 policy_value_fn = policy.predict
@@ -158,7 +158,6 @@ class TrainPipeline():
 
 
     def run(self, game_batch_num):
-        """run the training pipeline"""
         try:
             for i in range(game_batch_num):
                 self.collect_selfplay_data(self.play_batch_size)
@@ -177,13 +176,13 @@ class TrainPipeline():
 
                     print("current self-play batch: {}, and score ratio: {:.4f}".format(i+1, score))
 
-                    policy.save_model('model/current_policy.model')
+                    policy.save_model(os.path.join(BASEPATH_MODEL, 'current_policy.model'))
                     if score < self.best_score:
                         print("New best policy!!!!!!!!", score, self.best_score)
                         self.best_score = score
 
                         # update the best_policy
-                        policy.save_model('model/best_policy.model')
+                        policy.save_model(os.path.join(BASEPATH_MODEL, 'best_policy.model'))
                         if i > 0: self.pure_mcts_simulation_time_limit <<= 1
         except KeyboardInterrupt:
             print('\nquit')

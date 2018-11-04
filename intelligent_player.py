@@ -15,11 +15,11 @@ from new_simulated_player import MonteCarloPlayer7
 from intelligent_mcts import IntelligentMCTS
 
 
-def softmax(x):
+def softmax(x, temp):
+    x = 1/temp*np.log(np.array(x) + 1e-16)
+
     probs = np.exp(x - np.max(x))
     probs /= np.sum(probs)
-
-    #probs = x/np.sum(x)
 
     return probs
 
@@ -55,7 +55,7 @@ class IntelligentPlayer(RiderPlayer):
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 
 
-    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND, temp=1e-3):
+    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND, temp=1):
         stime = time.time()
 
         game.are_hearts_broken()
@@ -68,9 +68,9 @@ class IntelligentPlayer(RiderPlayer):
 
         etime = simulation_time_limit
         if game.trick_nr > 11:
-            etime /= 3
+            etime /= 4
         elif game.trick_nr > 8:
-            etime /= 2
+            etime /= 3
         elif game.trick_nr > 5:
             etime /= 1.5
 
@@ -99,14 +99,7 @@ class IntelligentPlayer(RiderPlayer):
                 valid_cards.append(bitmask_to_card(card[0], card[1]))
                 valid_probs.append(n_visits)
 
-        if valid_cards:
-            valid_probs = softmax(1/temp*np.log(np.array(valid_probs) + 1e-16))
-        else:
-            self.say("use simple valid_cards - {}", vcards)
-
-            valid_cards = vcards
-            valid_probs = [1.0/len(valid_cards) for _ in range(len(valid_cards))]
-            valid_probs = softmax(1/temp*np.log(np.array(valid_probs) + 1e-16))
+        valid_probs = softmax(valid_probs)
 
         if self.is_self_play:
             cards, probs = [], []
@@ -117,7 +110,7 @@ class IntelligentPlayer(RiderPlayer):
                 if probs[-1] > 0:
                     self.say("Player-{}, played card: {}, {} times", self.position, cards[-1], probs[-1])
 
-            probs = softmax(1/temp*np.log(np.array(probs) + 1e-16))
+            probs = softmax(probs)
 
             move = np.random.choice(
                     valid_cards,

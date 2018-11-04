@@ -4,15 +4,16 @@ import os
 import copy
 import time
 
-from random import shuffle, randint, choice
-from statistics import mean
-from math import sqrt
+from random import randint, choice
 
-from card import Suit, Rank, Card, Deck
+from card import Suit, Rank, Card, Deck, FULL_CARDS
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
-from card import card_to_bitmask, batch_bitmask_to_card, bitmask_to_card, str_to_bitmask, translate_hand_cards, transform
+from card import card_to_bitmask, batch_bitmask_to_card, bitmask_to_card, str_to_bitmask, bitmask_to_str, translate_hand_cards
+from card import get_remaining_cards
 
 from rules import get_rating
+
+from tree import TreeNode, LevelNode
 
 from simulated_player import TIMEOUT_SECOND
 
@@ -27,84 +28,29 @@ def say(message, *formatargs):
 
     message = message.format(*formatargs)
     if os.path.exists("/log"):
-        if OUT_FILE is None: OUT_FILE = open("/log/mcts.log", "a", 1)
+        if OUT_FILE is None: OUT_FILE = open("/log/mcts.log", "a")
 
         OUT_FILE.write("{}\n".format(message))
     else:
         print(message)
 
 
+REMAINING_CARDS = []
+
 def policy_value_fn(trick_nr, state):
-    results = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1, is_playout=False)
+    global REMAINING_CARDS
+
+    if REMAINING_CARDS:
+        #print(1111)
+        results = REMAINING_CARDS
+    else:
+        #print(2222)
+        results = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1, is_playout=False)
 
     return results, 0
 
 
-class TreeNode(object):
-    def __init__(self, parent, prior_p, self_player_idx, player_idx):
-        self._parent = parent
-
-        self._self_player_idx = self_player_idx
-        self._player_idx = player_idx
-
-        self._children = {}
-        self._n_visits = 0
-        self._Q = 0
-        self._u = 0
-        self._P = prior_p
-
-
-    def expand(self, player_idx, action_priors):
-        #print("expansion")
-        for action, prob in action_priors:
-            #print(action, prob)
-            if action not in self._children:
-                self._children[action] = TreeNode(self, prob, self._self_player_idx, player_idx)
-            else:
-                self._children[action]._player_idx = player_idx
-                self._children[action]._P = prob
-
-
-    def select(self, c_puct):
-        for card, node in sorted(self._children.items(), key=lambda act_node: act_node[1].get_value(c_puct)*-1):
-            if node._P > 0:
-                yield card, node
-
-
-    def update(self, leaf_value):
-        self._n_visits += 1
-
-        self._Q += leaf_value
-
-
-    def update_recursive(self, scores):
-        if self._parent:
-            self._parent.update_recursive(scores)
-
-        if self._player_idx is None:
-            self._n_visits += 1
-        else:
-            v = scores[self._player_idx]
-
-            self.update(v)
-
-
-    def get_value(self, c_puct):
-        self._u = (c_puct * self._P * sqrt(self._parent._n_visits) / (1 + self._n_visits))
-
-        return self._Q/(1e-16+self._n_visits) + self._u
-
-
-    def is_leaf(self):
-        return self._children == {}
-
-
-    def is_root(self):
-        return self._parent is None
-
-
 class MCTS(object):
-    """A simple implementation of Monte Carlo Tree Search."""
     def __init__(self, policy_value_fn, self_player_idx, c_puct=5):
         self._self_player_idx = self_player_idx
 
@@ -119,21 +65,24 @@ class MCTS(object):
         node = self.start_node
         while not state.is_finished:
             if node.is_leaf():
-                #print("is_leaf", node, self.start_node, self._root, node._children)
+                #print("is_leaf")
                 break
 
             is_all_traverse = True
 
             valid_cards = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1)
             valid_moves = translate_hand_cards(valid_cards, is_bitmask=True)
+            #print("current_valid_moves", valid_moves)
+
             for card in valid_moves:
                 if card not in node._children:
                     is_all_traverse = False
+                    #print("is_not_all_traverse - not")
 
                     break
-
-                if node._children[card]._P == 0:
+                elif node._children[card]._P == 0:
                     is_all_traverse = False
+                    #print("is_not_all_traverse - _P", card)
 
                     break
 
@@ -144,8 +93,7 @@ class MCTS(object):
             for played_card, n in node.select(self._c_puct):
                 suit, rank = played_card[0], played_card[1]
 
-                if valid_cards.get(suit, 0) & rank:
-                    #print("--->", state.start_pos, bitmask_to_card(suit, rank), n._Q, n._n_visits, n._u) 
+                if valid_cards.get(suit, 0) & rank and n._P > 0:
                     state.step(trick_nr, selection_func, played_card)
 
                     for sub_n in node._children.values():
@@ -155,8 +103,11 @@ class MCTS(object):
 
                     break
             else:
+                print("is_not_valid_card")
+
                 break
 
+        #print(state.is_finished, state.hand_cards)
         self._post_playout(node, trick_nr, state, selection_func)
 
 
@@ -176,90 +127,78 @@ class MCTS(object):
         return get_rating(state.score()[0])
 
 
-    def get_move(self, 
+    def get_move(self,
                  first_player_idx,
-                 hand_cards, 
+                 hand_cards,
                  valid_cards,
-                 remaining_cards, 
-                 score_cards, 
+                 remaining_cards,
+                 score_cards,
                  num_hand_cards,
-                 init_trick, 
-                 void_info, 
-                 must_have, 
-                 selection_func, 
-                 trick_nr, 
-                 is_heart_broken, 
-                 expose_heart_ace, 
-                 is_only_played_card=False, 
+                 init_trick,
+                 void_info,
+                 must_have,
+                 selection_func,
+                 trick_nr,
+                 is_heart_broken,
+                 expose_heart_ace,
+                 is_only_played_card=False,
                  simulation_time_limit=TIMEOUT_SECOND-0.1,
                  not_seen=False):
 
         stime = time.time()
 
-        simulation_cards = redistribute_cards(randint(0, 128), 
-                                              self._self_player_idx, 
-                                              copy.deepcopy(hand_cards), 
-                                              num_hand_cards, 
-                                              init_trick[-1][1], 
-                                              remaining_cards, 
-                                              must_have, 
+        global REMAINING_CARDS
+        REMAINING_CARDS = get_remaining_cards(trick_nr+len(init_trick)-1, init_trick, score_cards)
+        if REMAINING_CARDS:
+            self.start_node.update_recursive_percentage(REMAINING_CARDS)
+
+        simulation_cards = redistribute_cards(randint(0, 64),
+                                              self._self_player_idx,
+                                              copy.deepcopy(hand_cards),
+                                              num_hand_cards,
+                                              init_trick[-1][1],
+                                              remaining_cards,
+                                              must_have,
                                               void_info,
                                               not_seen)
 
-        vcards = None
-        if not_seen:
-            vcards = str_to_bitmask(valid_cards)
+        vcards = str_to_bitmask(valid_cards) if not_seen else None
 
-        ratio = [0, 0, 0]
+        ratio = [0, 0]
         for simulation_card in simulation_cards:
-            max_len_cards, min_min_cards = -1, 99
             for player_idx, cards in enumerate(simulation_card):
                 simulation_card[player_idx] = str_to_bitmask(cards)
 
-                if len(cards) > max_len_cards:
-                    max_len_cards = len(cards)
+            try:
+                sm = StepGame(trick_nr,
+                              position=first_player_idx,
+                              hand_cards=simulation_card,
+                              void_info=void_info,
+                              score_cards=copy.deepcopy(score_cards),
+                              is_hearts_broken=is_heart_broken,
+                              expose_hearts_ace=expose_heart_ace,
+                              tricks=copy.deepcopy(init_trick),
+                              must_have=must_have)
 
-                if len(cards) < min_min_cards:
-                    min_min_cards = len(cards)
+                if vcards is None:
+                    vcards = sm.get_valid_cards(sm.hand_cards[sm.start_pos], trick_nr+len(sm.tricks)-1)
 
-            if max_len_cards-min_min_cards < 2:
-                try:
-                    sm = StepGame(trick_nr,
-                                  position=first_player_idx, 
-                                  hand_cards=simulation_card,
-                                  void_info=void_info,
-                                  score_cards=copy.deepcopy(score_cards), 
-                                  is_hearts_broken=is_heart_broken, 
-                                  expose_hearts_ace=expose_heart_ace, 
-                                  tricks=copy.deepcopy(init_trick),
-                                  must_have=must_have)
+                if len(init_trick[-1][1]) == 4:
+                    sm.post_round_end()
 
-                    if vcards is None:
-                        vcards = sm.get_valid_cards(sm.hand_cards[sm.start_pos], trick_nr+len(sm.tricks)-1)
+                selection_func = [choice(selection_func) for _ in range(4)]
+                self._playout(trick_nr, sm, selection_func)
 
-                    if len(init_trick[-1][1]) == 4:
-                        sm.post_round_end()
-
-                    selection_func = [choice(selection_func) for _ in range(4)]
-                    self._playout(trick_nr, sm, selection_func)
-
-                    ratio[0] += 1
-                except Exception as e:
-                    for player_idx, cards in enumerate(simulation_card):
-                        say("player-{}'s hand_cards is {}", player_idx, cards)
-
-                    import traceback
-                    traceback.print_exc()
-
-
-                    raise
-                    ratio[1] += 1
-            else:
+                ratio[0] += 1
+            except Exception as e:
                 for player_idx, cards in enumerate(simulation_card):
                     say("player-{}'s hand_cards is {}", player_idx, cards)
 
+                import traceback
+                traceback.print_exc()
+
                 raise
-                ratio[2] += 1
+                ratio[1] += 1
 
             if time.time()-stime > simulation_time_limit:
                 say("ratio of success/failed is {}", ratio)
@@ -271,15 +210,17 @@ class MCTS(object):
             vcards = [list(batch_bitmask_to_card(suit, ranks)) for suit, ranks in vcards.items()]
 
             if not_seen:
-                for k, v in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
-                    if v._P > 0 and valid_cards.get(k[0], 0) & k[1]:
+                for k, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
+                    if node._P > 0 and valid_cards.get(k[0], 0) & k[1]:
                         say("seen: {}, valid_cards: {}, {}-->{}: {} times, percentage: {:.4f}%", \
-                            not not_seen, vcards, v._player_idx, bitmask_to_card(k[0], k[1]), v._n_visits, v._P*100)
+                            not not_seen, vcards, node._player_idx, bitmask_to_card(k[0], k[1]), node._n_visits, node._P*100)
 
-                        for child_k, child_node in sorted(v._children.items(), key=lambda x: -x[1]._n_visits):
+                        """
+                        for child_k, child_node in sorted(node._children.items(), key=lambda x: -x[1]._n_visits):
                             say("\t{}-->{}: {} times, percentage: {:.4f}%", \
                                 child_node._player_idx, bitmask_to_card(child_k[0], child_k[1]), child_node._n_visits, child_node._P*100)
-                    elif v._P == 0:
+                        """
+                    elif node._P == 0:
                         break
 
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
@@ -288,7 +229,6 @@ class MCTS(object):
         else:
             results = {}
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
-                #if node._P > 0 and node._n_visits > 0 and valid_cards.get(played_card[0], 0) & played_card[1]:
                 results.setdefault(played_card, 0)
                 results[played_card] = node._n_visits
 
@@ -298,21 +238,18 @@ class MCTS(object):
     def update_with_move(self, last_move):
         if last_move in self.start_node._children:
             self.start_node = self.start_node._children[last_move]
-
-            #print("reset the root to be {}".format(last_move))
         else:
             self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
-
-            #say("reset the root because {} is NOT found", last_move)
 
 
     def print_tree(self, node=None, card=None, depth=0):
         node = self._root if node is None else node
 
         if node._parent:
-            card_str = transform(INDEX_TO_NUM[card[1]], INDEX_TO_SUIT[card[0]])
+            card_str = bitmask_to_str(card[0], card[1])
 
-            say("{} {} {}, percentage: {:.4f}, visits: {}, value: {:.4f}, {}", "****"*depth, card_str, node, node._P, node._n_visits, node.get_value(self._c_puct), node._parent)
+            say("{} {} {}, percentage: {:.4f}, visits: {}, value: {:.4f}, {}", \
+                "****"*depth, card_str, node, node._P, node._n_visits, node.get_value(self._c_puct), node._parent)
 
         for card, children in node._children.items():
             self.print_tree(children, card, depth+1)

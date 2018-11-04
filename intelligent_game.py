@@ -84,8 +84,4 @@ class IntelligentGame(Game):
 
             self._memory.extend(self._short_memory)
 
-            #print(1111)
-            #for m in self._short_memory:
-            #    print_a_memory(m)
-
             self._short_memory = []
