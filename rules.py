@@ -180,7 +180,10 @@ def get_rating(scores):
             if score == pre_score:
                 tmp_rating = pre_rating
 
-        rating[player_idx] = tmp_rating/4 + (1-score/sum_score)
+        tmp_idx = tmp_rating+1
+        tmp_idx = tmp_idx if tmp_idx == 4 else -tmp_idx
+
+        rating[player_idx] = tmp_idx/4 + (1-score/sum_score)
 
         pre_score = score
         pre_rating = tmp_rating

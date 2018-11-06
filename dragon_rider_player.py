@@ -18,11 +18,12 @@ from simulated_player import TIMEOUT_SECOND
 from new_simulated_player import MonteCarloPlayer7
 from strategy_play import greedy_choose, random_choose
 from expert_play import expert_choose
+
 from mcts import MCTS
+from level_mcts import LevelMCTS
 
 
 class RiderPlayer(MonteCarloPlayer7):
-    """AI player based on MCTS"""
     def __init__(self, policy, c_puct, verbose=False):
         super(RiderPlayer, self).__init__(verbose=verbose)
 
@@ -34,6 +35,7 @@ class RiderPlayer(MonteCarloPlayer7):
         super(RiderPlayer, self).reset()
 
         self.mcts = MCTS(self.policy, self.position, self.c_puct)
+        #self.mcts = LevelMCTS(self.policy, self.position, self.c_puct)
 
 
     def see_played_trick(self, card, game):
@@ -109,7 +111,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [random_choose]
+        selection_func = [expert_choose]
 
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 
@@ -146,6 +148,7 @@ class RiderPlayer(MonteCarloPlayer7):
                                True)
 
         played_card = bitmask_to_card(played_card[0], played_card[1])
+        #self.mcts.update_with_move(-1)
 
         #self.mcts.print_tree()
 

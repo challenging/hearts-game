@@ -249,8 +249,8 @@ def count_points(cards, expose_hearts_ace):
     global SUIT_TO_INDEX, NUM_TO_INDEX
 
     point = 0
-    bit_mask = 1
-    while bit_mask <= 4096:
+    bit_mask = NUM_TO_INDEX["2"]
+    while bit_mask <= NUM_TO_INDEX["A"]:
         if cards[SUIT_TO_INDEX["H"]] & bit_mask:
             point += 1*expose_hearts_ace
 

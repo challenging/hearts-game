@@ -1,6 +1,8 @@
 import os
 import sys
+
 import time
+import pickle
 
 import numpy as np
 
@@ -19,7 +21,13 @@ from new_simulated_player import MonteCarloPlayer7
 from nn import PolicyValueNet
 from nn_utils import card2v, v2card, full_cards, limit_cards, print_a_memory
 
-BASEPATH_MODEL = "model_softmax"
+BASEPATH = "prob"
+BASEPATH_MODEL = os.path.join(BASEPATH, "model")
+BASEPATH_DATA = os.path.join(BASEPATH, "data")
+
+for folder in [BASEPATH_MODEL, BASEPATH_DATA]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
 policy = PolicyValueNet()
 policy_value_fn = policy.predict
@@ -28,16 +36,16 @@ policy_value_fn = policy.predict
 class TrainPipeline():
     def __init__(self, init_model=None):
         # training params
-        self.learn_rate = 2e-3
+        self.learn_rate = 1e-4
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
-        self.c_puct = 2
+        self.c_puct = 128
 
         self.buffer_size = 2**15
         self.batch_size = 128  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
-        self.play_batch_size = 8
-        self.epochs = 16  # num of train_steps for each update
+        self.play_batch_size = 16
+        self.epochs = 32  # num of train_steps for each update
         self.check_freq = 4
         self.kl_targ = 0.02
 
@@ -67,6 +75,10 @@ class TrainPipeline():
             self.game.reset()
 
             print("cost {:.4f} seconds, training game: {:3d}".format(time.time()-stime, i+1))
+
+        filepath_in = os.path.join(BASEPATH_DATA, str(time.time()*1000)+".pkl")
+        with open(filepath_in, "wb") as in_file:
+            pickle.dump(self.data_buffer, in_file)
 
 
     def policy_update(self):

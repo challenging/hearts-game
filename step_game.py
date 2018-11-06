@@ -37,7 +37,6 @@ class StepGame(SimpleGame):
                  is_hearts_broken=False,
                  is_show_pig_card=False,
                  is_show_double_card=False,
-                 has_point_players=set(),
                  expose_hearts_ace=False,
                  tricks=[],
                  must_have={}):
@@ -49,7 +48,6 @@ class StepGame(SimpleGame):
                                        is_hearts_broken,
                                        is_show_pig_card,
                                        is_show_double_card,
-                                       has_point_players,
                                        expose_hearts_ace,
                                        tricks)
 
@@ -171,9 +169,11 @@ class StepGame(SimpleGame):
                                        self.is_show_pig_card, 
                                        self.is_show_double_card, 
                                        self.has_point_players, 
-                                       self.current_info, 
+                                       copy.deepcopy(self.current_info), 
                                        self.void_info)
-            #print(self.start_pos, "func", func, valid_cards)
+
+            #if current_round_idx-len(self.tricks)+1 > 6:
+            #    print(self.start_pos, "func", func, played_card, valid_cards, current_round_idx)
 
         if played_card is None:
             raise Exception("Impossible to get 'None' of played_card")

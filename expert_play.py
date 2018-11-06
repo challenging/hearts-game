@@ -1,5 +1,6 @@
 import copy
 
+from random import choice
 from functools import cmp_to_key
 from collections import defaultdict
 
@@ -148,6 +149,7 @@ def play_spades_K_A(cards):
 
 def expert_choose(position, cards, trick, real_own_pig_card, 
                   is_hearts_broken=False, is_pig_card_taken=False, is_double_card_taken=False, players_with_point=set(), game_info=None, void_info={}):
+
     num_of_suits, valid_cards = get_num_for_suits(cards)
     if len(valid_cards) == 1:
         return valid_cards, valid_cards[0]
@@ -238,8 +240,26 @@ def expert_choose(position, cards, trick, real_own_pig_card,
                     if safe_play is not None:
                         break
     else:
-        suits = ALL_SUITS
-        safe_play = choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, is_double_card_taken, real_own_pig_card, copy.deepcopy(game_info), void_info_for_suits)
+        if len(players_with_point) == 1 and list(players_with_point)[0] == position:
+            total_num, big_cards = 0, []
+            for suit, num in num_of_suits.items():
+                game_info[suit][1] ^= cards.get(suit, 0)
+
+                bitmask = NUM_TO_INDEX["2"]
+                while bitmask <= NUM_TO_INDEX["A"]:
+                    if cards.get(suit, 0) & bitmask and bitmask > game_info[suit][1]:
+                        big_cards.append([suit, bitmask])
+
+                    bitmask <<= 1
+
+                total_num += num
+
+            if len(big_cards) >= total_num*0.66667:
+                safe_play = choice(big_cards)
+
+        if safe_play is None:
+            suits = ALL_SUITS
+            safe_play = choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, is_double_card_taken, real_own_pig_card, game_info, void_info_for_suits)
 
 
     for suit, num in sorted(num_of_suits.items(), key=lambda x: x[1]):

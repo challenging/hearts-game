@@ -36,7 +36,6 @@ class SimpleGame(object):
                  is_hearts_borken=False,
                  is_show_pig_card=False,
                  is_show_double_card=False,
-                 has_point_players=set(),
                  expose_hearts_ace=False,
                  tricks=[]):
 
@@ -44,11 +43,10 @@ class SimpleGame(object):
         self.hand_cards = hand_cards
 
         self.current_info = [[13, RANK_SUM] for _ in ALL_SUIT]
-        #self.handle_current_info(self.hand_cards[self.position])
 
         self.is_show_pig_card = is_show_pig_card
         self.is_show_double_card = is_show_double_card
-        self.has_point_players = has_point_players
+        self.has_point_players = set()
 
         self.void_info = dict([[player_idx, {SUIT_TO_INDEX["C"]: False, SUIT_TO_INDEX["D"]: False, SUIT_TO_INDEX["H"]: False, SUIT_TO_INDEX["S"]: False}] for player_idx in range(4)])
         if void_info:
@@ -110,7 +108,7 @@ class SimpleGame(object):
 
 
     def check_shoot_the_moon(self, score_cards):
-        #print("score_cards", score_cards)
+        #print("score_cards", score_cards, self.has_point_players)
         for player_idx, cards in enumerate(score_cards):
             if cards[SUIT_TO_INDEX["S"]] & NUM_TO_INDEX["Q"]:
                 self.has_point_players.add(player_idx)
@@ -118,6 +116,7 @@ class SimpleGame(object):
             if cards[SUIT_TO_INDEX["H"]] > 0:
                 self.has_point_players.add(player_idx)
 
+        #print("has_point_players", self.has_point_players)
 
     def get_seen_cards(self):
         cards = copy.copy(EMPTY_CARDS)
@@ -233,7 +232,7 @@ class SimpleGame(object):
                                              self.is_show_pig_card, 
                                              self.is_show_double_card, 
                                              self.has_point_players, 
-                                             self.current_info, 
+                                             copy.deepcopy(self.current_info), 
                                              self.void_info)
 
         return played_card
