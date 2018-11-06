@@ -34,15 +34,20 @@ if __name__ == "__main__":
     elif player_ai == "rider":
         player = RiderPlayer(policy=policy_value_fn, c_puct=128, verbose=True)
         other_players = [NewSimplePlayer(verbose=False) for _ in range(3)]
+    elif player_ai == "new_simple":
+        player = NewSimplePlayer(verbose=True)
+        other_players = [SimplePlayer(verbose=False) for _ in range(3)]
     else:
         player = SimplePlayer(verbose=False)
         other_players = [StupidPlayer(verbose=False) for _ in range(3)]
 
+    card_set = sys.argv[3].lower()
+    sub_card_set = sys.argv[4].lower()
+
     setting_cards = None
-    if sys.argv[3].lower() == "small":
-        setting_cards = read_card_games("game/game_0008/game_*.pkl")
-        setting_cards = setting_cards
-    elif sys.argv[3].lower() == "big":
+    if card_set == "small":
+        setting_cards = read_card_games("game/game_0008/{}/game_*.pkl".format(sub_card_set))
+    elif card_set == "big":
         setting_cards = read_card_games("game/game_0032/game_*.pkl")
     else:
         setting_cards = get_setting_cards()

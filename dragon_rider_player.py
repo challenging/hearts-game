@@ -80,7 +80,7 @@ class RiderPlayer(MonteCarloPlayer7):
                 raise
         else:
             if game.get_game_winners():
-                rating = get_rating(game.player_scores)
+                rating = get_rating(self.position, game.player_scores, game.is_shootmoon)
 
                 self.mcts.start_node.update_recursive(rating)
 

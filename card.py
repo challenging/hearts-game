@@ -320,12 +320,12 @@ def get_remaining_cards(trick_nr, init_trick, score_cards):
 
 if __name__ == "__main__":
     num_of_games = int(sys.argv[1])
-    filepath_in = "game/game_{:04d}/game_{}.pkl".format(num_of_games, int(time.time()))
+    filepath_in = "game/game_{:04d}/{}/game_{}.pkl".format(num_of_games, sys.argv[2], int(time.time()))
 
     if not os.path.exists(os.path.dirname(filepath_in)):
         os.makedirs(os.path.dirname(filepath_in))
 
     generate_card_games(int(sys.argv[1]), filepath_in)
 
-    for card in read_card_games(filepath_in):
-        print(card)
+    #for card in read_card_games(filepath_in):
+    #    print(card)

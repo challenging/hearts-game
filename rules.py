@@ -135,11 +135,36 @@ def get_setting_cards():
                     "AS,KS,TS,9S,KH,QH,TH,7H,6H,5H,5C,KD,QD"]
                   ]
 
+    """
     card_string = [["5C, 7C, JC, QC, KC, AC, 4D, QD, 3S, 4S, 5S, 8S, 9S",
                     "2C, 3C, TC, 3D, 7D, TS, JS, KS, 3H, 5H, 7H, 8H, 9H",
                     "8C, 2D, 5D, 8D, TD, JD, AD, 2S, 6S, 7S, 2H, 6H, TH",
                     "4C, 6C, 9C, 6D, 9D, KD, QS, AS, 4H, JH, QH, KH, AH"]]
+    """
 
+    """
+    card_string = [["2C, 3C, JC, 2D, 6D, QD, 3S, 4S, 5S, 9S, 4H, 8H, JH",
+                    "6C, TC, 7D, 8D, 9D, JD, KD, 6S, 7S, QS, AS, 2H, QH",
+                    "4C, 5C, 7C, QC, KC, AC, 3D, 4D, 2S, KS, 3H, 5H, 7H",
+                    "8C, 9C, 5D, TD, AD, 8S, TS, JS, 6H, 9H, TH, KH, AH"]]
+    """
+
+    """
+    card_string = [["6C, 7C, JC, QC, AC, 2S, 5S, 6S, 9S, KS, 6H, 7H, QH",
+                    "8C, 3D, 4D, 7D, TD, JD, KD, 8S, TS, JS, 2H, 4H, 5H",
+                    "4C, KC, 2D, 5D, 8D, 9D, QD, 4S, 7S, 3H, 8H, TH, AH",
+                    "2C, 3C, 5C, 9C, TC, 6D, AD, 3S, QS, AS, 9H, JH, KH"]]
+    """
+
+    card_string = [["4C, 7C, KC, AC, 2D, 7D, TD, 4S, 6S, JS, AS, 8H, KH",
+                    "2C, 6C, 8C, 9C, 3D, 4D, QD, 2S, 7S, TS, QS, TH, JH",
+                    "JC, 5D, 6D, 9D, KD, AD, 3S, 8S, 9S, KS, 2H, 4H, 9H",
+                    "3C, 5C, TC, QC, 8D, JD, 5S, 3H, 5H, 6H, 7H, QH, AH"]]
+
+    card_string = [["3C, 4C, 5C, AC, 4D, 9D, JD, 8S, 4H, 8H, 9H, JH, AH",
+                    "2C, JC, KC, 2D, 8D, QD, 5S, 9S, JS, QS, KS, AS, 6H",
+                    "7C, 9C, 3D, 5D, 6D, TD, AD, 3S, 4S, 6S, 5H, TH, QH",
+                    "6C, 8C, TC, QC, 7D, KD, 2S, 7S, TS, 2H, 3H, 7H, KH"]]
 
     return transform_cards(card_string)
 
@@ -167,26 +192,30 @@ def transform_cards(card_strings):
     return cardss
 
 
-def get_rating(scores):
+def get_rating(position, scores, is_shoot_the_moon):
     sum_score = sum(scores)
 
     rating = [0, 0, 0, 0]
 
     info = zip(range(4), scores)
     pre_score, pre_rating = None, None
-    for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: -x[1])):
+    for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: x[1])):
         tmp_rating = rating_idx
-        if pre_score is not None:
-            if score == pre_score:
-                tmp_rating = pre_rating
+        if score == pre_score:
+            tmp_rating = pre_rating
 
-        tmp_idx = tmp_rating+1
-        tmp_idx = tmp_idx if tmp_idx == 4 else -tmp_idx
-
-        rating[player_idx] = tmp_idx/4 + (1-score/sum_score)
+        rating[player_idx] = -tmp_rating/4 + (1-score/sum_score)-1
+        #rating[player_idx] = (4-tmp_rating)/4 + (1-score/sum_score)
+        #rating[player_idx] = -score/sum_score
 
         pre_score = score
         pre_rating = tmp_rating
+
+    if is_shoot_the_moon:
+        if scores[position] == 0:
+            rating[position] += 1.5
+        #else:
+        #    rating[position] -= 1
 
     return rating
 
@@ -289,7 +318,13 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
 if __name__ == "__main__":
     scores = [208, 208, 208, 0]
-    print(scores, get_rating(scores))
+    print(scores, get_rating(3, scores, True))
+
+    scores = [208, 208, 0, 208]
+    print(scores, get_rating(3, scores, True))
 
     scores = [0, 0, 14, 16]
-    print(scores, get_rating(scores))
+    print(scores, get_rating(3, scores, False))
+
+    scores = [0, 0, 16, 14]
+    print(scores, get_rating(3, scores, True))

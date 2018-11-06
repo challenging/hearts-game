@@ -124,21 +124,13 @@ class MCTS(object):
         rating = self._evaluate_rollout(trick_nr, state, selection_func)
         node.update_recursive(rating)
 
-        #if trick_nr > 7:
-        #    print("history", self.history, state.score()[0], rating)
-        #    for player_idx in range(4):
-        #        for suit, ranks in enumerate(state.score_cards[player_idx]):
-        #            print("\tplayer_idx", player_idx, list(batch_bitmask_to_card(suit, ranks)))
-
-
-        #if trick_nr >= 10:
-        #    sys.exit(1)
 
     def _evaluate_rollout(self, trick_nr, state, selection_func):
         while not state.is_finished:
             state.step(trick_nr, selection_func)
 
-        return get_rating(state.score()[0])
+        info = state.score()
+        return get_rating(self._self_player_idx, info[0], info[1])
 
 
     def get_move(self,
@@ -215,8 +207,6 @@ class MCTS(object):
             except Exception as e:
                 ratio[1] += 1
 
-                #raise
-
             if time.time()-stime > simulation_time_limit:
                 shooter = None
                 if stats_shoot_the_moon != {}:
@@ -248,7 +238,7 @@ class MCTS(object):
                                 child_node._player_idx, bitmask_to_card(child_k[0], child_k[1]), child_node._n_visits, child_node._P*100)
                         """
                     elif node._P == 0:
-                        break
+                        continue
 
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
                 if node._P > 0 and valid_cards.get(played_card[0], 0) & played_card[1]:

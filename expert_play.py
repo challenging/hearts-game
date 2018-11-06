@@ -180,6 +180,7 @@ def expert_choose(position, cards, trick, real_own_pig_card,
         eaten_play = None
         rank = cards.get(leading_suit, 0)
 
+        trick_nr = 12-sum([info[0] for info in game_info])//4
         if rank > 0:
             if leading_suit == SUIT_TO_INDEX["S"]:
                 if own_pig_card:
@@ -208,8 +209,11 @@ def expert_choose(position, cards, trick, real_own_pig_card,
                         safe_play = choose_min_card(cards, suits=[leading_suit])
                     else:
                         safe_play = choose_max_card(cards, suits=[leading_suit], max_rank=(NUM_TO_INDEX["A"] if is_double_card_taken or cards[leading_suit] < max_rank else NUM_TO_INDEX["9"]))
-            elif leading_suit == SUIT_TO_INDEX["H"] and len(players_with_point) < 2:
-                safe_play = choose_min_card(cards, suits=[leading_suit])
+            elif leading_suit == SUIT_TO_INDEX["H"]:
+                if trick_nr > 8 and len(players_with_point) == 1:
+                    safe_play = choose_max_card(cards, suits=[leading_suit])
+                else:
+                    safe_play = choose_min_card(cards, suits=[leading_suit])
 
             if safe_play is None:
                 bit_mask = NUM_TO_INDEX["A"]
@@ -225,23 +229,31 @@ def expert_choose(position, cards, trick, real_own_pig_card,
                 if safe_play is None:
                     safe_play = eaten_play
         else:
-            if own_pig_card:
-                safe_play = [SUIT_TO_INDEX["S"], NUM_TO_INDEX["Q"]]
-            elif is_pig_card_taken == False and cards.get(SUIT_TO_INDEX["S"], 0) >= NUM_TO_INDEX["K"]:
-                safe_play = play_spades_K_A(cards)
-            else:
+            if trick_nr < 6 or len(players_with_point) > 1:
+                if own_pig_card:
+                    safe_play = [SUIT_TO_INDEX["S"], NUM_TO_INDEX["Q"]]
+                elif is_pig_card_taken == False and cards.get(SUIT_TO_INDEX["S"], 0) >= NUM_TO_INDEX["K"]:
+                    safe_play = play_spades_K_A(cards)
+
+            if safe_play is None:
                 remaining_size = defaultdict(tuple)
                 for suit, num in sorted(num_of_suits.items(), key=lambda x: x[1]):
-                    remaining_size[suit] = (num, game_info[suit][0] - num)
+                    size = game_info[suit][0] - num
+
+                    if size > 0:
+                        remaining_size[suit] = (num, size)
 
                 for suit in [suit for suit, _ in sorted(remaining_size.items(), key=cmp_to_key(numeric_compare))]:
-                    safe_play = choose_max_card(cards, suits=[suit])
+                    if trick_nr > 7 and len(players_with_point) == 1:
+                        safe_play = choose_min_card(cards, suits=[suit])
+                    else:
+                        safe_play = choose_max_card(cards, suits=[suit])
 
                     if safe_play is not None:
                         break
     else:
         if len(players_with_point) == 1 and list(players_with_point)[0] == position:
-            total_num, big_cards = 0, []
+            total_num, big_cards, hearts_big_cards = 0, [], []
             for suit, num in num_of_suits.items():
                 game_info[suit][1] ^= cards.get(suit, 0)
 
@@ -249,6 +261,9 @@ def expert_choose(position, cards, trick, real_own_pig_card,
                 while bitmask <= NUM_TO_INDEX["A"]:
                     if cards.get(suit, 0) & bitmask and bitmask > game_info[suit][1]:
                         big_cards.append([suit, bitmask])
+
+                        if suit == SUIT_TO_INDEX["H"]:
+                            hearts_big_cards.append([suit, bitmask])
 
                     bitmask <<= 1
 
@@ -260,7 +275,6 @@ def expert_choose(position, cards, trick, real_own_pig_card,
         if safe_play is None:
             suits = ALL_SUITS
             safe_play = choose_suit_card(cards, num_of_suits, suits, is_pig_card_taken, is_double_card_taken, real_own_pig_card, game_info, void_info_for_suits)
-
 
     for suit, num in sorted(num_of_suits.items(), key=lambda x: x[1]):
         if safe_play is not None:
