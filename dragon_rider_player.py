@@ -8,7 +8,7 @@ from random import choice, shuffle
 
 from collections import defaultdict
 
-from card import Deck, Card, Suit, Rank
+from card import Deck, Card, Suit, Rank, HEARTS_A, HEARTS_K, HEARTS_Q
 from card import NUM_TO_INDEX, INDEX_TO_NUM, SUIT_TO_INDEX, INDEX_TO_SUIT
 from card import card_to_bitmask, bitmask_to_card, str_to_bitmask
 
@@ -36,6 +36,39 @@ class RiderPlayer(MonteCarloPlayer7):
 
         self.mcts = MCTS(self.policy, self.position, self.c_puct)
         #self.mcts = LevelMCTS(self.policy, self.position, self.c_puct)
+
+
+    def expose_hearts_ace(self, hand_cards):
+        if HEARTS_A in hand_cards:
+            points, safe_hearts, hearts = 0, 0, []
+            for card in hand_cards:
+                if card.suit == Suit.hearts:
+                    if card.rank > Rank.nine:
+                        safe_hearts -= 1
+                    else:
+                        safe_hearts += 1
+
+                    hearts.append(card)
+
+                points += max(0, card.rank.value-10)
+
+            if points < 12 and safe_hearts > 0:
+                self.say("scenario - 1, points: {}, safe_hearts: {}", points, safe_hearts)
+                return True
+            elif points > 21:
+                if len(hearts) > 0:
+                    self.say("scenario - 2.1, points: {}, hearts: {}", points, hearts)
+                    return True
+                elif len(hearts) > 1 and HEARTS_K in hearts:
+                    self.say("scenario - 2.2, points: {}, hearts: {}", points, hearts)
+                    return True
+                elif len(hearts) > 2 and all([card in hearts for card in [HEARTS_K, HEARTS_Q]]):
+                    self.say("scenario - 2.3, points: {}, hearts: {}", points, hearts)
+                    return True
+            else:
+                return False
+        else:
+            return False
 
 
     def see_played_trick(self, card, game):

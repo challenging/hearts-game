@@ -86,6 +86,8 @@ class Card:
 
 
 SPADES_Q, SPADES_K, SPADES_A = Card(Suit.spades, Rank.queen), Card(Suit.spades, Rank.king), Card(Suit.spades, Rank.ace)
+HEARTS_Q, HEARTS_K, HEARTS_A = Card(Suit.hearts, Rank.queen), Card(Suit.hearts, Rank.king), Card(Suit.hearts, Rank.ace)
+CLUBS_T = Card(Suit.clubs, Rank.ten)
 
 
 class Deck:

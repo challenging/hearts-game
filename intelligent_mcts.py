@@ -23,9 +23,10 @@ class IntelligentMCTS(MCTS):
 
             node.expand(state.start_pos, action_probs)
         else:
-            scores = get_rating(state.score()[0])
+            scores = state.score()[0]
 
-        node.update_recursive(scores)
+        rating = get_rating(scores)
+        node.update_recursive(rating)
 
 
     def __str__(self):

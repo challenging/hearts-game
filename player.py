@@ -73,11 +73,11 @@ class Player(object):
         return NotImplemented
 
 
-    def see_played_trick(self, card, game):
-        """
-        Allows the player to have a look at all four cards in the trick being played.
-        """
+    def expose_hearts_ace(self, hand_cards):
+        return False
 
+
+    def see_played_trick(self, card, game):
         self.seen_cards.append(card)
         self.num_hand_cards[game.current_player_idx] -= 1
 

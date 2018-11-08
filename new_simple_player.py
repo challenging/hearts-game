@@ -6,14 +6,14 @@ import copy
 from card import Deck
 from card import card_to_bitmask
 
-from simulated_player import MonteCarloPlayer5
+from new_simulated_player import MonteCarloPlayer7
 
 from simple_game import run_one_step
 from strategy_play import greedy_choose
 from expert_play import expert_choose
 
 
-class NewSimplePlayer(MonteCarloPlayer5):
+class NewSimplePlayer(MonteCarloPlayer7):
     def play_card(self, game, other_info={}, simulation_time_limit=1):
         for player_idx, suits in other_info.get("lacking_info", {}).items():
             for suit in suits:

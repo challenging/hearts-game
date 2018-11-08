@@ -6,54 +6,42 @@ import sys
 import copy
 import time
 
-#import numpy as np
 import statistics
-#from scipy.stats import describe
 
 from random import shuffle, randint
+
 from card import Suit, Rank, Card
+from card import SPADES_Q, CLUBS_T
 
 
 def is_card_valid(hand, trick, card, trick_nr, is_broken):
-    """
-    Return True if the given card is valid to play in given context, False otherwise.
-    """
-
     if trick_nr == 0 and len(trick) == 0:
         if card.suit == Suit.clubs and card.rank == Rank.two:
             return True
         else:
             return False
 
-    # No points allowed in first trick
     if trick_nr == 0 and card_points(card) > 0:
         return False
 
-    # No hearts can be led until hearts are broken
     if not trick:
         return is_broken or (
-            not is_broken and (card.suit != Suit.hearts or all([True if card.suit == Suit.hearts or (card.suit == Suit.spades and card.rank == Rank.queen) else False for card in hand]))
+            not is_broken and \
+            (card.suit != Suit.hearts or \
+             all([True if card.suit == Suit.hearts or (card.suit == Suit.spades and card.rank == Rank.queen) else False for card in hand]))
         )
 
-    # Suit must be followed unless player has none of that suit
     leading_suit = trick[0].suit
 
     return card.suit == leading_suit or all([card.suit != leading_suit for card in hand])
 
 
 def is_score_card(card):
-    if card.suit == Suit.hearts or card in [Card(Suit.clubs, Rank.ten), Card(Suit.spades, Rank.queen)]:
-        return True
-    else:
-        return False
+    return card.suit == Suit.hearts or card in [CLUBS_T, SPADES_Q]
 
 
 def card_points(card):
-    """
-    Return the number of points given card is worth.
-    """
-
-    score = 1 if card.suit == Suit.hearts else 0 + (13 if card == Card(Suit.spades, Rank.queen) else 0)
+    score = 1 if card.suit == Suit.hearts else 0 + (13 if card == SPADES_Q else 0)
 
     return score
 
@@ -108,63 +96,45 @@ def transform(rank, suit):
 
 
 def get_setting_cards():
-    # shoot the moon
-    card_string = [["QD,JC,JD,TD,7C,7D,5H,5C,5D,3C,KS,QC,9H",
-                    "9D,9S,8C,8D,7S,6D,4C,3S,2C,2D,2S,3D,AD",
-                    "JS,TS,9C,8S,6C,6S,4H,5S,4D,4S,QH,KD,TC",
-                    "QS,AS,AH,KH,JH,TH,7H,6H,3H,2H,AC,KC,8H"],
-                   ["TS,KH,5H,AC,KC,9C,4C,3C,2C,8D,7D,4D,2D",
-                    "KS,5S,4S,9H,4H,2H,QC,TC,5C,AD,TD,9D,6D",
-                    "JS,9S,8S,6S,3S,2S,7H,3H,8C,7C,6C,5D,3D",
-                    "AS,QS,7S,AH,QH,JH,TH,8H,6H,JC,KD,QD,JD"],
-                   ["KS,TS,8S,6S,3S,5H,3H,2H,TC,QD,6D,5D,4D",
-                    "9S,5S,AH,JH,7H,6H,4H,AC,KC,JC,5C,KD,8D",
-                    "4S,2S,KH,QH,8H,QC,9C,6C,4C,2C,TD,9D,7D",
-                    "AS,QS,JS,7S,TH,9H,8C,7C,3C,AD,JD,3D,2D"],
-                   ["QS,6S,AH,9H,QH,TH,7H,6H,3H,2H,KC,AD,8D",
-                    "5S,4S,8H,5H,7C,4C,QD,TD,9D,6D,5D,4D,3D",
-                    "JS,2S,4H,AC,8C,6C,5C,3C,2C,KD,JD,7D,2D",
-                    "AS,KS,TS,9S,8S,7S,3S,JH,KH,QC,JC,TC,9C"],
-                   ["8S,7S,3S,JC,4C,3C,9D,7D,6D,5D,4D,3D,2D",
-                    "AS,KS,QS,9S,6S,4S,2S,7H,3H,AC,QD,JD,TD",
-                    "TS,5S,9H,8H,6H,5H,4H,9C,8C,7C,6C,5C,2C",
-                    "JS,AH,KH,QH,JH,TH,2H,KC,QC,TC,AD,KD,8D"],
-                   ["QS,8S,6S,5S,2S,JH,9H,8H,2H,AC,9C,7C,3D",
-                    "JS,7S,4S,3S,AH,3H,KC,QC,JC,TC,AD,TD,6D",
-                    "4H,8C,6C,4C,3C,2C,JD,9D,8D,7D,5D,4D,2D",
-                    "AS,KS,TS,9S,KH,QH,TH,7H,6H,5H,5C,KD,QD"]
-                  ]
+    card_string = [["4C, KC, 2D, 5D, 8D, 9D, QD, 4S, 7S, 3H, 8H, TH, AH",
+                    "2C, 3C, 5C, 9C, TC, 6D, AD, 3S, QS, AS, 9H, JH, KH",
+                    "6C, 7C, JC, QC, AC, 2S, 5S, 6S, 9S, KS, 6H, 7H, QH",
+                    "8C, 3D, 4D, 7D, TD, JD, KD, 8S, TS, JS, 2H, 4H, 5H"]]
 
-    """
-    card_string = [["5C, 7C, JC, QC, KC, AC, 4D, QD, 3S, 4S, 5S, 8S, 9S",
-                    "2C, 3C, TC, 3D, 7D, TS, JS, KS, 3H, 5H, 7H, 8H, 9H",
-                    "8C, 2D, 5D, 8D, TD, JD, AD, 2S, 6S, 7S, 2H, 6H, TH",
-                    "4C, 6C, 9C, 6D, 9D, KD, QS, AS, 4H, JH, QH, KH, AH"]]
-    """
-
-    """
-    card_string = [["2C, 3C, JC, 2D, 6D, QD, 3S, 4S, 5S, 9S, 4H, 8H, JH",
-                    "6C, TC, 7D, 8D, 9D, JD, KD, 6S, 7S, QS, AS, 2H, QH",
-                    "4C, 5C, 7C, QC, KC, AC, 3D, 4D, 2S, KS, 3H, 5H, 7H",
-                    "8C, 9C, 5D, TD, AD, 8S, TS, JS, 6H, 9H, TH, KH, AH"]]
-    """
-
-    """
     card_string = [["6C, 7C, JC, QC, AC, 2S, 5S, 6S, 9S, KS, 6H, 7H, QH",
                     "8C, 3D, 4D, 7D, TD, JD, KD, 8S, TS, JS, 2H, 4H, 5H",
                     "4C, KC, 2D, 5D, 8D, 9D, QD, 4S, 7S, 3H, 8H, TH, AH",
                     "2C, 3C, 5C, 9C, TC, 6D, AD, 3S, QS, AS, 9H, JH, KH"]]
-    """
 
-    card_string = [["4C, 7C, KC, AC, 2D, 7D, TD, 4S, 6S, JS, AS, 8H, KH",
-                    "2C, 6C, 8C, 9C, 3D, 4D, QD, 2S, 7S, TS, QS, TH, JH",
-                    "JC, 5D, 6D, 9D, KD, AD, 3S, 8S, 9S, KS, 2H, 4H, 9H",
-                    "3C, 5C, TC, QC, 8D, JD, 5S, 3H, 5H, 6H, 7H, QH, AH"]]
+    card_string = [["2C, 8C, 9C, JC, 3D, 9D, 4S, 5S, QS, KS, 8H, 9H, AH",
+                    "QC, 8D, AD, 2S, 3S, 6S, 7S, 9S, 2H, 3H, 5H, TH, KH",
+                    "6C, TC, 4D, 6D, 7D, TD, KD, 8S, TS, 4H, 6H, 7H, JH",
+                    "3C, 4C, 5C, 7C, KC, AC, 2D, 5D, JD, QD, JS, AS, QH"]]
 
-    card_string = [["3C, 4C, 5C, AC, 4D, 9D, JD, 8S, 4H, 8H, 9H, JH, AH",
-                    "2C, JC, KC, 2D, 8D, QD, 5S, 9S, JS, QS, KS, AS, 6H",
-                    "7C, 9C, 3D, 5D, 6D, TD, AD, 3S, 4S, 6S, 5H, TH, QH",
-                    "6C, 8C, TC, QC, 7D, KD, 2S, 7S, TS, 2H, 3H, 7H, KH"]]
+    card_string = [["6C, 7C, KC, 2D, 8D, 2S, 5S, 7S, 9S, AS, 7H, JH, KH",
+                    "4C, 5C, 9C, TC, 4D, QD, KD, AD, QS, 2H, 5H, 9H, AH",
+                    "QC, AC, 5D, 9D, 3S, TS, JS, KS, 3H, 6H, 8H, TH, QH",
+                    "2C, 3C, 8C, JC, 3D, 6D, 7D, TD, JD, 4S, 6S, 8S, 4H"]]
+
+    card_string = [["4C, 3D, 9D, QD, AD, 4S, 5S, 8S, KS, 4H, 5H, JH, KH",
+                    "3C, 5C, 7C, 9C, JC, QC, KD, 2S, 3S, 9S, JS, 7H, 9H",
+                    "8C, AC, 2D, 4D, 6D, 7D, TD, JD, 7S, AS, 6H, 8H, AH",
+                    "2C, 6C, TC, KC, 5D, 8D, 6S, TS, QS, 2H, 3H, TH, QH"]]
+
+    card_string = [["2C, 4C, 6C, JC, 2S, 4S, 5S, 9S, 3H, 4H, 8H, 9H, JH",
+                    "7C, 8C, TC, KC, AC, 8D, JD, AD, 6S, TS, JS, AS, AH",
+                    "3C, 5C, 9C, QC, 7D, 9D, QD, KD, 3S, 8S, 6H, TH, QH",
+                    "2D, 3D, 4D, 5D, 6D, TD, 7S, QS, KS, 2H, 5H, 7H, KH"]]
+
+    card_string = [["2C, TC, AC, 2D, 8D, 9D, QD, AD, 7S, 9S, TS, 9H, JH",
+                    "3C, 4C, 7D, 6S, QS, KS, AS, 3H, 6H, 7H, TH, QH, AH",
+                    "5C, 7C, 9C, QC, KC, 3D, 5D, 6D, 2S, 4S, 5S, 8S, KH",
+                    "6C, 8C, JC, 4D, TD, JD, KD, 3S, JS, 2H, 4H, 5H, 8H"]]
+
+    card_string = [["2C, 3C, 4C, 6C, 3D, 6D, 7D, 8D, 4S, QS, 8H, 9H, QH",
+                    "7C, 9C, KC, AC, 2D, 5D, TD, 2S, 8S, KS, AS, 3H, KH",
+                    "5C, 8C, QC, 4D, KD, 3S, 6S, 7S, 9S, JS, 2H, 4H, AH",
+                    "TC, JC, 9D, JD, QD, AD, 5S, TS, 5H, 6H, 7H, TH, JH"]]
 
     return transform_cards(card_string)
 
@@ -253,14 +223,15 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
                     after_info = []
                     for player_idx in range(4):
-                        if game.players[player_idx].proactive_mode and Card(Suit.hearts, Rank.ace) in game._player_hands[player_idx]:
-                            game.expose_heart_ace = True
-
-                            for idx in range(4):
-                                if player_idx != idx:
-                                    game.players[idx].set_transfer_card(player_idx, Card(Suit.hearts, Rank.ace))
-
                         after_info.append(game._player_hands[player_idx])
+
+                    if not game.expose_heart_ace:
+                        for player_idx in range(4):
+                            is_exposed = players[player_idx].expose_hearts_ace(game._player_hands[player_idx])
+                            game.expose_heart_ace = is_exposed
+
+                            if game.expose_heart_ace:
+                                print("Player-{} exposes HEARTS ACE".format(player_idx))
 
                     for player_idx, (before_cards, after_cards) in enumerate(zip(before_info, after_info)):
                         print("Player-{}'s init_cards: {} to {}".format(player_idx, before_cards, after_cards))
@@ -308,10 +279,10 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                                 mean_score, proactive_mean_moon_score, mean_moon_score))
 
                     game.reset()
-        #            break
-        #        break
-        #    break
-        #break
+                    if len(setting_cards) == 1: break
+                if len(setting_cards) == 1: break
+            if len(setting_cards) == 1: break
+        if len(setting_cards) == 1: break
 
     return final_scores, proactive_moon_scores, shooting_moon_scores
 

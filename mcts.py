@@ -60,7 +60,7 @@ class MCTS(object):
 
 
     def _playout(self, trick_nr, state, selection_func, c_puct):
-        self.history = []
+        #self.history = []
 
         node = self.start_node
         while not state.is_finished:
@@ -100,7 +100,7 @@ class MCTS(object):
 
                 if valid_cards.get(suit, 0) & rank and n._P > 0:
                     state.step(trick_nr, selection_func, played_card)
-                    self.history.append((current_start_pos, bitmask_to_card(suit, rank)))
+                    #self.history.append((current_start_pos, bitmask_to_card(suit, rank)))
 
                     for sub_n in node._children.values():
                         sub_n._player_idx = current_start_pos
@@ -123,7 +123,7 @@ class MCTS(object):
 
         rating = self._evaluate_rollout(trick_nr, state, selection_func)
         node.update_recursive(rating)
-
+        #print(self.history, state.score()[0], rating)
 
     def _evaluate_rollout(self, trick_nr, state, selection_func):
         while not state.is_finished:
@@ -248,6 +248,7 @@ class MCTS(object):
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
                 results.setdefault(played_card, 0)
                 results[played_card] = node._n_visits
+                print(played_card, node._n_visits)
 
             return results
 

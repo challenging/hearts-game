@@ -16,10 +16,10 @@ from intelligent_mcts import IntelligentMCTS
 
 
 def softmax(x, temp):
-    x = 1/temp*np.log(np.array(x) + 1e-16)
+    #x = 1/temp*np.log(np.array(x) + 1e-16)
 
-    probs = np.exp(x - np.max(x))
-    probs /= np.sum(probs)
+    #probs = np.exp(x - np.max(x))
+    probs = x / np.sum(x)
 
     return probs
 
@@ -50,7 +50,7 @@ class IntelligentPlayer(RiderPlayer):
         hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
             super(IntelligentPlayer, self).get_simple_game_info(game)
 
-        selection_func = [expert_choose]
+        selection_func = [random_choose]
 
         return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
 
@@ -121,6 +121,7 @@ class IntelligentPlayer(RiderPlayer):
 
             return move, zip(cards, probs)
         else:
+            print(valid_cards, valid_probs)
             move = np.random.choice(valid_cards, p=valid_probs)
 
             self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \

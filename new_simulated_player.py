@@ -8,8 +8,10 @@ from functools import cmp_to_key
 from random import shuffle
 from collections import defaultdict
 
-from card import Deck, Suit, Rank, Card
+from card import Deck, Suit, Rank, Card, HEARTS_A
 from card import card_to_bitmask
+
+from rules import card_points
 
 from simulated_player import TIMEOUT_SECOND, COUNT_CPU
 from simulated_player import MonteCarloPlayer5
@@ -68,9 +70,9 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         if not self.proactive_mode:
             points = sum([v for vv in hand_cards.values() for v in vv])
 
-            if points > 19 and sum(hand_cards[Suit.hearts]) > 3:
+            if points >= 19:# and sum(hand_cards[Suit.hearts]) > 3:
                 pass_low_card = True
-            elif points > 16 and sum(hand_cards[Suit.hearts]) > 6:
+            elif points >= 16 and sum(hand_cards[Suit.hearts]) > 3:
                 pass_low_card = True
 
         return hand_cards, pass_low_card

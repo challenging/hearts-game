@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-import numpy as np
 import tensorflow as tf
 
 from nn_utils import transform_game_info_to_nn
@@ -87,7 +84,7 @@ class PolicyValueNet(object):
         # 4 Value Networks
         self.evaluation_fc1 = tf.layers.dense(input3, units=32, activation=tf.nn.relu)
         self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=16, activation=tf.nn.relu)
-        self.evaluation_fc3 = tf.layers.dense(inputs=self.evaluation_fc2, units=4, activation=tf.nn.tanh)
+        self.evaluation_fc3 = tf.layers.dense(inputs=self.evaluation_fc2, units=4, activation=tf.nn.relu)
 
         # Define the Loss function
         # 1. Label: the array containing if the game wins or not for each state
@@ -143,8 +140,8 @@ class PolicyValueNet(object):
                                                            self.score_cards_4: score_cards_4,
                                                            self.valid_cards: valid_cards})
 
-        #act_probs = log_act_probs
-        act_probs = np.exp(log_act_probs)
+        act_probs = log_act_probs
+        #act_probs = np.exp(log_act_probs)
 
         return act_probs, value
 

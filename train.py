@@ -44,7 +44,7 @@ class TrainPipeline():
         self.batch_size = 128  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
-        self.play_batch_size = 16
+        self.play_batch_size = 4
         self.epochs = 32  # num of train_steps for each update
         self.check_freq = 4
         self.kl_targ = 0.02
@@ -157,7 +157,7 @@ class TrainPipeline():
         current_mcts_player = IntelligentPlayer(policy_value_fn, self.c_puct, is_self_play=False, verbose=True)
         players = [NewSimplePlayer(verbose=False) for _ in range(3)] + [current_mcts_player]
 
-        setting_cards = read_card_games("game/game_0008/game_1534672484.pkl")
+        setting_cards = read_card_games("game/game_0008/02/game_1541503661.pkl")
         final_scores, proactive_moon_scores, shooting_moon_scores = \
             evaluate_players(n_games, players, setting_cards, verbose=True)
 
@@ -172,16 +172,16 @@ class TrainPipeline():
     def run(self, game_batch_num):
         try:
             for i in range(game_batch_num):
-                self.collect_selfplay_data(self.play_batch_size)
+                #self.collect_selfplay_data(self.play_batch_size)
 
-                print("batch i: {}, episode_len: {}, memory_size: {}".format(\
-                    i+1, self.episode_len, len(self.data_buffer)))
+                #print("batch i: {}, episode_len: {}, memory_size: {}".format(\
+                #    i+1, self.episode_len, len(self.data_buffer)))
 
                 #for played_data in self.data_buffer:
                 #    print_a_memory(played_data)
 
-                if len(self.data_buffer) >= self.batch_size:
-                    loss, policy_loss, value_loss = self.policy_update()
+                #if len(self.data_buffer) >= self.batch_size:
+                #    loss, policy_loss, value_loss = self.policy_update()
 
                 if i%self.check_freq == 0:
                     score = self.policy_evaluate()
