@@ -1,3 +1,6 @@
+import sys
+import math
+
 from card import NUM_TO_INDEX, SUIT_TO_INDEX
 from card import FULL_CARDS, NUM_TO_INDEX, SUIT_TO_INDEX
 
@@ -44,6 +47,10 @@ class TreeNode(object):
         else:
             v = scores[self._player_idx]
 
+            if any([math.isnan(sub_v) for sub_v in scores]):
+                print(scores)
+                sys.exit(1)
+
             self.update(v)
 
 
@@ -61,8 +68,13 @@ class TreeNode(object):
 
     def get_value(self, c_puct):
         self._u = (c_puct * self._P * (self._parent._n_visits)**0.5 / (1 + self._n_visits))
+        value = self._Q/(1e-16+self._n_visits) + self._u
 
-        return self._Q/(1e-16+self._n_visits) + self._u
+        #if self._Q != 0 and self._self_player_idx == 3:
+        #    print("value={:4.4f}, u={:4.4f}, q={:.4f}, c_puct={}, p={:.4f}, n_visits={}, parent_n_visits={}".format(\
+        #        value, self._u, self._Q/(1e-16+self._n_visits), c_puct, self._P, self._n_visits, self._parent._n_visits))
+
+        return value
 
 
     def is_leaf(self):

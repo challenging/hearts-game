@@ -1,4 +1,4 @@
-"""This module containts the abstract class Player and some implementations."""
+":""This module containts the abstract class Player and some implementations."""
 import time
 
 import numpy as np
@@ -39,11 +39,11 @@ class IntelligentPlayer(RiderPlayer):
 
 
     def see_played_trick(self, card, game):
-        super(RiderPlayer, self).see_played_trick(card, game)
+        super(IntelligentPlayer, self).see_played_trick(card, game)
 
-        card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
+        #card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
-        self.mcts.update_with_move(card)
+        #self.mcts.update_with_move(card)
 
 
     def get_simple_game_info(self, game):
@@ -123,6 +123,7 @@ class IntelligentPlayer(RiderPlayer):
 
             return move, zip(cards, probs)
         else:
+            print(22222)
             move = np.random.choice(valid_cards, p=valid_probs)
 
             self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \

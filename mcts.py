@@ -207,6 +207,8 @@ class MCTS(object):
             except Exception as e:
                 ratio[1] += 1
 
+                raise
+
             if time.time()-stime > simulation_time_limit:
                 shooter = None
                 if stats_shoot_the_moon != {}:
@@ -257,7 +259,7 @@ class MCTS(object):
             self.start_node = self.start_node._children[last_move]
         else:
             self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
-            #say("reset the root")
+            say("player-{} resets the root because not found {}", self._self_player_idx, last_move)
 
 
     def print_tree(self, node=None, card=None, depth=0):

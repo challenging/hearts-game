@@ -46,7 +46,7 @@ class TrainPipeline():
         self.batch_size = 128  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
-        self.play_batch_size = 4
+        self.play_batch_size = 2
         self.epochs = 32  # num of train_steps for each update
         self.check_freq = 4
         self.kl_targ = 0.02
@@ -58,7 +58,7 @@ class TrainPipeline():
 
         players = [IntelligentPlayer(policy_value_fn, c_puct=self.c_puct, is_self_play=True, verbose=(True if player_idx>-1 else False)) for player_idx in range(4)]
 
-        self.game = Game(players, simulation_time_limit=32, verbose=True)
+        self.game = Game(players, simulation_time_limit=16, verbose=True)
 
 
     def collect_selfplay_data(self, n_games, game_idx):
@@ -147,10 +147,12 @@ class TrainPipeline():
             #    break
 
         # adaptively adjust the learning rate
+        """
         if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
             self.lr_multiplier /= 1.5
         elif kl < self.kl_targ / 2 and self.lr_multiplier < 10:
             self.lr_multiplier *= 1.5
+        """
 
         print(("kl:{:.5f}, lr_multiplier:{:.3f}").format(kl, self.lr_multiplier))
 
