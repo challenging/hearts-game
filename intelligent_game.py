@@ -78,7 +78,6 @@ class IntelligentGame(Game):
             self.score()
             scores = self.player_scores
 
-            #rating = get_rating(scores)
             for idx, memory in enumerate(self._short_memory):
                 self._short_memory[idx][-1] = scores
 

@@ -248,7 +248,6 @@ class MCTS(object):
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
                 results.setdefault(played_card, 0)
                 results[played_card] = node._n_visits
-                print(played_card, node._n_visits)
 
             return results
 
@@ -258,7 +257,7 @@ class MCTS(object):
             self.start_node = self.start_node._children[last_move]
         else:
             self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
-            say("reset the root")
+            #say("reset the root")
 
 
     def print_tree(self, node=None, card=None, depth=0):

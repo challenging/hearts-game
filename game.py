@@ -7,8 +7,9 @@ from rules import is_card_valid, is_score_card, card_points, reversed_score
 
 
 class Game(object):
-    def __init__(self, players, verbose=False):
+    def __init__(self, players, verbose=False, out_file=sys.stdout):
         self.verbose = verbose
+        self.out_file = out_file
 
         if len(players) != 4:
             raise ValueError('There must be four players')
@@ -73,7 +74,7 @@ class Game(object):
 
     def say(self, message, *formatargs):
         if self.verbose:
-            print(message.format(*formatargs))
+            self.out_file.write(message.format(*formatargs) + "\n")
 
 
     def print_game_status(self):
@@ -160,7 +161,6 @@ class Game(object):
 
 
     def play(self, num_of_rounds=13):
-        # Play the tricks
         leading_index = self.player_index_with_two_of_clubs()
         self.current_player_idx = leading_index
 
@@ -215,8 +215,8 @@ class Game(object):
                 if len(self.trick) == 1:
                     tmp_player_idx = self.current_player_idx-1 if self.current_player_idx > 0 else 3
 
-                    print("Player {}({}) played {} card as the leading card".format(\
-                        tmp_player_idx, type(self.players[tmp_player_idx]).__name__, self.trick[0]))
+                    self.say("Player {}({}) played {} card as the leading card",\
+                        tmp_player_idx, type(self.players[tmp_player_idx]).__name__, self.trick[0])
 
 
     def round_over(self):
@@ -229,23 +229,23 @@ class Game(object):
         self.trick_nr += 1
 
         if self.verbose:
-            print()
+            self.say("")
             if any([l for player_idx in range(4) for l in self.lacking_cards[player_idx].values()]):
-                print("the information about lacking cards are")
+                self.say("the information about lacking cards are")
                 info = []
                 for player_idx in range(4):
                     is_lacking = any([l for l in self.lacking_cards[player_idx].values()])
                     if is_lacking:
                         info.append("Player-{} lacks of {}".format(player_idx, [suit for suit, is_lacking in self.lacking_cards[player_idx].items() if is_lacking]))
-                print(",".join(info))
-                print()
+                self.say("{}", ",".join(info))
+                self.say("")
 
-            print("the winning_player_index is {}({}, {}), is_heart_broken: {}, expose_heart_ace: {}".format(\
-                winning_player_index, self.current_player_idx, winning_index, self.is_heart_broken, self.expose_heart_ace))
-            print("player {}({}) win this {:2d} trick by {} card based on {}".format(\
-                winning_player_index, type(self.players[winning_player_index]).__name__, self.trick_nr, winning_card, self.trick))
-            print("after {:3d} round, status of every players' hand cards".format(self.trick_nr))
-            print("==================================================================")
+            self.say("the winning_player_index is {}({}, {}), is_heart_broken: {}, expose_heart_ace: {}", \
+                winning_player_index, self.current_player_idx, winning_index, self.is_heart_broken, self.expose_heart_ace)
+            self.say("player {}({}) win this {:2d} trick by {} card based on {}",\
+                winning_player_index, type(self.players[winning_player_index]).__name__, self.trick_nr, winning_card, self.trick)
+            self.say("after {:3d} round, status of every players' hand cards", self.trick_nr)
+            self.say("==================================================================")
             self.print_hand_cards()
 
         self.current_player_idx = winning_player_index

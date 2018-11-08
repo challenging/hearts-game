@@ -25,6 +25,8 @@ BASEPATH = "prob"
 BASEPATH_MODEL = os.path.join(BASEPATH, "model")
 BASEPATH_DATA = os.path.join(BASEPATH, "data")
 
+BASEPATH_LOG = os.path.join("log", "intelligent_player")
+
 for folder in [BASEPATH_MODEL, BASEPATH_DATA]:
     if not os.path.exists(folder):
         os.makedirs(folder)
@@ -38,9 +40,9 @@ class TrainPipeline():
         # training params
         self.learn_rate = 1e-4
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
-        self.c_puct = 128
+        self.c_puct = 348
 
-        self.buffer_size = 2**15
+        self.buffer_size = 2**16
         self.batch_size = 128  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
@@ -56,11 +58,15 @@ class TrainPipeline():
 
         players = [IntelligentPlayer(policy_value_fn, c_puct=self.c_puct, is_self_play=True, verbose=(True if player_idx>-1 else False)) for player_idx in range(4)]
 
-        self.game = Game(players, simulation_time_limit=16, verbose=True)
+        self.game = Game(players, simulation_time_limit=32, verbose=True)
 
 
-    def collect_selfplay_data(self, n_games):
+    def collect_selfplay_data(self, n_games, game_idx):
         """collect self-play data for training"""
+
+        filepath_out = os.path.join(BASEPATH_LOG, "game.{}.log".format(game_idx))
+        self.game.out_file = open(filepath_out, "w")
+
         for i in range(n_games):
             stime = time.time()
 
@@ -79,6 +85,8 @@ class TrainPipeline():
         filepath_in = os.path.join(BASEPATH_DATA, str(time.time()*1000)+".pkl")
         with open(filepath_in, "wb") as in_file:
             pickle.dump(self.data_buffer, in_file)
+
+        self.game.out_file.close()
 
 
     def policy_update(self):
@@ -149,22 +157,23 @@ class TrainPipeline():
         return loss, policy_loss, value_loss
 
 
-    def policy_evaluate(self, n_games=1):
-        """
-        Evaluate the trained policy by playing against the pure MCTS player
-        Note: this is only for monitoring the progress of training
-        """
+    def policy_evaluate(self, game_idx, n_games=1):
+        filepath_in = os.path.join(BASEPATH_LOG, "evaluation.{}.log".format(game_idx))
+        out_file = open(filepath_in, "w")
+
         current_mcts_player = IntelligentPlayer(policy_value_fn, self.c_puct, is_self_play=False, verbose=True)
         players = [NewSimplePlayer(verbose=False) for _ in range(3)] + [current_mcts_player]
 
         setting_cards = read_card_games("game/game_0008/02/game_1541503661.pkl")
         final_scores, proactive_moon_scores, shooting_moon_scores = \
-            evaluate_players(n_games, players, setting_cards, verbose=True)
+            evaluate_players(n_games, players, setting_cards, verbose=True, out_file=out_file)
 
         myself_score = np.mean(final_scores[3])
         others_score = np.mean(final_scores[:3])
 
         print("myself_score: {:.4f}, others_score: {:.4f}".format(myself_score, others_score))
+
+        out_file.close()
 
         return myself_score/others_score
 
@@ -172,19 +181,19 @@ class TrainPipeline():
     def run(self, game_batch_num):
         try:
             for i in range(game_batch_num):
-                #self.collect_selfplay_data(self.play_batch_size)
+                self.collect_selfplay_data(self.play_batch_size, i+1)
 
-                #print("batch i: {}, episode_len: {}, memory_size: {}".format(\
-                #    i+1, self.episode_len, len(self.data_buffer)))
+                print("batch i: {}, episode_len: {}, memory_size: {}".format(\
+                    i+1, self.episode_len, len(self.data_buffer)))
 
                 #for played_data in self.data_buffer:
                 #    print_a_memory(played_data)
 
-                #if len(self.data_buffer) >= self.batch_size:
-                #    loss, policy_loss, value_loss = self.policy_update()
+                if len(self.data_buffer) >= self.batch_size:
+                    loss, policy_loss, value_loss = self.policy_update()
 
                 if i%self.check_freq == 0:
-                    score = self.policy_evaluate()
+                    score = self.policy_evaluate(i+1)
 
                     print("current self-play batch: {}, and score ratio: {:.4f}".format(i+1, score))
 

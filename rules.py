@@ -184,13 +184,11 @@ def get_rating(position, scores, is_shoot_the_moon):
     if is_shoot_the_moon:
         if scores[position] == 0:
             rating[position] += 1.5
-        #else:
-        #    rating[position] -= 1
 
     return rating
 
 
-def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verbose=True):
+def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verbose=True, out_file=sys.stdout):
     from game import Game
 
     stime = time.time()
@@ -202,7 +200,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                 cards[0], cards[1], cards[2], cards[3] = cards[round_idx%4], cards[(round_idx+1)%4], cards[(round_idx+2)%4], cards[(round_idx+3)%4]
 
                 for passing_direction in range(0, 4 if is_rotating else 1):
-                    game = Game(players, verbose=True)
+                    game = Game(players, verbose=True, out_file=out_file)
 
                     game._player_hands = copy.deepcopy(cards)
 
@@ -273,7 +271,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                             n_mean_moon_score = sum([1 for score in shooting_moon_scores[player_idx] if score == 0])
                             mean_moon_score = statistics.mean(shooting_moon_scores[player_idx]+proactive_moon_scores[player_idx]+final_scores[player_idx])
 
-                            print("--> {:16s}({}): {:3d} points, expose_hearts_ace={}, stats: (n={}/{}/{}, mean={:.3f}/{:.3f}/{:.3f})".format(\
+                            out_file.write("--> {:16s}({}): {:3d} points, expose_hearts_ace={}, stats: (n={}/{}/{}, mean={:.3f}/{:.3f}/{:.3f})\n".format(\
                                 type(player).__name__, player_idx, scores[player_idx], \
                                 game.expose_heart_ace, len(final_scores[player_idx]), n_proactive_mean_moon_score, n_mean_moon_score, \
                                 mean_score, proactive_mean_moon_score, mean_moon_score))

@@ -90,27 +90,22 @@ class RiderPlayer(MonteCarloPlayer7):
             first_player_index = (game.current_player_idx + winning_index) % 4
 
         if len(game._player_hands[self.position]) > 0:
-            try:
-                self.mcts.get_move(first_player_idx, 
-                                   hand_cards, 
-                                   valid_cards,
-                                   remaining_cards, 
-                                   score_cards, 
-                                   self.num_hand_cards, 
-                                   init_trick, 
-                                   void_info, 
-                                   must_have, 
-                                   selection_func, 
-                                   game.trick_nr+1, 
-                                   game.is_heart_broken, 
-                                   game.expose_heart_ace, 
-                                   True, 
-                                   0.185,
-                                   False)
-            except Exception as e:
-                self.say("error in seen_cards: {}", e)
-
-                raise
+            self.mcts.get_move(first_player_idx, 
+                               hand_cards, 
+                               valid_cards,
+                               remaining_cards, 
+                               score_cards, 
+                               self.num_hand_cards, 
+                               init_trick, 
+                               void_info, 
+                               must_have, 
+                               selection_func, 
+                               game.trick_nr+1, 
+                               game.is_heart_broken, 
+                               game.expose_heart_ace, 
+                               True, 
+                               0.185,
+                               False)
         else:
             if game.get_game_winners():
                 rating = get_rating(self.position, game.player_scores, game.is_shootmoon)
