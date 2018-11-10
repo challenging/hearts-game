@@ -34,7 +34,11 @@ class RiderPlayer(MonteCarloPlayer7):
     def reset(self):
         super(RiderPlayer, self).reset()
 
-        self.mcts = MCTS(self.policy, self.position, self.c_puct)
+        if not hasattr(self, "mcts"):
+            self.mcts = MCTS(self.policy, self.position, self.c_puct)
+        else:
+            self.mcts.start_node = self.mcts.root_node
+
         #self.mcts = LevelMCTS(self.policy, self.position, self.c_puct)
 
 
@@ -94,8 +98,8 @@ class RiderPlayer(MonteCarloPlayer7):
             else:
                 steal_time = 0.55
 
-        self.say("steal time({}, {:.2} seconds) to simulate to game results, {}, {}, {}", \
-            card, steal_time, first_player_idx, len(self.remaining_cards), self.num_hand_cards)
+        #self.say("steal time({}, {:.2} seconds) to simulate to game results, {}, {}, {}", \
+        #    card, steal_time, first_player_idx, len(self.remaining_cards), self.num_hand_cards)
 
         if len(game._player_hands[self.position]) > 0:
             self.mcts.get_move(first_player_idx, 

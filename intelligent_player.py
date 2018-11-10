@@ -42,49 +42,6 @@ class IntelligentPlayer(RiderPlayer):
 
         self.mcts.update_with_move(card)
 
-        valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
-        hand_cards, init_trick, must_have, selection_func = \
-            self.get_simple_game_info(game)
-
-        steal_time = 0.28
-
-        first_player_idx = (game.current_player_idx+1)%4
-        if len(game.trick) == 4:
-            winning_index, _ = game.winning_index()
-            first_player_idx = (game.current_player_idx + winning_index) % 4
-
-            if first_player_idx == self.position:
-                steal_time = 0.85
-            else:
-                steal_time = 0.55
-
-        self.say("steal time({}, {:.2} seconds) to simulate to game results, {}, {}, {}", \
-            card, steal_time, first_player_idx, len(self.remaining_cards), self.num_hand_cards)
-
-        if len(game._player_hands[self.position]) > 0:
-            self.mcts.get_move(first_player_idx, 
-                               hand_cards, 
-                               valid_cards,
-                               self.remaining_cards, 
-                               game._b_cards_taken, 
-                               self.num_hand_cards, 
-                               init_trick, 
-                               self.void_info, 
-                               must_have, 
-                               selection_func, 
-                               game.trick_nr+1, 
-                               game.is_heart_broken, 
-                               game.expose_heart_ace, 
-                               True, 
-                               steal_time,
-                               False,
-                               True)
-        else:
-            if game.get_game_winners():
-                rating = get_rating(self.position, game.player_scores, game.is_shootmoon)
-
-                self.mcts.start_node.update_recursive(rating)
-
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND, temp=1):
         stime = time.time()

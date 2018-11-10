@@ -55,7 +55,8 @@ class MCTS(object):
     def __init__(self, policy_value_fn, self_player_idx, c_puct=5):
         self._self_player_idx = self_player_idx
 
-        self.start_node = TreeNode(None, 1.0, self_player_idx, None)
+        self.root_node = TreeNode(None, 1.0, self_player_idx, None)
+        self.start_node = self.root_node
 
         self._policy = policy_value_fn
         self._c_puct = c_puct
