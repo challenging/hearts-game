@@ -16,9 +16,6 @@ from intelligent_mcts import IntelligentMCTS
 
 
 def softmax(x, temp):
-    #x = 1/temp*np.log(np.array(x) + 1e-16)
-
-    #probs = np.exp(x - np.max(x))
     probs = x / np.sum(x)
 
     return probs
@@ -39,20 +36,54 @@ class IntelligentPlayer(RiderPlayer):
 
 
     def see_played_trick(self, card, game):
-        super(IntelligentPlayer, self).see_played_trick(card, game)
+        super(RiderPlayer, self).see_played_trick(card, game)
 
-        #card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
+        card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
-        #self.mcts.update_with_move(card)
+        self.mcts.update_with_move(card)
 
+        valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
+        hand_cards, init_trick, must_have, selection_func = \
+            self.get_simple_game_info(game)
 
-    def get_simple_game_info(self, game):
-        hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
-            super(IntelligentPlayer, self).get_simple_game_info(game)
+        steal_time = 0.28
 
-        selection_func = [random_choose]
+        first_player_idx = (game.current_player_idx+1)%4
+        if len(game.trick) == 4:
+            winning_index, _ = game.winning_index()
+            first_player_idx = (game.current_player_idx + winning_index) % 4
 
-        return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
+            if first_player_idx == self.position:
+                steal_time = 0.85
+            else:
+                steal_time = 0.55
+
+        self.say("steal time({}, {:.2} seconds) to simulate to game results, {}, {}, {}", \
+            card, steal_time, first_player_idx, len(self.remaining_cards), self.num_hand_cards)
+
+        if len(game._player_hands[self.position]) > 0:
+            self.mcts.get_move(first_player_idx, 
+                               hand_cards, 
+                               valid_cards,
+                               self.remaining_cards, 
+                               game._b_cards_taken, 
+                               self.num_hand_cards, 
+                               init_trick, 
+                               self.void_info, 
+                               must_have, 
+                               selection_func, 
+                               game.trick_nr+1, 
+                               game.is_heart_broken, 
+                               game.expose_heart_ace, 
+                               True, 
+                               steal_time,
+                               False,
+                               True)
+        else:
+            if game.get_game_winners():
+                rating = get_rating(self.position, game.player_scores, game.is_shootmoon)
+
+                self.mcts.start_node.update_recursive(rating)
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND, temp=1):
@@ -60,7 +91,7 @@ class IntelligentPlayer(RiderPlayer):
 
         game.are_hearts_broken()
 
-        hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
+        hand_cards, init_trick, must_have, selection_func = \
             self.get_simple_game_info(game)
 
         vcards = self.get_valid_cards(game._player_hands[self.position], game)
@@ -78,11 +109,11 @@ class IntelligentPlayer(RiderPlayer):
             self.mcts.get_move(game.current_player_idx, 
                                hand_cards, 
                                vcards, 
-                               remaining_cards, 
-                               score_cards, 
+                               self.remaining_cards, 
+                               game._b_cards_taken,
                                self.num_hand_cards, 
                                init_trick, 
-                               void_info, 
+                               self.void_info, 
                                must_have, 
                                selection_func, 
                                game.trick_nr+1, 
@@ -90,6 +121,7 @@ class IntelligentPlayer(RiderPlayer):
                                game.expose_heart_ace, 
                                False, 
                                etime, 
+                               True,
                                True)
 
         valid_cards, valid_probs = [], []
@@ -123,7 +155,6 @@ class IntelligentPlayer(RiderPlayer):
 
             return move, zip(cards, probs)
         else:
-            print(22222)
             move = np.random.choice(valid_cards, p=valid_probs)
 
             self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \

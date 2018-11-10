@@ -62,13 +62,11 @@ class MCTS(object):
 
 
     def _playout(self, trick_nr, state, selection_func, c_puct):
-        #prob_cards = {0:1}
         prob_cards = [((SUIT_TO_INDEX["C"], NUM_TO_INDEX["2"]), 1.0)]
 
         node = self.start_node
         while not state.is_finished and not node.is_leaf():
             valid_cards = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1)
-            #prob_cards = valid_cards
 
             is_all_traverse, candicated_cards = True, []
             for suit, ranks in valid_cards.items():
@@ -103,7 +101,7 @@ class MCTS(object):
                             big_cards = [(played_card, n)]
 
                 if len(big_cards) == 0:
-                    print(candicated_cards, big_cards)
+                    print(candicated_cards, big_cards, valid_cards)
 
                     sys.exit(1)
                 else:
@@ -115,7 +113,6 @@ class MCTS(object):
             else:
                 break
 
-        #self._post_playout(node, trick_nr, state, selection_func)
         self._post_playout(node, trick_nr, state, selection_func, prob_cards)
 
 
@@ -130,7 +127,6 @@ class MCTS(object):
     def _evaluate_rollout(self, trick_nr, state, selection_func):
         while not state.is_finished:
             state.step(trick_nr, selection_func)
-        #state.run(trick_nr, selection_func=selection_func)
 
         info = state.score()
         return get_rating(self._self_player_idx, info[0], info[1])
@@ -152,16 +148,16 @@ class MCTS(object):
                  expose_heart_ace,
                  is_only_played_card=False,
                  simulation_time_limit=TIMEOUT_SECOND-0.1,
-                 not_seen=False):
+                 not_seen=False,
+                 is_reset_percentage=False):
 
         stime = time.time()
 
-        """
-        global REMAINING_CARDS
-        REMAINING_CARDS = get_remaining_cards(trick_nr+len(init_trick)-1, init_trick, score_cards)
-        if REMAINING_CARDS:
-            self.start_node.update_recursive_percentage(REMAINING_CARDS)
-        """
+        if is_reset_percentage:
+            global REMAINING_CARDS
+            REMAINING_CARDS = get_remaining_cards(trick_nr+len(init_trick)-1, init_trick, score_cards)
+            if REMAINING_CARDS:
+                self.start_node.update_recursive_percentage(REMAINING_CARDS)
 
         simulation_cards = redistribute_cards(randint(0, 64),
                                               self._self_player_idx,

@@ -168,6 +168,9 @@ def transform_cards(card_strings):
 
 
 def get_rating(position, scores, is_shoot_the_moon):
+    return [-score for score in scores]
+
+    """
     sum_score = sum(scores)
 
     rating = [0, 0, 0, 0]
@@ -179,18 +182,15 @@ def get_rating(position, scores, is_shoot_the_moon):
         if score == pre_score:
             tmp_rating = pre_rating
 
-        rating[player_idx] = -score/sum_score#-tmp_rating/4 + (1-score/sum_score)-1
+        rating[player_idx] = -tmp_rating/4 + (1-score/sum_score)-1
         #rating[player_idx] = (4-tmp_rating)/4 + (1-score/sum_score)
         #rating[player_idx] = -score/sum_score
 
         pre_score = score
         pre_rating = tmp_rating
 
-    if is_shoot_the_moon:
-        if scores[position] == 0:
-            rating[position] += 0.5
-
     return rating
+    """
 
 
 def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verbose=True, out_file=sys.stdout):

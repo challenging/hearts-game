@@ -94,10 +94,8 @@ class RiderPlayer(MonteCarloPlayer7):
             else:
                 steal_time = 0.55
 
-        """
         self.say("steal time({}, {:.2} seconds) to simulate to game results, {}, {}, {}", \
             card, steal_time, first_player_idx, len(self.remaining_cards), self.num_hand_cards)
-        """
 
         if len(game._player_hands[self.position]) > 0:
             self.mcts.get_move(first_player_idx, 
@@ -134,7 +132,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [expert_choose]*4
+        selection_func = [random_choose]*4
 
         return hand_cards, init_trick, must_have, selection_func
 
