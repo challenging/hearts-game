@@ -15,6 +15,9 @@ class IntelligentMCTS(MCTS):
         super(IntelligentMCTS, self).__init__(policy_value_fn, self_player_idx, c_puct)
 
 
+    def _playout(self, trick_nr, state, selection_func, c_puct, min_times=128):
+        super(MCTS, self)._playout(trick_nr, state, selection_func, c_puct, min_times=min_times)
+
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
         scores = [0, 0, 0, 0]
         if not state.is_finished:

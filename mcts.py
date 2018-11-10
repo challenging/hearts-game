@@ -62,7 +62,7 @@ class MCTS(object):
         self._c_puct = c_puct
 
 
-    def _playout(self, trick_nr, state, selection_func, c_puct):
+    def _playout(self, trick_nr, state, selection_func, c_puct, min_times=32):
         prob_cards = [((SUIT_TO_INDEX["C"], NUM_TO_INDEX["2"]), 1.0)]
 
         node = self.start_node
@@ -92,7 +92,7 @@ class MCTS(object):
 
                 big_value, big_cards = -sys.maxsize, []
                 for played_card, n in sorted(candicated_cards, key=lambda x: -x[1]._n_visits):
-                    if n._n_visits < 32:
+                    if n._n_visits < min_times:
                         big_value = sys.maxsize
                         big_cards.append((played_card, n))
                     else:
