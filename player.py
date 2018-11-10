@@ -24,6 +24,12 @@ class Player(object):
         self.name = None
         self.position = None
         self.proactive_mode = set()
+
+        self.void_info = {0: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 
+                          1: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 
+                          2: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 
+                          3: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}}
+        self.remaining_cards = set(Deck().cards)
         self.num_hand_cards = {0: 13, 1: 13, 2: 13, 3: 13}
 
         self.verbose = verbose
@@ -79,6 +85,19 @@ class Player(object):
 
     def see_played_trick(self, card, game):
         self.seen_cards.append(card)
+
+        for tc in game._player_hands[self.position]:
+            if tc in self.remaining_cards:
+                self.remaining_cards.remove(tc)
+            else:
+                break
+
+        if card in self.remaining_cards:
+            self.remaining_cards.remove(card)
+
+        if game.trick[0].suit != card.suit:
+            self.void_info[game.current_player_idx][card.suit] = True
+
         self.num_hand_cards[game.current_player_idx] -= 1
 
 
@@ -246,16 +265,17 @@ class Player(object):
         self.transfer_cards = {}
 
         self.proactive_mode = set()
+
+        self.void_info = {0: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 
+                          1: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 
+                          2: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 
+                          3: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}}
+
+        self.remaining_cards = set(Deck().cards)
         self.num_hand_cards = {0: 13, 1: 13, 2: 13, 3: 13}
 
 
 class StupidPlayer(Player):
-
-    """
-    Most simple player you can think of.
-    It just plays random valid cards.
-    """
-
     def __init__(self, verbose=False):
         super(StupidPlayer, self).__init__(verbose=verbose)
 

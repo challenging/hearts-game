@@ -1,5 +1,6 @@
 """This module containts the abstract class Player and some implementations."""
 import os
+import sys
 
 import copy
 import time
@@ -38,15 +39,16 @@ def say(message, *formatargs):
 
 REMAINING_CARDS = []
 
-def policy_value_fn(trick_nr, state):
-    global REMAINING_CARDS
+#def policy_value_fn(trick_nr, state):
+#    global REMAINING_CARDS
 
-    if REMAINING_CARDS:
-        results = REMAINING_CARDS
-    else:
-        results = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1, is_playout=False)
+#    if REMAINING_CARDS:
+#        results = REMAINING_CARDS
+#    else:
+#        results = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1, is_playout=False)
 
-    return results, 0
+def policy_value_fn(prob_cards):
+    return prob_cards, 0
 
 
 class MCTS(object):
@@ -60,74 +62,75 @@ class MCTS(object):
 
 
     def _playout(self, trick_nr, state, selection_func, c_puct):
-        #self.history = []
+        #prob_cards = {0:1}
+        prob_cards = [((SUIT_TO_INDEX["C"], NUM_TO_INDEX["2"]), 1.0)]
 
         node = self.start_node
-        while not state.is_finished:
-            if node.is_leaf():
-                #print("is_leaf")
-                break
-
-            is_all_traverse = True
-
+        while not state.is_finished and not node.is_leaf():
             valid_cards = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1)
-            valid_moves = translate_hand_cards(valid_cards, is_bitmask=True)
-            #print("current_valid_moves", valid_moves)
+            #prob_cards = valid_cards
 
-            for card in valid_moves:
-                if card not in node._children:
-                    is_all_traverse = False
-                    #print("is_not_all_traverse - not")
+            is_all_traverse, candicated_cards = True, []
+            for suit, ranks in valid_cards.items():
+                bitmask = NUM_TO_INDEX["2"]
+                while bitmask <= NUM_TO_INDEX["A"]:
+                    if ranks & bitmask:
+                        card = (suit, bitmask)
+                        prob_cards.append((card, 1.0))
 
+                        if card not in node._children or node._children[card]._P == 0:
+                            is_all_traverse = False
+                        else:
+                            candicated_cards.append((card, node._children[card]))
+
+                    bitmask <<= 1
+
+                if not is_all_traverse:
                     break
-                elif node._children[card]._P == 0:
-                    is_all_traverse = False
-                    #print("is_not_all_traverse - _P", card)
 
-                    break
-                #elif node._children[card]._n_visits == 0:
-                #    is_all_traverse = False
-                #    print("is_not_all_traverse - visits", card, valid_moves, node._children[card]._n_visits)
+            if is_all_traverse:
+                current_start_pos = state.start_pos
 
-                #    break
+                big_value, big_cards = -sys.maxsize, []
+                for played_card, n in sorted(candicated_cards, key=lambda x: -x[1]._n_visits):
+                    if n._n_visits < 32:
+                        big_value = sys.maxsize
+                        big_cards.append((played_card, n))
+                    else:
+                        v = n.get_value(c_puct)
+                        if v >= big_value:
+                            big_value = v
+                            big_cards = [(played_card, n)]
 
-            if not is_all_traverse:
-                break
+                if len(big_cards) == 0:
+                    print(candicated_cards, big_cards)
 
-            current_start_pos, found_node = state.start_pos, None
-            for played_card, n in node.select(c_puct):
-                suit, rank = played_card[0], played_card[1]
+                    sys.exit(1)
+                else:
+                    played_card, n = choice(big_cards)
+                    n._player_idx = current_start_pos
 
-                if valid_cards.get(suit, 0) & rank and n._P > 0:
-                    state.step(trick_nr, selection_func, played_card)
-                    #self.history.append((current_start_pos, bitmask_to_card(suit, rank)))
-
-                    for sub_n in node._children.values():
-                        sub_n._player_idx = current_start_pos
-
-                    node = n
-
-                    break
+                state.step(trick_nr, selection_func, played_card)
+                node = n
             else:
-                #print("is_not_valid_card")
-
                 break
 
-        self._post_playout(node, trick_nr, state, selection_func)
+        #self._post_playout(node, trick_nr, state, selection_func)
+        self._post_playout(node, trick_nr, state, selection_func, prob_cards)
 
 
-    def _post_playout(self, node, trick_nr, state, selection_func):
+    def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
         if not state.is_finished:
-            action_probs, _ = self._policy(trick_nr, state)
+            action_probs, _ = self._policy(prob_cards)#(trick_nr, state)
             node.expand(state.start_pos, action_probs)
 
         rating = self._evaluate_rollout(trick_nr, state, selection_func)
         node.update_recursive(rating)
-        #print(self.history, state.score()[0], rating)
 
     def _evaluate_rollout(self, trick_nr, state, selection_func):
         while not state.is_finished:
             state.step(trick_nr, selection_func)
+        #state.run(trick_nr, selection_func=selection_func)
 
         info = state.score()
         return get_rating(self._self_player_idx, info[0], info[1])
@@ -153,17 +156,19 @@ class MCTS(object):
 
         stime = time.time()
 
+        """
         global REMAINING_CARDS
         REMAINING_CARDS = get_remaining_cards(trick_nr+len(init_trick)-1, init_trick, score_cards)
         if REMAINING_CARDS:
             self.start_node.update_recursive_percentage(REMAINING_CARDS)
+        """
 
         simulation_cards = redistribute_cards(randint(0, 64),
                                               self._self_player_idx,
-                                              copy.deepcopy(hand_cards),
+                                              hand_cards[:],
                                               num_hand_cards,
                                               init_trick[-1][1],
-                                              remaining_cards,
+                                              list(remaining_cards)[:],
                                               must_have,
                                               void_info,
                                               not_seen)
@@ -176,6 +181,7 @@ class MCTS(object):
         for simulation_card in simulation_cards:
             for player_idx, cards in enumerate(simulation_card):
                 simulation_card[player_idx] = str_to_bitmask(cards)
+                #print("player-{}, {}, {}".format(player_idx, cards, len(cards)))
 
             try:
                 sm = StepGame(trick_nr,
@@ -194,7 +200,7 @@ class MCTS(object):
                 if len(init_trick[-1][1]) == 4:
                     sm.post_round_end()
 
-                selection_func = [choice(selection_func) for _ in range(4)]
+                #selection_func = [selection_func[0] for _ in range(4)]
                 self._playout(trick_nr, sm, selection_func, c_puct)
 
                 scores, is_shoot_the_moon = sm.score()

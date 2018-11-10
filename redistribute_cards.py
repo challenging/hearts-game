@@ -25,8 +25,8 @@ def get_fixed_cards(cards, must_have):
 def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers, random_void=False):
     num = [0, 0, 0 ,0 , 0]
     while True:
-        copy_cards = copy.deepcopy(hand_cards)
-        remaining_cards = copy.copy(cards)
+        copy_cards = hand_cards[:]
+        remaining_cards = cards[:]
 
         shuffle(remaining_cards)
 
@@ -40,7 +40,7 @@ def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers,
 
         random_void_suit = 4
         if random_void:
-            random_void_suit = randint(0, 4)
+            random_void_suit = choice([0, 1, 2, 3]*2 + [4])
 
         if random_void_suit < 4:
             selected_player = choice([player_idx for player_idx in range(4) if player_idx != position])
@@ -65,23 +65,6 @@ def simple_redistribute_cards(position, hand_cards, cards, fixed_cards, numbers,
 
                     copy_cards[selected_idx][0], copy_cards[another_selected_idx][0] = \
                         copy_cards[another_selected_idx][0], copy_cards[selected_idx][0]
-                """
-                else:
-                    num_of_suits = {}
-                    for card in copy_cards[selected_idx]:
-                        num_of_suits.setdefault(card.suit, [])
-                        num_of_suits[card.suit].append(card)
-
-                    if len(num_of_suits.get(Suit.spades, [])) == 1 and num_of_suits[Suit.spades][0] == SPADES_Q and len(num_of_suits.get(Suit.hearts, [])) == 12:
-                        another_selected_idx = choice([player_idx for player_idx in range(4) if player_idx != position and player_idx != selected_idx])
-
-                        for switched_card_idx in range(len(copy_cards[another_selected_idx])):
-                            if copy_cards[another_selected_idx][switched_card_idx].suit != Suit.hearts:
-                                copy_cards[selected_idx][0], copy_cards[another_selected_idx][switched_card_idx] = \
-                                    copy_cards[another_selected_idx][switched_card_idx], copy_cards[selected_idx][0]
-
-                                break
-                """
 
         yield copy_cards
 
@@ -113,8 +96,7 @@ def redistribute_cards(seed, position, hand_cards, num_hand_cards, trick, cards,
             stime = time.time()
 
             copy_cards = copy.deepcopy(hand_cards)
-
-            remaining_cards = copy.deepcopy(cards)
+            remaining_cards = cards[:]
             shuffle(remaining_cards)
 
             for player_idx, _ in sorted_players:
@@ -155,7 +137,6 @@ def redistribute_cards(seed, position, hand_cards, num_hand_cards, trick, cards,
 
                         continue
 
-                    #void_players = [player_idx for player_idx, number in numbers.items() if (len(copy_cards[player_idx])-len(fixed_cards.get(player_idx, []))) != number]
                     shuffle(void_players)
                     for player_idx in void_players:
                         #print("find void_player", player_idx, card, remaining_cards)
@@ -174,7 +155,9 @@ def redistribute_cards(seed, position, hand_cards, num_hand_cards, trick, cards,
                                         copy_cards[targeted_player_idx].remove(switched_card)
                                         copy_cards[targeted_player_idx].append(card)
 
-                                        if card in remaining_cards: remaining_cards.remove(card)
+                                        if card in remaining_cards:
+                                            remaining_cards.remove(card)
+
                                         is_switched = True
 
                                         break
@@ -184,7 +167,7 @@ def redistribute_cards(seed, position, hand_cards, num_hand_cards, trick, cards,
 
                         if is_switched == False:
                             copy_cards[player_idx].append(card)
-                            remaining_cards.remove(card)
+                            if card in remaining_cards: remaining_cards.remove(card)
 
             yield copy_cards
 

@@ -74,37 +74,47 @@ class RiderPlayer(MonteCarloPlayer7):
     def see_played_trick(self, card, game):
         super(RiderPlayer, self).see_played_trick(card, game)
 
-        self.say("steal time({}) to simulate to game results", card)
-
         card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
 
         self.mcts.update_with_move(card)
 
         valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
-        hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
+        hand_cards, init_trick, must_have, selection_func = \
             self.get_simple_game_info(game)
+
+        steal_time = 0.28
 
         first_player_idx = (game.current_player_idx+1)%4
         if len(game.trick) == 4:
             winning_index, _ = game.winning_index()
-            first_player_index = (game.current_player_idx + winning_index) % 4
+            first_player_idx = (game.current_player_idx + winning_index) % 4
+
+            if first_player_idx == self.position:
+                steal_time = 0.85
+            else:
+                steal_time = 0.55
+
+        """
+        self.say("steal time({}, {:.2} seconds) to simulate to game results, {}, {}, {}", \
+            card, steal_time, first_player_idx, len(self.remaining_cards), self.num_hand_cards)
+        """
 
         if len(game._player_hands[self.position]) > 0:
             self.mcts.get_move(first_player_idx, 
                                hand_cards, 
                                valid_cards,
-                               remaining_cards, 
-                               score_cards, 
+                               self.remaining_cards, 
+                               game._b_cards_taken, 
                                self.num_hand_cards, 
                                init_trick, 
-                               void_info, 
+                               self.void_info, 
                                must_have, 
                                selection_func, 
                                game.trick_nr+1, 
                                game.is_heart_broken, 
                                game.expose_heart_ace, 
                                True, 
-                               0.185,
+                               steal_time,
                                False)
         else:
             if game.get_game_winners():
@@ -116,32 +126,17 @@ class RiderPlayer(MonteCarloPlayer7):
     def get_simple_game_info(self, state):
         hand_cards = [[] if player_idx != self.position else state._player_hands[player_idx] for player_idx in range(4)]
 
-        remaining_cards = Deck().cards
-        for card in state.players[self.position].seen_cards + hand_cards[self.position]:
-            if card in remaining_cards: remaining_cards.remove(card)
-
-        score_cards = []
-        for player_idx, cards in enumerate(state._cards_taken):
-            score_cards.append(card_to_bitmask(cards))
-
         init_trick = [[None, state.trick[:]]]
         for trick_idx, (winner_index, trick) in enumerate(init_trick):
             for card_idx, card in enumerate(trick):
                 for suit, rank in str_to_bitmask([card]).items():
                     trick[card_idx] = [suit, rank]
 
-        is_void, void_info = False, {}
-        for player_idx, info in enumerate(state.lacking_cards):
-            if player_idx != self.position:
-                void_info[player_idx] = info
-
-                is_void |= any([v for v in info.values()])
-
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [expert_choose]
+        selection_func = [expert_choose]*4
 
-        return hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func
+        return hand_cards, init_trick, must_have, selection_func
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
@@ -152,7 +147,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         game.are_hearts_broken()
 
-        hand_cards, remaining_cards, score_cards, init_trick, void_info, must_have, selection_func = \
+        hand_cards, init_trick, must_have, selection_func = \
             self.get_simple_game_info(game)
 
         valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
@@ -161,11 +156,11 @@ class RiderPlayer(MonteCarloPlayer7):
             self.mcts.get_move(game.current_player_idx,
                                hand_cards, 
                                valid_cards,
-                               remaining_cards, 
-                               score_cards, 
+                               self.remaining_cards, 
+                               game._b_cards_taken, 
                                self.num_hand_cards, 
                                init_trick, 
-                               void_info, 
+                               self.void_info, 
                                must_have, 
                                selection_func, 
                                game.trick_nr+1, 

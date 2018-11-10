@@ -117,8 +117,8 @@ class BrainBot(LowPlayBot):
     def turn_end(self, data):
         super(BrainBot, self).turn_end(data)
 
-        if not self.is_first_play:
-            self.game._player_hands[self.player.position] = self.get_cards(data)
+        #if not self.is_first_play:
+        self.game._player_hands[self.player.position] = self.get_cards(data)
 
 
         def find_leading_suit():
@@ -129,6 +129,12 @@ class BrainBot(LowPlayBot):
             return leading_idx, leading_card.suit, leading_card.suit != current_card.suit
 
         current_player_name, last_card = self.round_cards_history[-1]
+        current_player_idx = None
+        for name_idx, name in enumerate(self.player_names):
+            if name == current_player_name:
+                current_player_idx = name_idx
+
+                break
 
         leading_idx, is_lacking = None, False
         if self.round_cards_history:
@@ -142,6 +148,7 @@ class BrainBot(LowPlayBot):
 
                             break
 
+            self.game.current_player_idx = current_player_idx
             self.game.trick.append(last_card)
             self.game.players[self.player.position].see_played_trick(last_card, self.game)
         else:
@@ -193,13 +200,16 @@ class BrainBot(LowPlayBot):
         for card in data["self"]["cards"]:
             self.my_hand_cards.append(transform(card[0], card[1]))
 
+        is_exposed = self.player.expose_hearts_ace(self.my_hand_cards)
         expose_card = []
-        if not self.proactive_mode:
-            for card in self.my_hand_cards:
-                if card == Card(Suit.hearts, Rank.ace):
-                    expose_card.append(str(card))
+        if is_exposed:
+            expose_card.append(str(Card(Suit.hearts, Rank.ace)))
 
-                    break
+        #    for card in self.my_hand_cards:
+        #        if card == Card(Suit.hearts, Rank.ace):
+        #            expose_card.append(str(card))
+
+        #            break
 
         message = "Expose Cards:{}".format(expose_card)
         system_log.show_message(message)

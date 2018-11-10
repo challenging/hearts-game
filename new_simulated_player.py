@@ -57,7 +57,7 @@ class MonteCarloPlayer7(MonteCarloPlayer5):
         for suit, cards in hand_cards.items():
             point_of_suit = sum(cards)
             if suit == Suit.hearts:
-                if ((point_of_suit > 7 and len(cards) > 5)) or ((point_of_suit > 6 and len(cards) > 6)) or ((point_of_suit > 6 and len(cards) > 6)):
+                if ((point_of_suit > 7 and len(cards) > 4)) or ((point_of_suit > 6 and len(cards) > 5)) or ((point_of_suit > 5 and len(cards) > 6)):
                     self.proactive_mode.add(suit)
             else:
                 if (point_of_suit > 6 and len(cards) > 4) and (len(hand_cards[Suit.hearts]) > 2 and sum(hand_cards[Suit.hearts]) > 3):

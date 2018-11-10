@@ -19,6 +19,7 @@ class TreeNode(object):
 
 
     def expand(self, player_idx, action_priors):
+        #print("expansion")
         for action, prob in action_priors:
             if action not in self._children:
                 self._children[action] = TreeNode(self, prob, self._self_player_idx, player_idx)
@@ -45,13 +46,7 @@ class TreeNode(object):
         if self._player_idx is None:
             self._n_visits += 1
         else:
-            v = scores[self._player_idx]
-
-            if any([math.isnan(sub_v) for sub_v in scores]):
-                print(scores)
-                sys.exit(1)
-
-            self.update(v)
+            self.update(scores[self._player_idx])
 
 
     def update_recursive_percentage(self, probs):
@@ -67,12 +62,8 @@ class TreeNode(object):
 
 
     def get_value(self, c_puct):
-        self._u = (c_puct * self._P * (self._parent._n_visits)**0.5 / (1 + self._n_visits))
+        self._u = (c_puct * self._P * math.log(self._parent._n_visits)/(1 + self._n_visits))**0.5
         value = self._Q/(1e-16+self._n_visits) + self._u
-
-        #if self._Q != 0 and self._self_player_idx == 3:
-        #    print("value={:4.4f}, u={:4.4f}, q={:.4f}, c_puct={}, p={:.4f}, n_visits={}, parent_n_visits={}".format(\
-        #        value, self._u, self._Q/(1e-16+self._n_visits), c_puct, self._P, self._n_visits, self._parent._n_visits))
 
         return value
 

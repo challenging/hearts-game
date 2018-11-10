@@ -91,64 +91,26 @@ class StepGame(SimpleGame):
 
                     bit_mask <<= 1
 
-            #print("--->******", current_round_idx, self.current_info, self.start_pos, self.hand_cards, valid_cards)
-
             return [[card, prob/size] for card, prob in probs]
 
 
-    def get_myself_valid_cards(self, cards, current_round_idx=None):
-        if current_round_idx is None:
-            current_round_idx = len(self.tricks)
+    def winning_index(self):
+        leading_suit, leading_rank = self.tricks[-1][1][0]
 
-        if current_round_idx == 1:
-            if len(self.tricks[-1][1]) == 0:
-                if cards.get(SUIT_TO_INDEX["C"], 0) & NUM_TO_INDEX["2"]:
-                    return {SUIT_TO_INDEX["C"]: NUM_TO_INDEX["2"]}
-            elif cards.get(SUIT_TO_INDEX["C"], 0) > 0:
-                return {SUIT_TO_INDEX["C"]: cards[SUIT_TO_INDEX["C"]]}
-            else:
-                spades_rank = cards.get(SUIT_TO_INDEX["S"], 0)
-                if spades_rank & NUM_TO_INDEX["Q"]:
-                    spades_rank ^= NUM_TO_INDEX["Q"]
+        winning_index = 0
+        winning_card = self.tricks[-1][1][0]
+        for i, (suit, rank) in enumerate(self.tricks[-1][1][1:]):
+            if suit == leading_suit and rank > leading_rank:
+                winning_index = i+1
+                winning_card = [suit, rank]
 
-                return {SUIT_TO_INDEX["D"]: cards.get(SUIT_TO_INDEX["D"], 0), SUIT_TO_INDEX["S"]: spades_rank}
-        else:
-            if len(self.tricks[-1][1]) == 0:
-                if self.is_hearts_broken or self.is_all_point_cards(cards):
-                    return cards
-                else:
-                    if cards.get(SUIT_TO_INDEX["H"], 0) > 0:
-                        del cards[SUIT_TO_INDEX["H"]]
+                leading_rank = rank
 
-                    if cards.get(SUIT_TO_INDEX["S"], 0) & NUM_TO_INDEX["Q"]:
-                        cards[SUIT_TO_INDEX["S"]] ^= NUM_TO_INDEX["Q"]
-
-                    return cards
-            else:
-                leading_suit = self.tricks[-1][1][0][0]
-
-                if cards.get(leading_suit, 0) > 0:
-                    return {leading_suit: cards[leading_suit]}
-                else:
-                    return cards
+        return winning_index, winning_card
 
 
     def step(self, current_round_idx, selection_func, played_card=None):
         current_round_idx += len(self.tricks)-1
-
-        def winning_index(trick):
-            leading_suit, leading_rank = trick[1][0]
-
-            winning_index = 0
-            winning_card = trick[1][0]
-            for i, (suit, rank) in enumerate(trick[1][1:]):
-                if suit == leading_suit and rank > leading_rank:
-                    winning_index = i+1
-                    winning_card = [suit, rank]
-
-                    leading_rank = rank
-
-            return winning_index, winning_card
 
         if self.start_pos == self.position:
             self.current_index = len(self.tricks[-1][1])
@@ -186,7 +148,7 @@ class StepGame(SimpleGame):
         self.remove_card(self.hand_cards[self.start_pos], played_card)
 
         if len(self.tricks[-1][1]) == 4:
-            winning_index, winning_card = winning_index(self.tricks[-1])
+            winning_index, winning_card = self.winning_index()
             self.start_pos = (self.position+(winning_index-self.current_index))%4
 
             self.tricks[-1][0] = (self.start_pos)%4
@@ -207,14 +169,13 @@ class StepGame(SimpleGame):
     def post_round_end(self):
         winner_idx = self.tricks[-1][0]
         for suit, rank in self.tricks[-1][1]:
-            self.is_hearts_broken = self.is_hearts_broken or (suit == SUIT_TO_INDEX["H"])
-            self.is_show_pig_card = self.is_show_pig_card or (suit == SUIT_TO_INDEX["S"] and rank & NUM_TO_INDEX["Q"] > 0)
-            self.is_show_double_card = self.is_show_double_card or (suit == SUIT_TO_INDEX["C"] and rank & NUM_TO_INDEX["T"] > 0)
+            if suit == SUIT_TO_INDEX["H"] or (suit == SUIT_TO_INDEX["S"] and rank & NUM_TO_INDEX["Q"]):
+                self.is_hearts_broken = True
+                self.is_show_pig_card = True
 
-            if suit == SUIT_TO_INDEX["H"]:
                 self.has_point_players.add(winner_idx)
-            elif suit == SUIT_TO_INDEX["S"] and rank & NUM_TO_INDEX["Q"]:
-                self.has_point_players.add(winner_idx)
+
+            self.is_show_double_card = self.is_show_double_card or (suit == SUIT_TO_INDEX["C"] and rank & NUM_TO_INDEX["T"] > 0)
 
             self.score_cards[self.start_pos][suit] |= rank
 

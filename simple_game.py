@@ -51,9 +51,8 @@ class SimpleGame(object):
         self.void_info = dict([[player_idx, {SUIT_TO_INDEX["C"]: False, SUIT_TO_INDEX["D"]: False, SUIT_TO_INDEX["H"]: False, SUIT_TO_INDEX["S"]: False}] for player_idx in range(4)])
         if void_info:
             for player_idx, info in void_info.items():
-                if player_idx in self.void_info:
-                    for suit, is_void in info.items():
-                        self.void_info[player_idx][SUIT_TO_INDEX[suit.__repr__()]] = is_void
+                for suit, is_void in info.items():
+                    self.void_info[player_idx][SUIT_TO_INDEX[suit.__repr__()]] = is_void
 
         if score_cards is None:
             self.score_cards = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
@@ -108,15 +107,10 @@ class SimpleGame(object):
 
 
     def check_shoot_the_moon(self, score_cards):
-        #print("score_cards", score_cards, self.has_point_players)
         for player_idx, cards in enumerate(score_cards):
-            if cards[SUIT_TO_INDEX["S"]] & NUM_TO_INDEX["Q"]:
+            if cards[SUIT_TO_INDEX["S"]] & NUM_TO_INDEX["Q"] or cards[SUIT_TO_INDEX["H"]] > 0:
                 self.has_point_players.add(player_idx)
 
-            if cards[SUIT_TO_INDEX["H"]] > 0:
-                self.has_point_players.add(player_idx)
-
-        #print("has_point_players", self.has_point_players)
 
     def get_seen_cards(self):
         cards = copy.copy(EMPTY_CARDS)
@@ -141,16 +135,7 @@ class SimpleGame(object):
 
 
     def is_all_point_cards(self, cards):
-        if cards.get(SUIT_TO_INDEX["D"], 0) == 0 and cards.get(SUIT_TO_INDEX["C"], 0) == 0:
-            ranks = cards.get(SUIT_TO_INDEX["S"], 0)
-            if ranks == 0:
-                return True
-            elif ranks == NUM_TO_INDEX["Q"]:
-                return True
-            else:
-                return False
-        else:
-            return False
+        return cards.get(SUIT_TO_INDEX["D"], 0) == 0 and cards.get(SUIT_TO_INDEX["C"], 0) == 0 and cards.get(SUIT_TO_INDEX["S"], 0) == 0
 
 
     def get_valid_cards(self, cards, current_round_idx):
@@ -162,9 +147,8 @@ class SimpleGame(object):
             current_round_idx = len(self.tricks)
 
         if current_round_idx == 1:
-            if len(self.tricks[-1][1]) == 0:
-                if cards.get(SUIT_TO_INDEX["C"], 0) & NUM_TO_INDEX["2"]:
-                    return {SUIT_TO_INDEX["C"]: NUM_TO_INDEX["2"]}
+            if len(self.tricks[-1][1]) == 0 and cards.get(SUIT_TO_INDEX["C"], 0) & NUM_TO_INDEX["2"]:
+                return {SUIT_TO_INDEX["C"]: NUM_TO_INDEX["2"]}
             elif cards.get(SUIT_TO_INDEX["C"], 0) > 0:
                 return {SUIT_TO_INDEX["C"]: cards[SUIT_TO_INDEX["C"]]}
             else:
@@ -178,8 +162,9 @@ class SimpleGame(object):
                 if self.is_hearts_broken or self.is_all_point_cards(cards):
                     return cards
                 else:
-                    if SUIT_TO_INDEX["H"] in cards: del cards[SUIT_TO_INDEX["H"]]
-                    if cards.get(SUIT_TO_INDEX["S"], 0) & NUM_TO_INDEX["Q"]: cards[SUIT_TO_INDEX["S"]] ^= NUM_TO_INDEX["Q"]
+                    #if SUIT_TO_INDEX["H"] in cards:
+                    #    del cards[SUIT_TO_INDEX["H"]]
+                    cards[SUIT_TO_INDEX["H"]] = 0
 
                     return cards
             else:
@@ -217,8 +202,8 @@ class SimpleGame(object):
         self.current_info[suit][0] -= 1
         self.current_info[suit][1] ^= rank
 
-        if self.tricks[-1][1][-1][0] != self.tricks[-1][1][0][0]:
-            self.void_info[player_idx][self.tricks[-1][1][0][0]] = True
+        #if self.tricks[-1][1][-1][0] != self.tricks[-1][1][0][0]:
+        self.void_info[player_idx][self.tricks[-1][1][0][0]] = self.tricks[-1][1][-1][0] != self.tricks[-1][1][0][0]
 
 
     def just_run_one_step(self, current_round_idx, selection_func):
@@ -255,7 +240,8 @@ class SimpleGame(object):
             if played_card is None:
                 valid_cards = self.get_valid_cards(self.hand_cards[self.position], current_round_idx)
                 candicated_cards, played_card = first_choose(\
-                    self.position, valid_cards, current_trick[1], self.is_hearts_broken, self.is_show_pig_card, self.is_show_double_card, self.has_point_players, self.current_info, self.void_info)
+                    self.position, valid_cards, current_trick[1], self.is_hearts_broken, self.is_show_pig_card, \
+                    self.is_show_double_card, self.has_point_players, self.current_info, self.void_info)
 
             self.played_card = played_card
 

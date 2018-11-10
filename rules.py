@@ -136,6 +136,11 @@ def get_setting_cards():
                     "5C, 8C, QC, 4D, KD, 3S, 6S, 7S, 9S, JS, 2H, 4H, AH",
                     "TC, JC, 9D, JD, QD, AD, 5S, TS, 5H, 6H, 7H, TH, JH"]]
 
+    card_string = [["4C, 5C, 9C, TC, KC, AC, 6D, JD, 4S, 5S, 7S, 9S, QS",
+                    "2C, 7C, 2D, 3D, 5D, 7D, 9D, KD, JS, 6H, 7H, 8H, KH",
+                    "3C, 6C, 8C, QC, 8D, TD, QD, 2S, TS, KS, 3H, 4H, JH",
+                    "JC, 4D, AD, 3S, 6S, 8S, AS, 2H, 5H, 9H, TH, QH, AH"]]
+
     return transform_cards(card_string)
 
 
@@ -174,7 +179,7 @@ def get_rating(position, scores, is_shoot_the_moon):
         if score == pre_score:
             tmp_rating = pre_rating
 
-        rating[player_idx] = -tmp_rating/4 + (1-score/sum_score)-1
+        rating[player_idx] = -score/sum_score#-tmp_rating/4 + (1-score/sum_score)-1
         #rating[player_idx] = (4-tmp_rating)/4 + (1-score/sum_score)
         #rating[player_idx] = -score/sum_score
 
@@ -183,7 +188,7 @@ def get_rating(position, scores, is_shoot_the_moon):
 
     if is_shoot_the_moon:
         if scores[position] == 0:
-            rating[position] += 1.5
+            rating[position] += 0.5
 
     return rating
 

@@ -1,7 +1,8 @@
 import sys
 
-from card import Suit, Rank, Card, Deck, POINT_CARDS
-from card import SPADES_Q, SPADES_K, SPADES_A
+from card import Suit, Rank, Card, Deck
+from card import SPADES_Q, SPADES_K, SPADES_A, POINT_CARDS
+from card import card_to_bitmask
 
 from rules import is_card_valid, is_score_card, card_points, reversed_score
 
@@ -40,6 +41,7 @@ class Game(object):
 
         self._player_hands = list(deck.deal())
         self._cards_taken = ([], [], [], [])
+        self._b_cards_taken = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
         self._temp_score = [0, 0, 0, 0]
 
         self.lacking_cards = []
@@ -70,6 +72,8 @@ class Game(object):
                     if idx != player_idx and self.players[idx].proactive_mode:
                         self.say("set proactive_mode({}) of Player-{} to be empty", self.players[idx].proactive_mode, idx)
                         self.players[idx].proactive_mode = set()
+
+            self._b_cards_taken[player_idx] = card_to_bitmask(cards)
 
 
     def say(self, message, *formatargs):
