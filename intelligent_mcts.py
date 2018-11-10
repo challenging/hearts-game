@@ -16,7 +16,7 @@ class IntelligentMCTS(MCTS):
 
 
     def _playout(self, trick_nr, state, selection_func, c_puct, min_times=128):
-        super(MCTS, self)._playout(trick_nr, state, selection_func, c_puct, min_times=min_times)
+        super(IntelligentMCTS, self)._playout(trick_nr, state, selection_func, c_puct, min_times=min_times)
 
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
         scores = [0, 0, 0, 0]

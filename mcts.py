@@ -102,9 +102,7 @@ class MCTS(object):
                             big_cards = [(played_card, n)]
 
                 if len(big_cards) == 0:
-                    print(candicated_cards, big_cards, valid_cards)
-
-                    sys.exit(1)
+                    raise Exception("impossible cards, {} for player-{}".format(state.hand_cards, current_start_pos))
                 else:
                     played_card, n = choice(big_cards)
                     n._player_idx = current_start_pos
@@ -119,11 +117,12 @@ class MCTS(object):
 
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
         if not state.is_finished:
-            action_probs, _ = self._policy(prob_cards)#(trick_nr, state)
+            action_probs, _ = self._policy(prob_cards)
             node.expand(state.start_pos, action_probs)
 
         rating = self._evaluate_rollout(trick_nr, state, selection_func)
         node.update_recursive(rating)
+
 
     def _evaluate_rollout(self, trick_nr, state, selection_func):
         while not state.is_finished:
@@ -209,8 +208,6 @@ class MCTS(object):
                 ratio[0] += 1
             except Exception as e:
                 ratio[1] += 1
-
-                raise
 
             if time.time()-stime > simulation_time_limit:
                 shooter = None

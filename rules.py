@@ -141,6 +141,11 @@ def get_setting_cards():
                     "3C, 6C, 8C, QC, 8D, TD, QD, 2S, TS, KS, 3H, 4H, JH",
                     "JC, 4D, AD, 3S, 6S, 8S, AS, 2H, 5H, 9H, TH, QH, AH"]]
 
+    card_string = [["2C, 7C, 2D, 3D, 5D, 7D, 9D, KD, JS, 6H, 7H, 8H, KH",
+                    "3C, 6C, 8C, QC, 8D, TD, QD, 2S, TS, KS, 3H, 4H, JH",
+                    "JC, 4D, AD, 3S, 6S, 8S, AS, 2H, 5H, 9H, TH, QH, AH",
+                    "4C, 5C, 9C, TC, KC, AC, 6D, JD, 4S, 5S, 7S, 9S, QS"]]
+
     return transform_cards(card_string)
 
 
@@ -282,10 +287,10 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                                 mean_score, proactive_mean_moon_score, mean_moon_score))
 
                     game.reset()
-                    if len(setting_cards) == 1: break
-                if len(setting_cards) == 1: break
-            if len(setting_cards) == 1: break
-        if len(setting_cards) == 1: break
+                    if len(setting_cards) == 1 and nr_of_games == 1: break
+                if len(setting_cards) == 1 and nr_of_games == 1: break
+            if len(setting_cards) == 1 and nr_of_games == 1: break
+        if len(setting_cards) == 1 and nr_of_games == 1: break
 
     return final_scores, proactive_moon_scores, shooting_moon_scores
 
