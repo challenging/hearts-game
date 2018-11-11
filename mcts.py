@@ -128,8 +128,8 @@ class MCTS(object):
         while not state.is_finished:
             state.step(trick_nr, selection_func)
 
-        info = state.score()
-        return get_rating(self._self_player_idx, info[0], info[1])
+        scores, _ = state.score()
+        return get_rating(scores)
 
 
     def get_move(self,
@@ -242,9 +242,23 @@ class MCTS(object):
                     elif node._P == 0:
                         continue
 
+            big_value, big_visits, big_card = -sys.maxsize, -sys.maxsize, None
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
                 if node._P > 0 and valid_cards.get(played_card[0], 0) & played_card[1]:
-                    return played_card
+                    if node._n_visits > big_visits:
+                        big_visits = node._n_visits
+                        big_value = node.get_value(self._c_puct)
+                        big_card = played_card
+                    else:
+                        print("-->", played_card, node._n_visits, big_visits, node.get_value(self._c_puct), big_value)
+                        if node._n_visits*100 < big_visits and node.get_value(self._c_puct)-2 > big_value:
+                            big_visits = node._n_visits
+                            big_value = node.get_value(self._c_puct)
+                            big_card = played_card
+                        else:
+                            break
+
+            return big_card
         else:
             results = {}
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):

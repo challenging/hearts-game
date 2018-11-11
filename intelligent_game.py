@@ -2,7 +2,7 @@ import copy
 
 from collections import deque
 
-from rules import is_card_valid, get_rating
+from rules import is_card_valid
 from nn_utils import print_a_memory
 
 from game import Game

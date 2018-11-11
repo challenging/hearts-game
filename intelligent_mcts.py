@@ -28,8 +28,7 @@ class IntelligentMCTS(MCTS):
         else:
             scores, is_shootthemoon = state.score()
 
-        rating = get_rating(self._self_player_idx, scores, False)
-        node.update_recursive(rating)
+        node.update_recursive(get_rating(scores))
 
 
     def __str__(self):

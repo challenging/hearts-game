@@ -172,31 +172,8 @@ def transform_cards(card_strings):
     return cardss
 
 
-def get_rating(position, scores, is_shoot_the_moon):
+def get_rating(scores):
     return [-score for score in scores]
-
-    """
-    sum_score = sum(scores)
-
-    rating = [0, 0, 0, 0]
-
-    info = zip(range(4), scores)
-    pre_score, pre_rating = None, None
-    for rating_idx, (player_idx, score) in enumerate(sorted(info, key=lambda x: x[1])):
-        tmp_rating = rating_idx
-        if score == pre_score:
-            tmp_rating = pre_rating
-
-        rating[player_idx] = -tmp_rating/4 + (1-score/sum_score)-1
-        #rating[player_idx] = (4-tmp_rating)/4 + (1-score/sum_score)
-        #rating[player_idx] = -score/sum_score
-
-        pre_score = score
-        pre_rating = tmp_rating
-
-    return rating
-    """
-
 
 def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verbose=True, out_file=sys.stdout):
     from game import Game
@@ -293,17 +270,3 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
         if len(setting_cards) == 1 and nr_of_games == 1: break
 
     return final_scores, proactive_moon_scores, shooting_moon_scores
-
-
-if __name__ == "__main__":
-    scores = [208, 208, 208, 0]
-    print(scores, get_rating(3, scores, True))
-
-    scores = [208, 208, 0, 208]
-    print(scores, get_rating(3, scores, True))
-
-    scores = [0, 0, 14, 16]
-    print(scores, get_rating(3, scores, False))
-
-    scores = [0, 0, 16, 14]
-    print(scores, get_rating(3, scores, True))
