@@ -31,11 +31,14 @@ if not os.path.exists(BASEPATH_MODEL):
     os.makedirs(BASEPATH_MODEL)
 
 class RiderPlayer(MonteCarloPlayer7):
-    def __init__(self, policy, c_puct, verbose=False):
+    def __init__(self, policy, c_puct, verbose=False, freq_save=16):
         super(RiderPlayer, self).__init__(verbose=verbose)
 
         self.policy = policy
         self.c_puct = c_puct
+
+        self.freq_idx = 1
+        self.freq_save = freq_save
 
 
     def reset(self):
@@ -46,11 +49,14 @@ class RiderPlayer(MonteCarloPlayer7):
         else:
             self.mcts.start_node = self.mcts.root_node
 
-            #global BASEPATH_MODEL
+            if self.freq_idx%self.freq_save == 0:
+                global BASEPATH_MODEL
 
-            #filepath_in = os.path.join(BASEPATH_MODEL, str(time.time()*1000)+".pkl")
-            #with open(filepath_in, "wb") as in_file:
-            #    pickle.dump(self.mcts, in_file)
+                filepath_in = os.path.join(BASEPATH_MODEL, "memory_mcts.{}.pkl".format(self.freq_idx))
+                with open(filepath_in, "wb") as in_file:
+                    pickle.dump(self.mcts, in_file)
+
+            self.freq_idx += 1
 
 
     def expose_hearts_ace(self, hand_cards):
@@ -147,7 +153,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [expert_choose]*4
+        selection_func = [random_choose]*4
 
         return hand_cards, init_trick, must_have, selection_func
 
