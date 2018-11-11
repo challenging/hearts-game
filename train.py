@@ -27,10 +27,6 @@ BASEPATH_DATA = os.path.join(BASEPATH, "data")
 
 BASEPATH_LOG = os.path.join("log", "intelligent_player")
 
-for folder in [BASEPATH_MODEL, BASEPATH_DATA]:
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
 policy = PolicyValueNet()
 policy_value_fn = policy.predict
 
@@ -212,7 +208,18 @@ class TrainPipeline():
 
 
 if __name__ == '__main__':
-    training_pipeline = TrainPipeline()
-
     num_of_games = int(sys.argv[1])
+    sub_folder = sys.argv[2]
+
+    BASEPATH = "prob"
+    BASEPATH_MODEL = os.path.join(BASEPATH, "model_{}".format(sub_folder))
+    BASEPATH_DATA = os.path.join(BASEPATH, "data_{}".format(sub_folder))
+    BASEPATH_LOG = os.path.join("log", "intelligent_player_{}".format(sub_folder))
+
+    for folder in [BASEPATH_MODEL, BASEPATH_DATA, BASEPATH_LOG]:
+        if not os.path.exists(folder):
+            os.makedirs(folder)
+
+
+    training_pipeline = TrainPipeline()
     training_pipeline.run(max(num_of_games, 1))

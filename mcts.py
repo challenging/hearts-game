@@ -53,17 +53,19 @@ def policy_value_fn(prob_cards):
 
 
 class MCTS(object):
-    def __init__(self, policy_value_fn, self_player_idx, c_puct=5):
+    def __init__(self, policy_value_fn, self_player_idx, c_puct=5, min_times=32):
         self._self_player_idx = self_player_idx
 
-        self.root_node = TreeNode(None, 1.0, self_player_idx, None)
+        self.root_node = TreeNode(None, 1.0, None)
         self.start_node = self.root_node
 
         self._policy = policy_value_fn
         self._c_puct = c_puct
 
+        self.min_times = min_times
 
-    def _playout(self, trick_nr, state, selection_func, c_puct, min_times=32):
+
+    def _playout(self, trick_nr, state, selection_func, c_puct):
         prob_cards = [((SUIT_TO_INDEX["C"], NUM_TO_INDEX["2"]), 1.0)]
 
         node = self.start_node
@@ -93,7 +95,7 @@ class MCTS(object):
 
                 big_value, big_cards = -sys.maxsize, []
                 for played_card, n in sorted(candicated_cards, key=lambda x: -x[1]._n_visits):
-                    if n._n_visits < min_times:
+                    if n._n_visits < self.min_times:
                         big_value = sys.maxsize
                         big_cards.append((played_card, n))
                     else:
@@ -275,7 +277,7 @@ class MCTS(object):
 
             self.update_with_move(last_move)
         else:
-            self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
+            self.start_node = TreeNode(None, 1.0, None)
 
 
     def print_tree(self, node=None, card=None, depth=0):

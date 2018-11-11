@@ -5,18 +5,18 @@ from mcts import TreeNode, MCTS
 
 
 class IntelligentTreeNode(TreeNode):
-    def __init__(self, parent, prior_p, self_player_idx, player_idx):
-        super(IntelligentTreeNode, self).__init__(parent, prior_p, self_player_idx, player_idx)
-
+    def __init__(self, parent, prior_p, player_idx):
+        super(IntelligentTreeNode, self).__init__(parent, prior_p, player_idx)
 
 
 class IntelligentMCTS(MCTS):
-    def __init__(self, policy_value_fn, self_player_idx, c_puct=5):
-        super(IntelligentMCTS, self).__init__(policy_value_fn, self_player_idx, c_puct)
+    def __init__(self, policy_value_fn, self_player_idx, c_puct=5, min_times=256):
+        super(IntelligentMCTS, self).__init__(policy_value_fn, self_player_idx, c_puct, min_times)
 
 
-    def _playout(self, trick_nr, state, selection_func, c_puct, min_times=128):
-        super(IntelligentMCTS, self)._playout(trick_nr, state, selection_func, c_puct, min_times=min_times)
+    def _playout(self, trick_nr, state, selection_func, c_puct):
+        super(IntelligentMCTS, self)._playout(trick_nr, state, selection_func, c_puct)
+
 
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
         scores = [0, 0, 0, 0]

@@ -31,7 +31,7 @@ if not os.path.exists(BASEPATH_MODEL):
     os.makedirs(BASEPATH_MODEL)
 
 class RiderPlayer(MonteCarloPlayer7):
-    def __init__(self, policy, c_puct, verbose=False, freq_save=16):
+    def __init__(self, policy, c_puct, verbose=False, freq_save=32):
         super(RiderPlayer, self).__init__(verbose=verbose)
 
         self.policy = policy

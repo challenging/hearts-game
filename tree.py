@@ -5,10 +5,9 @@ from card import NUM_TO_INDEX, SUIT_TO_INDEX
 from card import FULL_CARDS, NUM_TO_INDEX, SUIT_TO_INDEX
 
 class TreeNode(object):
-    def __init__(self, parent, prior_p, self_player_idx, player_idx):
+    def __init__(self, parent, prior_p, player_idx):
         self._parent = parent
 
-        self._self_player_idx = self_player_idx
         self._player_idx = player_idx
 
         self._children = {}
@@ -22,7 +21,7 @@ class TreeNode(object):
         #print("expansion")
         for action, prob in action_priors:
             if action not in self._children:
-                self._children[action] = TreeNode(self, prob, self._self_player_idx, player_idx)
+                self._children[action] = TreeNode(self, prob, player_idx)
             else:
                 self._children[action]._player_idx = player_idx
                 self._children[action]._P = prob

@@ -27,12 +27,15 @@ class IntelligentPlayer(RiderPlayer):
         super(IntelligentPlayer, self).__init__(policy, c_puct, verbose=verbose)
 
         self.is_self_play = is_self_play
+        self.num = 1
 
 
     def reset(self):
         super(RiderPlayer, self).reset()
 
-        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct)
+        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=128*self.num)
+
+        self.num += 0.02
 
 
     def see_played_trick(self, card, game):
