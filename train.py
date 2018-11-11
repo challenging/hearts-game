@@ -40,13 +40,13 @@ class TrainPipeline():
         # training params
         self.learn_rate = 1e-4
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
-        self.c_puct = 348
+        self.c_puct = 1024
 
         self.buffer_size = 2**16
         self.batch_size = 128  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
-        self.play_batch_size = 2
+        self.play_batch_size = 8
         self.epochs = 32  # num of train_steps for each update
         self.check_freq = 4
         self.kl_targ = 0.02

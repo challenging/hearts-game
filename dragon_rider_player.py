@@ -1,9 +1,10 @@
 """This module containts the abstract class Player and some implementations."""
+import os
 import sys
 
 import time
+import pickle
 
-#import numpy as np
 from random import choice, shuffle
 
 from collections import defaultdict
@@ -23,6 +24,12 @@ from mcts import MCTS
 from level_mcts import LevelMCTS
 
 
+BASEPATH = "memory_tree"
+BASEPATH_MODEL = os.path.join(BASEPATH, "model")
+
+if not os.path.exists(BASEPATH_MODEL):
+    os.makedirs(BASEPATH_MODEL)
+
 class RiderPlayer(MonteCarloPlayer7):
     def __init__(self, policy, c_puct, verbose=False):
         super(RiderPlayer, self).__init__(verbose=verbose)
@@ -39,7 +46,11 @@ class RiderPlayer(MonteCarloPlayer7):
         else:
             self.mcts.start_node = self.mcts.root_node
 
-        #self.mcts = LevelMCTS(self.policy, self.position, self.c_puct)
+            #global BASEPATH_MODEL
+
+            #filepath_in = os.path.join(BASEPATH_MODEL, str(time.time()*1000)+".pkl")
+            #with open(filepath_in, "wb") as in_file:
+            #    pickle.dump(self.mcts, in_file)
 
 
     def expose_hearts_ace(self, hand_cards):
@@ -120,7 +131,7 @@ class RiderPlayer(MonteCarloPlayer7):
                                False)
         else:
             if game.get_game_winners():
-                rating = get_rating(sgame.player_scores)
+                rating = get_rating(game.player_scores)
 
                 self.mcts.start_node.update_recursive(rating)
 
@@ -136,7 +147,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [random_choose]*4
+        selection_func = [expert_choose]*4
 
         return hand_cards, init_trick, must_have, selection_func
 

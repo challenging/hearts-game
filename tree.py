@@ -13,7 +13,7 @@ class TreeNode(object):
 
         self._children = {}
         self._n_visits = 0
-        self._Q = 0
+        self._Q = [0, 0, 0, 0]
         self._u = 0
         self._P = prior_p
 
@@ -36,7 +36,7 @@ class TreeNode(object):
     def update(self, leaf_value):
         self._n_visits += 1
 
-        self._Q += leaf_value
+        self._Q[self._player_idx] += leaf_value
 
 
     def update_recursive(self, scores):
@@ -63,7 +63,7 @@ class TreeNode(object):
 
     def get_value(self, c_puct):
         self._u = (c_puct * self._P * math.log(self._parent._n_visits)/(1 + self._n_visits))**0.5
-        value = self._Q/(1e-16+self._n_visits) + self._u
+        value = self._Q[self._player_idx]/(1e-16+self._n_visits) + self._u
 
         return value
 

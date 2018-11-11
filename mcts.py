@@ -4,6 +4,7 @@ import sys
 
 import copy
 import time
+import pickle
 
 from random import randint, choice
 
@@ -250,13 +251,10 @@ class MCTS(object):
                         big_value = node.get_value(self._c_puct)
                         big_card = played_card
                     else:
-                        print("-->", played_card, node._n_visits, big_visits, node.get_value(self._c_puct), big_value)
-                        if node._n_visits*100 < big_visits and node.get_value(self._c_puct)-2 > big_value:
+                        if node.get_value(self._c_puct)-2.4 > big_value:
                             big_visits = node._n_visits
                             big_value = node.get_value(self._c_puct)
                             big_card = played_card
-                        else:
-                            break
 
             return big_card
         else:
@@ -271,9 +269,13 @@ class MCTS(object):
     def update_with_move(self, last_move):
         if last_move in self.start_node._children:
             self.start_node = self.start_node._children[last_move]
+        elif not self.start_node.is_leaf():
+            self.start_node.expand(list(self.start_node._children.values())[-1]._player_idx, [(last_move, 1.0)])
+            say("player-{} expands new_node because not found {}", self._self_player_idx, last_move)
+
+            self.update_with_move(last_move)
         else:
             self.start_node = TreeNode(None, 1.0, self._self_player_idx, None)
-            say("player-{} resets the root because not found {}", self._self_player_idx, last_move)
 
 
     def print_tree(self, node=None, card=None, depth=0):
