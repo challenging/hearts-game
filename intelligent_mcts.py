@@ -31,5 +31,12 @@ class IntelligentMCTS(MCTS):
         node.update_recursive(get_rating(scores))
 
 
+    def update_with_move(self, last_move):
+        if last_move in self.start_node._children:
+            self.start_node = self.start_node._children[last_move]
+        else:
+            self.start_node = TreeNode(None, 1.0, None)
+
+
     def __str__(self):
         return "IntelligentMCTS"
