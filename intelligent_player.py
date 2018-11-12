@@ -85,24 +85,25 @@ class IntelligentPlayer(RiderPlayer):
                                True)
 
         valid_cards, valid_probs = [], []
-        for card, n_visits in sorted(results.items(), key=lambda x: x[1]):
+        for card, info in sorted(results.items(), key=lambda x: x[1]):
             suit, rank = card
+            n_visits, value = info[0], info[1]
             if n_visits > 0 and bit_vcards[suit] & rank:
                 valid_cards.append(bitmask_to_card(card[0], card[1]))
                 valid_probs.append(n_visits)
-
-                #self.say("Player-{}, played card: {}, {} times", self.position, valid_cards[-1], valid_probs[-1])
 
         valid_probs = softmax(valid_probs, temp)
 
         if self.is_self_play:
             cards, probs = [], []
-            for card, n_visits in sorted(results.items(), key=lambda x: x[1]):
+            for card, info in sorted(results.items(), key=lambda x: x[1]):
+                n_visits, value = info[0], info[1]
+
                 cards.append(bitmask_to_card(card[0], card[1]))
                 probs.append(n_visits)
 
                 if probs[-1] > 0:
-                    self.say("Player-{}, played card: {}, {} times", self.position, cards[-1], probs[-1])
+                    self.say("Player-{}, played card: {}, {} times, ", self.position, cards[-1], probs[-1], value)
 
             probs = softmax(probs, temp)
 
@@ -115,10 +116,16 @@ class IntelligentPlayer(RiderPlayer):
 
             return move, zip(cards, probs)
         else:
-            move = np.random.choice(valid_cards, p=valid_probs)
+            move, scenario = None, None
+            if valid_cards:
+                move = np.random.choice(valid_cards, p=valid_probs)
+                scenario = "1"
+            else:
+                move = np.random.choice(vcards)
+                scenario = "2"
 
-            self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
-                time.time()-stime, hand_cards, valid_cards, move)
+            self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}, Scenario: {}", \
+                time.time()-stime, hand_cards, valid_cards, move, scenario)
 
             self.mcts.update_with_move(-1)
 

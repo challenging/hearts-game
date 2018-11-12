@@ -3,6 +3,7 @@ import os
 import sys
 
 import time
+import glob
 import pickle
 
 from random import choice, shuffle
@@ -30,6 +31,7 @@ BASEPATH_MODEL = os.path.join(BASEPATH, "model")
 if not os.path.exists(BASEPATH_MODEL):
     os.makedirs(BASEPATH_MODEL)
 
+
 class RiderPlayer(MonteCarloPlayer7):
     def __init__(self, policy, c_puct, verbose=False, freq_save=32):
         super(RiderPlayer, self).__init__(verbose=verbose)
@@ -40,18 +42,28 @@ class RiderPlayer(MonteCarloPlayer7):
         self.freq_idx = 1
         self.freq_save = freq_save
 
+        self.mcts = None
+
 
     def reset(self):
         super(RiderPlayer, self).reset()
 
-        if not hasattr(self, "mcts"):
-            self.mcts = MCTS(self.policy, self.position, self.c_puct)
+        global BASEPATH_MODEL
+
+        if self.mcts is None:
+            for filepath_in in sorted(glob.glob("{}/*pkl".format(BASEPATH_MODEL)), key=os.path.getmtime)[::-1]:
+                self.say("load memory from {}", filepath_in)
+                with open(filepath_in, "rb") as in_file:
+                    self.mcts = pickle.load(in_file)
+
+                break
+
+            if self.mcts is None:
+                self.mcts = MCTS(self.policy, self.position, self.c_puct)
         else:
             self.mcts.start_node = self.mcts.root_node
 
             if self.freq_idx%self.freq_save == 0:
-                global BASEPATH_MODEL
-
                 filepath_in = os.path.join(BASEPATH_MODEL, "memory_mcts.{}.pkl".format(self.freq_idx))
                 with open(filepath_in, "wb") as in_file:
                     pickle.dump(self.mcts, in_file)

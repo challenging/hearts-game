@@ -262,8 +262,8 @@ class MCTS(object):
         else:
             results = {}
             for played_card, node in sorted(self.start_node._children.items(), key=lambda x: -x[1]._n_visits):
-                results.setdefault(played_card, 0)
-                results[played_card] = node._n_visits
+                results.setdefault(played_card, [0, 0])
+                results[played_card] = [node._n_visits, node.get_value(self._c_puct)]
 
             return results
 
