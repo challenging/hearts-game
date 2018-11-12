@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from card import Suit, Rank, Card, Deck
+from card import Suit, Rank, Card, Deck, NUM_TO_INDEX
 from card import bitmask_to_card, batch_bitmask_to_card
 
 
@@ -109,19 +109,33 @@ def transform_game_info_to_nn(state, trick_nr):
         #score_cards[player_idx] = full_cards(score_cards[player_idx])
     a_memory.append(score_cards)
 
-    valid_cards = []
-    for (suit, rank), prob in state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1, is_playout=False):
-        if prob > 0:
-            valid_cards.append(bitmask_to_card(suit, rank))
+    hand_cards = []
+    for suit, ranks in state.hand_cards[state.start_pos].items():
+        bitmask = NUM_TO_INDEX["2"]
+        while bitmask <= NUM_TO_INDEX["A"]:
+            if ranks & bitmask:
+                hand_cards.append(bitmask_to_card(suit, bitmask))
 
+            bitmask <<= 1
+    a_memory.append(hand_cards)
+
+    valid_cards = []
+    for suit, ranks in state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1, is_playout=True).items():
+        bitmask = NUM_TO_INDEX["2"]
+        while bitmask <= NUM_TO_INDEX["A"]:
+            if ranks & bitmask:
+                valid_cards.append(bitmask_to_card(suit, bitmask))
+
+            bitmask <<= 1
     a_memory.append(valid_cards)
+
     #print_a_memory(a_memory)
 
     return full_cards(remaining_cards), \
            limit_cards(trick_cards, 3), \
            limit_cards(must_cards[0], 4), limit_cards(must_cards[1], 4), limit_cards(must_cards[2], 4), limit_cards(must_cards[3], 4), \
            full_cards(score_cards[0]), full_cards(score_cards[1]), full_cards(score_cards[2]), full_cards(score_cards[3]), \
-           full_cards(valid_cards)
+           limit_cards(hand_cards, 13), full_cards(valid_cards)
 
 
 def print_a_memory(played_data):
@@ -129,10 +143,11 @@ def print_a_memory(played_data):
     trick_cards = played_data[1]
     must_cards = played_data[2]
     score_cards = played_data[3]
-    valid_cards = played_data[4]
-    played_cards = played_data[5] if len(played_data) > 5 else None
-    probs = played_data[6] if len(played_data) > 6 else None
-    score = played_data[7] if len(played_data) > 7 else None
+    hand_cards = played_data[4]
+    valid_cards = played_data[5]
+    played_cards = played_data[6] if len(played_data) > 6 else None
+    probs = played_data[7] if len(played_data) > 7 else None
+    score = played_data[8] if len(played_data) > 8 else None
 
     print("remaining_cards:", [(card, card2v(card)) for card in remaining_cards])
     print("remaining_cards:", full_cards(remaining_cards))
@@ -145,6 +160,9 @@ def print_a_memory(played_data):
 
     print("    score_cards:", [[(card, card2v(card)) for card in cards] for cards in score_cards])
     print("    score_cards:", [limit_cards(cards, 52) for cards in score_cards])
+
+    print("     hand_cards:", hand_cards)
+    print("     hand_cards:", limit_cards(hand_cards, 13))
 
     print("    valid_cards:", valid_cards)
     print("    valid_cards:", full_cards(valid_cards))

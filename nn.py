@@ -16,6 +16,7 @@ class PolicyValueNet(object):
         self.score_cards_2 = tf.placeholder(tf.int32, shape=[None, 52], name="score_cards_2")
         self.score_cards_3 = tf.placeholder(tf.int32, shape=[None, 52], name="score_cards_3")
         self.score_cards_4 = tf.placeholder(tf.int32, shape=[None, 52], name="score_cards_4")
+        self.hand_cards = tf.placeholder(tf.int32, shape=[None, 13], name="hand_cards")
         self.valid_cards = tf.placeholder(tf.int32, shape=[None, 52], name="valid_cards")
         self.probs = tf.placeholder(tf.float32, shape=[None, 52], name="probs")
         self.score = tf.placeholder(tf.float32, shape=[None, 4], name="score")
@@ -56,6 +57,9 @@ class PolicyValueNet(object):
         self.score_cards_embed_4 = tf.nn.embedding_lookup(cards_embeddings, self.score_cards_4)
         score_cards_flat_4 = tf.reshape(self.score_cards_embed_4, [-1, 52*size_embed])
 
+        self.hand_cards_embed = tf.nn.embedding_lookup(cards_embeddings, self.hand_cards)
+        hand_cards_flat = tf.reshape(self.hand_cards_embed, [-1, 13*size_embed])
+
         self.valid_cards_embed = tf.nn.embedding_lookup(cards_embeddings, self.valid_cards)
         valid_cards_flat = tf.reshape(self.valid_cards_embed, [-1, 52*size_embed])
 
@@ -69,6 +73,7 @@ class PolicyValueNet(object):
                                   score_cards_flat_2, \
                                   score_cards_flat_3, \
                                   score_cards_flat_4, \
+                                  hand_cards_flat, \
                                   valid_cards_flat], axis=1, name="concat_input")
         #concat_input = tf.concat([remaining_cards_flat, trick_cards_flat], axis=1, name="concat_input")
 
@@ -125,7 +130,7 @@ class PolicyValueNet(object):
     def policy_value(self, remaining_cards, trick_cards, \
                      must_cards_1, must_cards_2, must_cards_3, must_cards_4, \
                      score_cards_1, score_cards_2, score_cards_3, score_cards_4, \
-                     valid_cards):
+                     hand_cards, valid_cards):
 
         log_act_probs, value = self.session.run([self.action_fc, self.evaluation_fc3],
                                                 feed_dict={self.remaining_cards: remaining_cards,
@@ -138,6 +143,7 @@ class PolicyValueNet(object):
                                                            self.score_cards_2: score_cards_2,
                                                            self.score_cards_3: score_cards_3,
                                                            self.score_cards_4: score_cards_4,
+                                                           self.hand_cards: hand_cards,
                                                            self.valid_cards: valid_cards})
 
         act_probs = log_act_probs
@@ -148,12 +154,12 @@ class PolicyValueNet(object):
 
     def predict(self, trick_nr, state):
         remaining_cards, trick_cards, must_cards_1, must_cards_2, must_cards_3, must_cards_4, \
-            score_cards_1, score_cards_2, score_card_3, score_cards_4, valid_cards = transform_game_info_to_nn(state, trick_nr)
+            score_cards_1, score_cards_2, score_card_3, score_cards_4, hand_cards, valid_cards = transform_game_info_to_nn(state, trick_nr)
 
         act_probs, act_values = self.policy_value([remaining_cards], [trick_cards],\
                                                   [must_cards_1], [must_cards_2], [must_cards_3], [must_cards_4],\
                                                   [score_cards_1], [score_cards_2], [score_card_3], [score_cards_4],\
-                                                  [valid_cards])
+                                                  [hand_cards], [valid_cards])
 
         return act_probs[0], act_values[0]
 
@@ -161,12 +167,12 @@ class PolicyValueNet(object):
     def policy_value_fn(self, remaining_cards, trick_cards, \
                         must_cards_1, must_cards_2, must_cards_3, must_cards_4, \
                         score_cards_1, score_cards_2, score_cards_3, score_cards_4, \
-                        valid_cards):
+                        hadn_cards, valid_cards):
 
         act_probs, act_values = self.policy_value(remaining_cards, trick_cards,\
                                                   must_cards_1, must_cards_2, must_cards_3, must_cards_4,\
                                                   score_cards_1, score_cards_2, score_card_3, score_cards_4,\
-                                                  valid_cards)
+                                                  hand_cards, valid_cards)
 
         return act_probs, act_values
 
@@ -174,7 +180,7 @@ class PolicyValueNet(object):
     def train_step(self, remaining_cards, trick_cards, \
                    must_cards_1, must_cards_2, must_cards_3, must_cards_4, \
                    score_cards_1, score_cards_2, score_cards_3, score_cards_4, \
-                   valid_cards, probs, score, lr):
+                   hand_cards, valid_cards, probs, score, lr):
 
         loss, policy_loss, value_loss, _ = self.session.run(
                 [self.loss, self.policy_loss, self.value_loss, self.optimizer],
@@ -188,6 +194,7 @@ class PolicyValueNet(object):
                            self.score_cards_2: score_cards_2,
                            self.score_cards_3: score_cards_3,
                            self.score_cards_4: score_cards_4,
+                           self.hand_cards: hand_cards,
                            self.valid_cards: valid_cards,
                            self.probs: probs,
                            self.score: score,

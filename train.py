@@ -39,10 +39,10 @@ class TrainPipeline():
         self.c_puct = 1024
 
         self.buffer_size = 2**16
-        self.batch_size = 128  # mini-batch size for training
+        self.batch_size = 64  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
-        self.play_batch_size = 8
+        self.play_batch_size = 16
         self.epochs = 32  # num of train_steps for each update
         self.check_freq = 4
         self.kl_targ = 0.02
@@ -90,10 +90,10 @@ class TrainPipeline():
             remaining_batch, trick_batch = [], []
             must_batch_1, must_batch_2, must_batch_3, must_batch_4 = [], [], [], []
             scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4 = [], [], [], []
-            valid_batch = []
+            hand_batch, valid_batch = [], []
             probs_batch, scores_batch = [], []
 
-            for remaining, trick, must, scards, valid_cards, played_cards, probs, scores in sample(self.data_buffer, self.batch_size):
+            for remaining, trick, must, scards, hand_cards, valid_cards, played_cards, probs, scores in sample(self.data_buffer, self.batch_size):
                 remaining_batch.append(full_cards(remaining))
                 trick_batch.append(limit_cards(trick, 3))
 
@@ -107,6 +107,7 @@ class TrainPipeline():
                 scards_batch_3.append(full_cards(scards[2]))
                 scards_batch_4.append(full_cards(scards[3]))
 
+                hand_batch.append(limit_cards(hand_cards, 13))
                 valid_batch.append(full_cards(valid_cards))
 
                 probs_batch.append(full_cards(dict(zip(played_cards, probs))))
@@ -117,13 +118,13 @@ class TrainPipeline():
                 remaining_batch, trick_batch, \
                 must_batch_1, must_batch_2, must_batch_3, must_batch_4, \
                 scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4, \
-                valid_batch)
+                hand_batch, valid_batch)
 
             loss, policy_loss, value_loss = policy.train_step(
                     remaining_batch, trick_batch, \
                     must_batch_1, must_batch_2, must_batch_3, must_batch_4, \
                     scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4, \
-                    valid_batch, probs_batch, scores_batch,\
+                    hand_batch, valid_batch, probs_batch, scores_batch,\
                     self.learn_rate*self.lr_multiplier)
 
             print("epoch: {:3d}/{:3d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}".format(\
@@ -133,7 +134,7 @@ class TrainPipeline():
                 remaining_batch, trick_batch, \
                 must_batch_1, must_batch_2, must_batch_3, must_batch_4, \
                 scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4, \
-                valid_batch)
+                hand_batch, valid_batch)
 
             kl = np.mean(np.sum(old_probs * (
                     np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)),
@@ -184,8 +185,8 @@ class TrainPipeline():
                 print("batch i: {}, episode_len: {}, memory_size: {}".format(\
                     i+1, self.episode_len, len(self.data_buffer)))
 
-                #for played_data in self.data_buffer:
-                #    print_a_memory(played_data)
+                for played_data in self.data_buffer:
+                    print_a_memory(played_data)
 
                 if len(self.data_buffer) >= self.batch_size:
                     loss, policy_loss, value_loss = self.policy_update()

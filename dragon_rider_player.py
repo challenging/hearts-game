@@ -146,6 +146,7 @@ class RiderPlayer(MonteCarloPlayer7):
                                game.expose_heart_ace, 
                                True, 
                                steal_time,
+                               False,
                                False)
         else:
             if game.get_game_winners():
@@ -199,7 +200,8 @@ class RiderPlayer(MonteCarloPlayer7):
                                game.expose_heart_ace, 
                                True, 
                                simulation_time_limit,
-                               True)
+                               True,
+                               False)
 
         played_card = bitmask_to_card(played_card[0], played_card[1])
         #self.mcts.update_with_move(-1)

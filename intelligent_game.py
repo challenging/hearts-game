@@ -58,7 +58,7 @@ class IntelligentGame(Game):
         valid_cards = self.players[self.current_player_idx].get_valid_cards(hand_cards, self)
 
         #if self.trick_nr < 11:
-        self._short_memory.append([remaining_cards[:], self.trick[:], must_cards, score_cards, valid_cards, played_cards, probs, self.current_player_idx])
+        self._short_memory.append([remaining_cards[:], self.trick[:], must_cards, score_cards, hand_cards, valid_cards, played_cards, probs, self.current_player_idx])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)

@@ -82,7 +82,7 @@ class IntelligentPlayer(RiderPlayer):
                                False, 
                                etime, 
                                True,
-                               True)
+                               False)
 
         valid_cards, valid_probs = [], []
         for card, info in sorted(results.items(), key=lambda x: x[1]):
@@ -91,7 +91,6 @@ class IntelligentPlayer(RiderPlayer):
             if n_visits > 0 and bit_vcards[suit] & rank:
                 valid_cards.append(bitmask_to_card(card[0], card[1]))
                 valid_probs.append(n_visits)
-
         valid_probs = softmax(valid_probs, temp)
 
         if self.is_self_play:
@@ -107,6 +106,7 @@ class IntelligentPlayer(RiderPlayer):
 
             probs = softmax(probs, temp)
 
+            #print("valid_cards", valid_cards)
             move = np.random.choice(
                     valid_cards,
                     p=0.75*valid_probs + 0.25*np.random.dirichlet(0.3*np.ones(len(valid_probs))))
