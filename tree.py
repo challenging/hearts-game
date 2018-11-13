@@ -4,6 +4,7 @@ import math
 from card import NUM_TO_INDEX, SUIT_TO_INDEX
 from card import FULL_CARDS, NUM_TO_INDEX, SUIT_TO_INDEX
 
+
 class TreeNode(object):
     def __init__(self, parent, prior_p, player_idx):
         self._parent = parent

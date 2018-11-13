@@ -69,7 +69,8 @@ class MCTS(object):
         prob_cards = [((SUIT_TO_INDEX["C"], NUM_TO_INDEX["2"]), 1.0)]
 
         node = self.start_node
-        while not state.is_finished and not node.is_leaf():
+        while not state.is_finished or not node.is_leaf():
+            prob_cards = []
             valid_cards = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1)
 
             is_all_traverse, candicated_cards = True, []
@@ -120,6 +121,7 @@ class MCTS(object):
 
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
         if not state.is_finished:
+            #print("prob_cards", prob_cards, node, node._parent)
             action_probs, _ = self._policy(prob_cards)
             node.expand(state.start_pos, action_probs)
 
@@ -180,7 +182,7 @@ class MCTS(object):
         for simulation_card in simulation_cards:
             for player_idx, cards in enumerate(simulation_card):
                 simulation_card[player_idx] = str_to_bitmask(cards)
-                #print("player-{}, {}, {}".format(player_idx, cards, len(cards)))
+                #print("player-{}, {}, {}, first_player_idx={}".format(player_idx, cards, len(cards), first_player_idx))
 
             try:
                 sm = StepGame(trick_nr,

@@ -174,6 +174,11 @@ class RiderPlayer(MonteCarloPlayer7):
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
         stime = time.time()
 
+        if game.trick_nr == 0 and len(game.trick) == 0:
+            for card in game._player_hands[self.position]:
+                if card in self.remaining_cards:
+                    self.remaining_cards.remove(card)
+
         self.say("Player-{}, the information of lacking_card is {}", \
             self.position, [(player_idx, k) for player_idx, info in enumerate(game.lacking_cards) for k, v in info.items() if v])
 
