@@ -224,7 +224,8 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                                 mean_score, proactive_mean_moon_score, mean_moon_score))
 
                     game.reset()
-                    if len(setting_cards) == 1 and nr_of_games == 1: break
+
+                    if len(setting_cards) == 1: break
                 if len(setting_cards) == 1 and nr_of_games == 1: break
             if len(setting_cards) == 1 and nr_of_games == 1: break
         if len(setting_cards) == 1 and nr_of_games == 1: break

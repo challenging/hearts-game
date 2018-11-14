@@ -20,15 +20,15 @@ class IntelligentMCTS(MCTS):
 
 
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
-        scores = [0, 0, 0, 0]
-        if not state.is_finished:
+        scores = None
+        if state.is_finished:
+            scores, is_shootthemoon = state.score()
+        else:
             bcards, probs, scores = self._policy(trick_nr, state)
             valid_cards = [v2card(v) for v in bcards if v > 0]
             action_probs = zip([(card.suit.value, 1<<(card.rank.value-2)) for card in valid_cards], probs)
 
             node.expand(state.start_pos, action_probs)
-        else:
-            scores, is_shootthemoon = state.score()
 
         node.update_recursive(get_rating(scores))
 

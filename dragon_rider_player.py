@@ -22,7 +22,6 @@ from strategy_play import greedy_choose, random_choose
 from expert_play import expert_choose
 
 from mcts import MCTS
-from render_tree import get_tree
 
 
 BASEPATH = "memory_tree"
@@ -109,8 +108,7 @@ class RiderPlayer(MonteCarloPlayer7):
     def see_played_trick(self, card, game):
         super(RiderPlayer, self).see_played_trick(card, game)
 
-        card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
-
+        card = (card.suit.value, 1<<(card.rank.value-2))
         self.mcts.update_with_move(card)
 
         valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
@@ -152,9 +150,7 @@ class RiderPlayer(MonteCarloPlayer7):
                                False)
         else:
             if game.get_game_winners():
-                rating = get_rating(game.player_scores)
-
-                self.mcts.start_node.update_recursive(rating)
+                self.mcts.start_node.update_recursive(get_rating(game.player_scores))
 
 
     def get_simple_game_info(self, state):
@@ -168,7 +164,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [expert_choose]*4
+        selection_func = [random_choose]*4
 
         return hand_cards, init_trick, must_have, selection_func
 
@@ -211,11 +207,13 @@ class RiderPlayer(MonteCarloPlayer7):
                                False)
 
         played_card = bitmask_to_card(played_card[0], played_card[1])
-        #self.mcts.update_with_move(-1)
 
+        """
+        from render_tree import get_tree 
         tree = get_tree(self.mcts.start_node)
         tree.show()
         print("depth={}".format(tree.depth()))
+        """
 
         self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
             time.time()-stime, hand_cards, valid_cards, played_card)

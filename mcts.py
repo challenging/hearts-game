@@ -16,7 +16,6 @@ from card import get_remaining_cards
 from rules import get_rating
 
 from tree import TreeNode
-from render_tree import get_tree
 
 from simulated_player import TIMEOUT_SECOND
 
@@ -216,8 +215,6 @@ class MCTS(object):
             except Exception as e:
                 ratio[1] += 1
 
-                raise
-
             if time.time()-stime > simulation_time_limit:
                 shooter = None
                 if stats_shoot_the_moon != {}:
@@ -233,6 +230,7 @@ class MCTS(object):
                 break
 
         """
+        from render_tree import get_tree 
         tree = get_tree(self.root_node)
         tree.show()
         print("depth={}".format(tree.depth()))
@@ -284,14 +282,15 @@ class MCTS(object):
     def update_with_move(self, last_move):
         if last_move in self.start_node._children:
             self.start_node = self.start_node._children[last_move]
-        elif not self.start_node.is_leaf():
-            self.start_node.expand(list(self.start_node._children.values())[-1]._player_idx, [(last_move, 1.0)])
-            say("player-{} expands new_node because not found {}", self._self_player_idx, last_move)
+        #elif self.start_node.is_root():
+        #    self.start_node.expand(None, [(last_move, 1.0)])
+        #    say("player-{} set new_node because not found {}", self._self_player_idx, last_move)
 
-            self.update_with_move(last_move)
+        #    self.update_with_move(last_move)
         else:
+            #print("last_move", last_move, self.start_node._children.values(), self.start_node.is_leaf(), self.start_node, self.start_node._parent)
             self.start_node.expand(None, [(last_move, 1.0)])
-            say("player-{} set new_node because not found {}", self._self_player_idx, last_move)
+            say("player-{} expands new_node because not found {}", self._self_player_idx, last_move)
 
             self.update_with_move(last_move)
 

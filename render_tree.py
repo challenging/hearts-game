@@ -16,7 +16,7 @@ def walk(data):
         node = Tree()
         node.create_node("root", current_idx)
 
-    if current_idx >= 2048:
+    if current_idx >= 4096:
        return
 
     root_idx = current_idx
@@ -45,4 +45,4 @@ if __name__ == "__main__":
     tree = get_tree(data)
     tree.show()
 
-    print("depth={}".format(tree.depth()))
+    print("node={}, depth={}".format(tree.size(), tree.depth()))

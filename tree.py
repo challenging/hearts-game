@@ -69,3 +69,7 @@ class TreeNode(object):
 
     def is_leaf(self):
         return self._children == {}
+
+
+    def is_root(self):
+        return self._parent is None

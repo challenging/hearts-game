@@ -113,10 +113,11 @@ class IntelligentPlayer(RiderPlayer):
 
             probs = softmax(probs, temp)
 
-            #tree = get_tree(self.mcts.start_node)
-            #tree.show()
+            """
+            tree = get_tree(self.mcts.start_node)
+            tree.show()
+            """
 
-            #print("valid_cards", valid_cards, valid_probs, vcards, tree.depth())
             move = np.random.choice(
                     valid_cards,
                     p=0.75*valid_probs + 0.25*np.random.dirichlet(0.3*np.ones(len(valid_probs))))

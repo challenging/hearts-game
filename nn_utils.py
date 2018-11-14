@@ -177,7 +177,7 @@ def print_a_memory(played_data):
     if played_cards:
         print("   played_cards:", [(card, card2v(card)) for card in played_cards])
         print("          probs:", probs)
-        print("          probs:", limit_cards(dict(zip(played_cards, probs))), 13)
+        print("          probs:", limit_cards(dict(zip(played_cards, probs)), 13))
         print("          score:", score)
         print()
 
