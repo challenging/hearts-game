@@ -75,11 +75,18 @@ def full_cards(cards):
 def limit_cards(cards, num_slot):
     results = []
 
-    for card in cards:
-        results.append(card2v(card))
+    if isinstance(cards, list):
+        for card in cards:
+            results.append(card2v(card))
 
-    for _ in range(num_slot-len(results)):
-        results.append(NONE_CARD_INDEX)
+        for _ in range(num_slot-len(results)):
+            results.append(NONE_CARD_INDEX)
+    else:
+        for card, prob in cards.items():
+            results.append(prob)
+
+        for _ in range(num_slot-len(results)):
+            results.append(0.0)
 
     return results
 
