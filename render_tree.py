@@ -39,7 +39,7 @@ def get_tree(tree):
 
 if __name__ == "__main__":
     data = None
-    with open("memory_tree/model/memory_mcts.1.pkl", "rb") as in_file:
+    with open("memory_tree.bak/model/memory_mcts.64.pkl", "rb") as in_file:
         data = pickle.load(in_file)
 
     tree = get_tree(data)

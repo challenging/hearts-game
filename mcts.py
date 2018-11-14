@@ -16,6 +16,7 @@ from card import get_remaining_cards
 from rules import get_rating
 
 from tree import TreeNode
+from render_tree import get_tree
 
 from simulated_player import TIMEOUT_SECOND
 
@@ -66,12 +67,13 @@ class MCTS(object):
 
 
     def _playout(self, trick_nr, state, selection_func, c_puct):
-        prob_cards = [((SUIT_TO_INDEX["C"], NUM_TO_INDEX["2"]), 1.0)]
+        prob_cards = []
 
         node = self.start_node
-        while not state.is_finished or not node.is_leaf():
+        while not state.is_finished:
             prob_cards = []
             valid_cards = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1)
+            #print("--->", state.start_pos, state.hand_cards[state.start_pos], valid_cards)
 
             is_all_traverse, candicated_cards = True, []
             for suit, ranks in valid_cards.items():
@@ -183,6 +185,7 @@ class MCTS(object):
             for player_idx, cards in enumerate(simulation_card):
                 simulation_card[player_idx] = str_to_bitmask(cards)
                 #print("player-{}, {}, {}, first_player_idx={}".format(player_idx, cards, len(cards), first_player_idx))
+            #print()
 
             try:
                 sm = StepGame(trick_nr,
@@ -229,6 +232,11 @@ class MCTS(object):
                     say("ratio of success/failed is {}", ratio)
 
                 break
+
+        #tree = get_tree(self.root_node)
+        #tree.show()
+        #print("depth={}".format(tree.depth()))
+        #sys.exit(1)
 
         if is_only_played_card:
             valid_cards = vcards
@@ -281,7 +289,11 @@ class MCTS(object):
 
             self.update_with_move(last_move)
         else:
-            self.start_node = TreeNode(None, 1.0, None)
+            #self.start_node = TreeNode(None, 1.0, None)
+            self.start_node.expand(None, [(last_move, 1.0)])
+            say("player-{} set new_node because not found {}", self._self_player_idx, last_move)
+
+            self.update_with_move(last_move)
 
 
     def print_tree(self, node=None, card=None, depth=0):

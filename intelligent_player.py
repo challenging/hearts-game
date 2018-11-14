@@ -35,7 +35,7 @@ class IntelligentPlayer(RiderPlayer):
 
         self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=128*self.num)
 
-        self.num += 0.02
+        #self.num += 0.02
 
 
     def see_played_trick(self, card, game):

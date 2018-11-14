@@ -61,12 +61,13 @@ class RiderPlayer(MonteCarloPlayer7):
                 break
 
         else:
+            #self.mcts = MCTS(self.policy, self.position, self.c_puct)
             self.mcts.start_node = self.mcts.root_node
 
-            if self.freq_idx%self.freq_save == 0:
-                filepath_in = os.path.join(BASEPATH_MODEL, "memory_mcts.{}.pkl".format(self.freq_idx))
-                with open(filepath_in, "wb") as in_file:
-                    pickle.dump(self.mcts.root_node, in_file)
+            #if self.freq_idx%self.freq_save == 0:
+            #    filepath_in = os.path.join(BASEPATH_MODEL, "memory_mcts.{}.pkl".format(self.freq_idx))
+            #    with open(filepath_in, "wb") as in_file:
+            #        pickle.dump(self.mcts.root_node, in_file)
 
             self.freq_idx += 1
 
@@ -166,7 +167,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [random_choose]*4
+        selection_func = [expert_choose]*4
 
         return hand_cards, init_trick, must_have, selection_func
 

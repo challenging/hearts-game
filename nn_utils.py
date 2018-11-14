@@ -135,7 +135,7 @@ def transform_game_info_to_nn(state, trick_nr):
            limit_cards(trick_cards, 3), \
            limit_cards(must_cards[0], 4), limit_cards(must_cards[1], 4), limit_cards(must_cards[2], 4), limit_cards(must_cards[3], 4), \
            full_cards(score_cards[0]), full_cards(score_cards[1]), full_cards(score_cards[2]), full_cards(score_cards[3]), \
-           limit_cards(hand_cards, 13), full_cards(valid_cards)
+           limit_cards(hand_cards, 13), limit_cards(valid_cards, 13)
 
 
 def print_a_memory(played_data):
@@ -165,12 +165,12 @@ def print_a_memory(played_data):
     print("     hand_cards:", limit_cards(hand_cards, 13))
 
     print("    valid_cards:", valid_cards)
-    print("    valid_cards:", full_cards(valid_cards))
+    print("    valid_cards:", limit_cards(valid_cards, 13))
 
     if played_cards:
         print("   played_cards:", [(card, card2v(card)) for card in played_cards])
         print("          probs:", probs)
-        print("          probs:", full_cards(dict(zip(played_cards, probs))))
+        print("          probs:", limit_cards(dict(zip(played_cards, probs))), 13)
         print("          score:", score)
         print()
 

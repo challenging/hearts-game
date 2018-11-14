@@ -17,8 +17,8 @@ class PolicyValueNet(object):
         self.score_cards_3 = tf.placeholder(tf.int32, shape=[None, 52], name="score_cards_3")
         self.score_cards_4 = tf.placeholder(tf.int32, shape=[None, 52], name="score_cards_4")
         self.hand_cards = tf.placeholder(tf.int32, shape=[None, 13], name="hand_cards")
-        self.valid_cards = tf.placeholder(tf.int32, shape=[None, 52], name="valid_cards")
-        self.probs = tf.placeholder(tf.float32, shape=[None, 52], name="probs")
+        self.valid_cards = tf.placeholder(tf.int32, shape=[None, 13], name="valid_cards")
+        self.probs = tf.placeholder(tf.float32, shape=[None, 13], name="probs")
         self.score = tf.placeholder(tf.float32, shape=[None, 4], name="score")
 
         # Define the optimizer we use for training
@@ -61,7 +61,7 @@ class PolicyValueNet(object):
         hand_cards_flat = tf.reshape(self.hand_cards_embed, [-1, 13*size_embed])
 
         self.valid_cards_embed = tf.nn.embedding_lookup(cards_embeddings, self.valid_cards)
-        valid_cards_flat = tf.reshape(self.valid_cards_embed, [-1, 52*size_embed])
+        valid_cards_flat = tf.reshape(self.valid_cards_embed, [-1, 13*size_embed])
 
         concat_input = tf.concat([remaining_cards_flat, \
                                   trick_cards_flat, \

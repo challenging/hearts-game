@@ -96,55 +96,15 @@ def transform(rank, suit):
 
 
 def get_setting_cards():
-    card_string = [["4C, KC, 2D, 5D, 8D, 9D, QD, 4S, 7S, 3H, 8H, TH, AH",
-                    "2C, 3C, 5C, 9C, TC, 6D, AD, 3S, QS, AS, 9H, JH, KH",
-                    "6C, 7C, JC, QC, AC, 2S, 5S, 6S, 9S, KS, 6H, 7H, QH",
-                    "8C, 3D, 4D, 7D, TD, JD, KD, 8S, TS, JS, 2H, 4H, 5H"]]
+    card_string = [["5C, 7C, JC, QC, KC, AC, 4D, QD, 3S, 4S, 5S, 8S, 9S",
+                    "2C, 3C, TC, 3D, 7D, TS, JS, KS, 3H, 5H, 7H, 8H, 9H",
+                    "8C, 2D, 5D, 8D, TD, JD, AD, 2S, 6S, 7S, 2H, 6H, TH",
+                    "4C, 6C, 9C, 6D, 9D, KD, QS, AS, 4H, JH, QH, KH, AH"]]
 
-    card_string = [["6C, 7C, JC, QC, AC, 2S, 5S, 6S, 9S, KS, 6H, 7H, QH",
-                    "8C, 3D, 4D, 7D, TD, JD, KD, 8S, TS, JS, 2H, 4H, 5H",
-                    "4C, KC, 2D, 5D, 8D, 9D, QD, 4S, 7S, 3H, 8H, TH, AH",
-                    "2C, 3C, 5C, 9C, TC, 6D, AD, 3S, QS, AS, 9H, JH, KH"]]
-
-    card_string = [["2C, 8C, 9C, JC, 3D, 9D, 4S, 5S, QS, KS, 8H, 9H, AH",
-                    "QC, 8D, AD, 2S, 3S, 6S, 7S, 9S, 2H, 3H, 5H, TH, KH",
-                    "6C, TC, 4D, 6D, 7D, TD, KD, 8S, TS, 4H, 6H, 7H, JH",
-                    "3C, 4C, 5C, 7C, KC, AC, 2D, 5D, JD, QD, JS, AS, QH"]]
-
-    card_string = [["6C, 7C, KC, 2D, 8D, 2S, 5S, 7S, 9S, AS, 7H, JH, KH",
-                    "4C, 5C, 9C, TC, 4D, QD, KD, AD, QS, 2H, 5H, 9H, AH",
-                    "QC, AC, 5D, 9D, 3S, TS, JS, KS, 3H, 6H, 8H, TH, QH",
-                    "2C, 3C, 8C, JC, 3D, 6D, 7D, TD, JD, 4S, 6S, 8S, 4H"]]
-
-    card_string = [["4C, 3D, 9D, QD, AD, 4S, 5S, 8S, KS, 4H, 5H, JH, KH",
-                    "3C, 5C, 7C, 9C, JC, QC, KD, 2S, 3S, 9S, JS, 7H, 9H",
-                    "8C, AC, 2D, 4D, 6D, 7D, TD, JD, 7S, AS, 6H, 8H, AH",
-                    "2C, 6C, TC, KC, 5D, 8D, 6S, TS, QS, 2H, 3H, TH, QH"]]
-
-    card_string = [["2C, 4C, 6C, JC, 2S, 4S, 5S, 9S, 3H, 4H, 8H, 9H, JH",
-                    "7C, 8C, TC, KC, AC, 8D, JD, AD, 6S, TS, JS, AS, AH",
-                    "3C, 5C, 9C, QC, 7D, 9D, QD, KD, 3S, 8S, 6H, TH, QH",
-                    "2D, 3D, 4D, 5D, 6D, TD, 7S, QS, KS, 2H, 5H, 7H, KH"]]
-
-    card_string = [["2C, TC, AC, 2D, 8D, 9D, QD, AD, 7S, 9S, TS, 9H, JH",
-                    "3C, 4C, 7D, 6S, QS, KS, AS, 3H, 6H, 7H, TH, QH, AH",
-                    "5C, 7C, 9C, QC, KC, 3D, 5D, 6D, 2S, 4S, 5S, 8S, KH",
-                    "6C, 8C, JC, 4D, TD, JD, KD, 3S, JS, 2H, 4H, 5H, 8H"]]
-
-    card_string = [["2C, 3C, 4C, 6C, 3D, 6D, 7D, 8D, 4S, QS, 8H, 9H, QH",
-                    "7C, 9C, KC, AC, 2D, 5D, TD, 2S, 8S, KS, AS, 3H, KH",
-                    "5C, 8C, QC, 4D, KD, 3S, 6S, 7S, 9S, JS, 2H, 4H, AH",
-                    "TC, JC, 9D, JD, QD, AD, 5S, TS, 5H, 6H, 7H, TH, JH"]]
-
-    card_string = [["4C, 5C, 9C, TC, KC, AC, 6D, JD, 4S, 5S, 7S, 9S, QS",
-                    "2C, 7C, 2D, 3D, 5D, 7D, 9D, KD, JS, 6H, 7H, 8H, KH",
-                    "3C, 6C, 8C, QC, 8D, TD, QD, 2S, TS, KS, 3H, 4H, JH",
-                    "JC, 4D, AD, 3S, 6S, 8S, AS, 2H, 5H, 9H, TH, QH, AH"]]
-
-    card_string = [["2C, 7C, 2D, 3D, 5D, 7D, 9D, KD, JS, 6H, 7H, 8H, KH",
-                    "3C, 6C, 8C, QC, 8D, TD, QD, 2S, TS, KS, 3H, 4H, JH",
-                    "JC, 4D, AD, 3S, 6S, 8S, AS, 2H, 5H, 9H, TH, QH, AH",
-                    "4C, 5C, 9C, TC, KC, AC, 6D, JD, 4S, 5S, 7S, 9S, QS"]]
+    card_string = [["5C, 7C, JC, QC, KC, AC, 4D, QD, 3S, 4S, 5S, 8S, 9S",
+                    "4C, 6C, 9C, 6D, 9D, KD, QS, AS, 4H, JH, QH, KH, AH",
+                    "8C, 2D, 5D, 8D, TD, JD, AD, 2S, 6S, 7S, 2H, 6H, TH",
+                    "2C, 3C, TC, 3D, 7D, TS, JS, KS, 3H, 5H, 7H, 8H, 9H"]]
 
     return transform_cards(card_string)
 
