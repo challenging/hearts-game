@@ -42,7 +42,7 @@ class TrainPipeline():
         self.batch_size = 64  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
-        self.play_batch_size = 16
+        self.play_batch_size = 2
         self.epochs = 32  # num of train_steps for each update
         self.check_freq = 4
         self.kl_targ = 0.02
@@ -108,7 +108,7 @@ class TrainPipeline():
                 scards_batch_4.append(full_cards(scards[3]))
 
                 hand_batch.append(limit_cards(hand_cards, 13))
-                valid_batch.append(full_cards(valid_cards))
+                valid_batch.append(limit_cards(valid_cards, 13))
 
                 probs_batch.append(full_cards(dict(zip(played_cards, probs))))
 

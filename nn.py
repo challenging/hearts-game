@@ -84,7 +84,7 @@ class PolicyValueNet(object):
         input3 = tf.layers.dense(input2, units=64, activation=tf.nn.relu)
 
         # 3. Policy Networks
-        self.action_fc = tf.layers.dense(inputs=input3, units=52, activation=tf.nn.softmax)
+        self.action_fc = tf.layers.dense(inputs=input3, units=13, activation=tf.nn.softmax)
 
         # 4 Value Networks
         self.evaluation_fc1 = tf.layers.dense(input3, units=32, activation=tf.nn.relu)
