@@ -22,6 +22,7 @@ from strategy_play import greedy_choose, random_choose
 from expert_play import expert_choose
 
 from mcts import MCTS
+from render_tree import get_tree
 
 
 BASEPATH = "memory_tree"
@@ -212,7 +213,9 @@ class RiderPlayer(MonteCarloPlayer7):
         played_card = bitmask_to_card(played_card[0], played_card[1])
         #self.mcts.update_with_move(-1)
 
-        #self.mcts.print_tree()
+        tree = get_tree(self.mcts.start_node)
+        tree.show()
+        print("depth={}".format(tree.depth()))
 
         self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
             time.time()-stime, hand_cards, valid_cards, played_card)

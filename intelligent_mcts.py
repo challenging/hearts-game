@@ -1,6 +1,7 @@
 from card import Deck
 from rules import get_rating
 
+from nn_utils import v2card
 from mcts import TreeNode, MCTS
 
 
@@ -21,21 +22,15 @@ class IntelligentMCTS(MCTS):
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
         scores = [0, 0, 0, 0]
         if not state.is_finished:
-            probs, scores = self._policy(trick_nr, state)
-            action_probs = zip([(card.suit.value, 1 << (card.rank.value-2)) for card in Deck().cards], probs)
+            bcards, probs, scores = self._policy(trick_nr, state)
+            valid_cards = [v2card(v) for v in bcards if v > 0]
+            action_probs = zip([(card.suit.value, 1<<(card.rank.value-2)) for card in valid_cards], probs)
 
             node.expand(state.start_pos, action_probs)
         else:
             scores, is_shootthemoon = state.score()
 
         node.update_recursive(get_rating(scores))
-
-
-    def update_with_move(self, last_move):
-        if last_move in self.start_node._children:
-            self.start_node = self.start_node._children[last_move]
-        else:
-            self.start_node = TreeNode(None, 1.0, None)
 
 
     def __str__(self):

@@ -132,22 +132,19 @@ class PolicyValueNet(object):
                      score_cards_1, score_cards_2, score_cards_3, score_cards_4, \
                      hand_cards, valid_cards):
 
-        log_act_probs, value = self.session.run([self.action_fc, self.evaluation_fc3],
-                                                feed_dict={self.remaining_cards: remaining_cards,
-                                                           self.trick_cards: trick_cards,
-                                                           self.must_cards_1: must_cards_1,
-                                                           self.must_cards_2: must_cards_2,
-                                                           self.must_cards_3: must_cards_3,
-                                                           self.must_cards_4: must_cards_4,
-                                                           self.score_cards_1: score_cards_1,
-                                                           self.score_cards_2: score_cards_2,
-                                                           self.score_cards_3: score_cards_3,
-                                                           self.score_cards_4: score_cards_4,
-                                                           self.hand_cards: hand_cards,
-                                                           self.valid_cards: valid_cards})
-
-        act_probs = log_act_probs
-        #act_probs = np.exp(log_act_probs)
+        act_probs, value = self.session.run([self.action_fc, self.evaluation_fc3],
+                                            feed_dict={self.remaining_cards: remaining_cards,
+                                                       self.trick_cards: trick_cards,
+                                                       self.must_cards_1: must_cards_1,
+                                                       self.must_cards_2: must_cards_2,
+                                                       self.must_cards_3: must_cards_3,
+                                                       self.must_cards_4: must_cards_4,
+                                                       self.score_cards_1: score_cards_1,
+                                                       self.score_cards_2: score_cards_2,
+                                                       self.score_cards_3: score_cards_3,
+                                                       self.score_cards_4: score_cards_4,
+                                                       self.hand_cards: hand_cards,
+                                                       self.valid_cards: valid_cards})
 
         return act_probs, value
 
@@ -161,7 +158,7 @@ class PolicyValueNet(object):
                                                   [score_cards_1], [score_cards_2], [score_card_3], [score_cards_4],\
                                                   [hand_cards], [valid_cards])
 
-        return act_probs[0], act_values[0]
+        return valid_cards, act_probs[0], act_values[0]
 
 
     def policy_value_fn(self, remaining_cards, trick_cards, \

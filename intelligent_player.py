@@ -1,4 +1,4 @@
-":""This module containts the abstract class Player and some implementations."""
+"""This module containts the abstract class Player and some implementations."""
 import time
 
 import numpy as np
@@ -13,6 +13,8 @@ from dragon_rider_player import RiderPlayer
 from simulated_player import TIMEOUT_SECOND
 from new_simulated_player import MonteCarloPlayer7
 from intelligent_mcts import IntelligentMCTS
+
+from render_tree import get_tree
 
 
 def softmax(x, temp):
@@ -41,13 +43,17 @@ class IntelligentPlayer(RiderPlayer):
     def see_played_trick(self, card, game):
         super(RiderPlayer, self).see_played_trick(card, game)
 
-        card = tuple([SUIT_TO_INDEX[card.suit.__repr__()], NUM_TO_INDEX[card.rank.__repr__()]])
-
+        card = (card.suit.value, 1<<(card.rank.value-2))
         self.mcts.update_with_move(card)
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND, temp=1):
         stime = time.time()
+
+        if game.trick_nr == 0 and len(game.trick) == 0:
+            for card in game._player_hands[self.position]:
+                if card in self.remaining_cards:
+                    self.remaining_cards.remove(card)
 
         game.are_hearts_broken()
 
@@ -91,6 +97,7 @@ class IntelligentPlayer(RiderPlayer):
             if n_visits > 0 and bit_vcards[suit] & rank:
                 valid_cards.append(bitmask_to_card(card[0], card[1]))
                 valid_probs.append(n_visits)
+
         valid_probs = softmax(valid_probs, temp)
 
         if self.is_self_play:
@@ -106,7 +113,10 @@ class IntelligentPlayer(RiderPlayer):
 
             probs = softmax(probs, temp)
 
-            #print("valid_cards", valid_cards)
+            #tree = get_tree(self.mcts.start_node)
+            #tree.show()
+
+            #print("valid_cards", valid_cards, valid_probs, vcards, tree.depth())
             move = np.random.choice(
                     valid_cards,
                     p=0.75*valid_probs + 0.25*np.random.dirichlet(0.3*np.ones(len(valid_probs))))

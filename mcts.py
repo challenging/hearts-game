@@ -204,7 +204,6 @@ class MCTS(object):
                 if len(init_trick[-1][1]) == 4:
                     sm.post_round_end()
 
-                #selection_func = [selection_func[0] for _ in range(4)]
                 self._playout(trick_nr, sm, selection_func, c_puct)
 
                 scores, is_shoot_the_moon = sm.score()
@@ -233,10 +232,12 @@ class MCTS(object):
 
                 break
 
-        #tree = get_tree(self.root_node)
-        #tree.show()
-        #print("depth={}".format(tree.depth()))
-        #sys.exit(1)
+        """
+        tree = get_tree(self.root_node)
+        tree.show()
+        print("depth={}".format(tree.depth()))
+        sys.exit(1)
+        """
 
         if is_only_played_card:
             valid_cards = vcards
@@ -265,7 +266,7 @@ class MCTS(object):
                         big_value = node.get_value(self._c_puct)
                         big_card = played_card
                     else:
-                        if node.get_value(self._c_puct)-2.4 > big_value:
+                        if node.get_value(self._c_puct)-2.0 > big_value:
                             big_visits = node._n_visits
                             big_value = node.get_value(self._c_puct)
                             big_card = played_card
@@ -289,7 +290,6 @@ class MCTS(object):
 
             self.update_with_move(last_move)
         else:
-            #self.start_node = TreeNode(None, 1.0, None)
             self.start_node.expand(None, [(last_move, 1.0)])
             say("player-{} set new_node because not found {}", self._self_player_idx, last_move)
 
