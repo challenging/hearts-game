@@ -58,7 +58,7 @@ class IntelligentGame(Game):
         #valid_cards = self.players[self.current_player_idx].get_valid_cards(hand_cards, self)
         expose_info = [2 if player.expose else 1 for player in self.players]
 
-        self._short_memory.append([remaining_cards[:], self.trick[:], must_cards, score_cards, hand_cards, valid_cards, expose_info, probs, self.current_player_idx])
+        self._short_memory.append([remaining_cards[:], self.trick[:], must_cards, score_cards, hand_cards[:], valid_cards, expose_info, probs, self.current_player_idx])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)

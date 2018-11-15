@@ -34,7 +34,7 @@ policy_value_fn = policy.predict
 class TrainPipeline():
     def __init__(self, init_model=None):
         # training params
-        self.learn_rate = 1e-4
+        self.learn_rate = 2e-6
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
         self.c_puct = 1024
 
@@ -43,7 +43,7 @@ class TrainPipeline():
         self.data_buffer = deque(maxlen=self.buffer_size)
 
         self.play_batch_size = 8
-        self.epochs = 32  # num of train_steps for each update
+        self.epochs = 64  # num of train_steps for each update
         self.check_freq = 4
         self.kl_targ = 0.02
 
@@ -54,7 +54,7 @@ class TrainPipeline():
 
         players = [IntelligentPlayer(policy_value_fn, c_puct=self.c_puct, is_self_play=True, verbose=(True if player_idx>-1 else False)) for player_idx in range(4)]
 
-        self.game = Game(players, simulation_time_limit=0.4, verbose=True)
+        self.game = Game(players, simulation_time_limit=2, verbose=True)
 
 
     def collect_selfplay_data(self, n_games, game_idx):
@@ -108,6 +108,7 @@ class TrainPipeline():
                 scards_batch_4.append(full_cards(scards[3]))
 
                 hand_batch.append(limit_cards(hand_cards, 13))
+
                 valid_batch.append(limit_cards(valid_cards, 13))
 
                 expose_batch.append(expose_info)
