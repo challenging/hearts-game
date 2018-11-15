@@ -64,7 +64,7 @@ class IntelligentPlayer(RiderPlayer):
 
         etime = simulation_time_limit
         if self.is_self_play:
-            etime = (13-game.trick_nr)*simulation_time_limit*2
+            etime = len(vcards)*simulation_time_limit
 
         results = \
             self.mcts.get_move(game.current_player_idx, 
