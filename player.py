@@ -23,6 +23,7 @@ class Player(object):
 
         self.name = None
         self.position = None
+        self.expose = False
         self.proactive_mode = set()
 
         self.void_info = {0: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 
@@ -80,7 +81,9 @@ class Player(object):
 
 
     def expose_hearts_ace(self, hand_cards):
-        return False
+        self.expose = False
+
+        return self.expose
 
 
     def see_played_trick(self, card, game):
@@ -264,6 +267,7 @@ class Player(object):
         self.freeze_cards = []
         self.transfer_cards = {}
 
+        self.expose = False
         self.proactive_mode = set()
 
         self.void_info = {0: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 

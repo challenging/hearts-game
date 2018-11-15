@@ -24,7 +24,6 @@ def softmax(x, temp):
 
 
 class IntelligentPlayer(RiderPlayer):
-    """AI player based on MCTS"""
     def __init__(self, policy, c_puct, is_self_play=False, verbose=False):
         super(IntelligentPlayer, self).__init__(policy, c_puct, verbose=verbose)
 
@@ -35,7 +34,7 @@ class IntelligentPlayer(RiderPlayer):
     def reset(self):
         super(RiderPlayer, self).reset()
 
-        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=128*self.num)
+        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=256*self.num)
 
         #self.num += 0.02
 
@@ -64,12 +63,8 @@ class IntelligentPlayer(RiderPlayer):
         bit_vcards = card_to_bitmask(vcards)
 
         etime = simulation_time_limit
-        if game.trick_nr > 11:
-            etime /= 4
-        elif game.trick_nr > 8:
-            etime /= 3
-        elif game.trick_nr > 5:
-            etime /= 1.5
+        if self.is_self_play:
+            etime = (13-game.trick_nr)*simulation_time_limit*2
 
         results = \
             self.mcts.get_move(game.current_player_idx, 
@@ -84,7 +79,7 @@ class IntelligentPlayer(RiderPlayer):
                                selection_func, 
                                game.trick_nr+1, 
                                game.is_heart_broken, 
-                               game.expose_heart_ace, 
+                               [2 if player.expose else 1 for player in game.players], 
                                False, 
                                etime, 
                                True,

@@ -88,21 +88,22 @@ class RiderPlayer(MonteCarloPlayer7):
 
             if points < 12 and safe_hearts > 0:
                 self.say("scenario - 1, points: {}, safe_hearts: {}", points, safe_hearts)
-                return True
+
+                self.expose = True
             elif points > 21:
                 if len(hearts) > 0:
                     self.say("scenario - 2.1, points: {}, hearts: {}", points, hearts)
-                    return True
+
+                    self.expose = True
                 elif len(hearts) > 1 and HEARTS_K in hearts:
                     self.say("scenario - 2.2, points: {}, hearts: {}", points, hearts)
-                    return True
+
+                    self.expose = True
                 elif len(hearts) > 2 and all([card in hearts for card in [HEARTS_K, HEARTS_Q]]):
                     self.say("scenario - 2.3, points: {}, hearts: {}", points, hearts)
-                    return True
-            else:
-                return False
-        else:
-            return False
+                    self.expose = True
+
+        return self.expose
 
 
     def see_played_trick(self, card, game):
@@ -164,7 +165,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [random_choose]*4
+        selection_func = [expert_choose]*4
 
         return hand_cards, init_trick, must_have, selection_func
 
@@ -200,7 +201,7 @@ class RiderPlayer(MonteCarloPlayer7):
                                selection_func, 
                                game.trick_nr+1, 
                                game.is_heart_broken, 
-                               game.expose_heart_ace, 
+                               [2 if player.expose else 1 for player in game.players], 
                                True, 
                                simulation_time_limit,
                                True,

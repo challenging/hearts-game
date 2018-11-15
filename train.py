@@ -39,7 +39,7 @@ class TrainPipeline():
         self.c_puct = 1024
 
         self.buffer_size = 2**16
-        self.batch_size = 64  # mini-batch size for training
+        self.batch_size = 32  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
         self.play_batch_size = 8
@@ -54,7 +54,7 @@ class TrainPipeline():
 
         players = [IntelligentPlayer(policy_value_fn, c_puct=self.c_puct, is_self_play=True, verbose=(True if player_idx>-1 else False)) for player_idx in range(4)]
 
-        self.game = Game(players, simulation_time_limit=16, verbose=True)
+        self.game = Game(players, simulation_time_limit=0.4, verbose=True)
 
 
     def collect_selfplay_data(self, n_games, game_idx):
@@ -90,10 +90,10 @@ class TrainPipeline():
             remaining_batch, trick_batch = [], []
             must_batch_1, must_batch_2, must_batch_3, must_batch_4 = [], [], [], []
             scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4 = [], [], [], []
-            hand_batch, valid_batch = [], []
+            hand_batch, valid_batch, expose_batch = [], [], []
             probs_batch, scores_batch = [], []
 
-            for remaining, trick, must, scards, hand_cards, valid_cards, played_cards, probs, scores in sample(self.data_buffer, self.batch_size):
+            for remaining, trick, must, scards, hand_cards, valid_cards, expose_info, probs, scores in sample(self.data_buffer, self.batch_size):
                 remaining_batch.append(full_cards(remaining))
                 trick_batch.append(limit_cards(trick, 3))
 
@@ -110,7 +110,8 @@ class TrainPipeline():
                 hand_batch.append(limit_cards(hand_cards, 13))
                 valid_batch.append(limit_cards(valid_cards, 13))
 
-                probs_batch.append(full_cards(dict(zip(played_cards, probs))))
+                expose_batch.append(expose_info)
+                probs_batch.append(limit_cards(dict(zip(valid_cards, probs)), 13))
 
                 scores_batch.append(scores)
 
@@ -118,13 +119,14 @@ class TrainPipeline():
                 remaining_batch, trick_batch, \
                 must_batch_1, must_batch_2, must_batch_3, must_batch_4, \
                 scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4, \
-                hand_batch, valid_batch)
+                hand_batch, valid_batch, expose_batch)
 
             loss, policy_loss, value_loss = policy.train_step(
                     remaining_batch, trick_batch, \
                     must_batch_1, must_batch_2, must_batch_3, must_batch_4, \
                     scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4, \
-                    hand_batch, valid_batch, probs_batch, scores_batch,\
+                    hand_batch, valid_batch, expose_batch, \
+                    probs_batch, scores_batch,\
                     self.learn_rate*self.lr_multiplier)
 
             print("epoch: {:3d}/{:3d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}".format(\
@@ -134,11 +136,11 @@ class TrainPipeline():
                 remaining_batch, trick_batch, \
                 must_batch_1, must_batch_2, must_batch_3, must_batch_4, \
                 scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4, \
-                hand_batch, valid_batch)
+                hand_batch, valid_batch, expose_batch)
 
-            kl = np.mean(np.sum(old_probs * (
-                    np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)),
-                    axis=1))
+            #kl = np.mean(np.sum(old_probs * (
+            #        np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)),
+            #        axis=1))
 
             #if kl > self.kl_targ * 4:  # early stopping if D_KL diverges badly
             #    break
@@ -151,7 +153,7 @@ class TrainPipeline():
             self.lr_multiplier *= 1.5
         """
 
-        print(("kl:{:.5f}, lr_multiplier:{:.3f}").format(kl, self.lr_multiplier))
+        print(("learning_rate: {:.8f}, lr_multiplier:{:.8f}").format(self.learn_rate, self.lr_multiplier))
 
         return loss, policy_loss, value_loss
 
@@ -182,8 +184,8 @@ class TrainPipeline():
             for i in range(game_batch_num):
                 self.collect_selfplay_data(self.play_batch_size, i+1)
 
-                print("batch i: {}, episode_len: {}, memory_size: {}".format(\
-                    i+1, self.episode_len, len(self.data_buffer)))
+                #print("batch i: {}, episode_len: {}, memory_size: {}".format(\
+                #    i+1, self.episode_len, len(self.data_buffer)))
 
                 for played_data in self.data_buffer:
                     print_a_memory(played_data)

@@ -37,7 +37,7 @@ class StepGame(SimpleGame):
                  is_hearts_broken=False,
                  is_show_pig_card=False,
                  is_show_double_card=False,
-                 expose_hearts_ace=False,
+                 expose_info=[1, 1, 1, 1],
                  tricks=[],
                  must_have={}):
 
@@ -48,7 +48,7 @@ class StepGame(SimpleGame):
                                        is_hearts_broken,
                                        is_show_pig_card,
                                        is_show_double_card,
-                                       expose_hearts_ace,
+                                       expose_info,
                                        tricks)
 
         self.must_have = must_have

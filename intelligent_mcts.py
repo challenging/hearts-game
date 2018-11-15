@@ -2,7 +2,7 @@ from card import Deck
 from rules import get_rating
 
 from nn_utils import v2card
-from mcts import TreeNode, MCTS
+from mcts import TreeNode, MCTS, say
 
 
 class IntelligentTreeNode(TreeNode):
@@ -31,6 +31,12 @@ class IntelligentMCTS(MCTS):
             node.expand(state.start_pos, action_probs)
 
         node.update_recursive(get_rating(scores))
+
+
+    def reinit_tree_node(self):
+        self.start_node = IntelligentTreeNode(None, 1.0, None)
+
+        say("re-init tree node({})", self.start_node)
 
 
     def __str__(self):

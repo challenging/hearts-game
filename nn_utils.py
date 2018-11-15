@@ -136,13 +136,16 @@ def transform_game_info_to_nn(state, trick_nr):
             bitmask <<= 1
     a_memory.append(valid_cards)
 
+    expose_info = state.expose_info
+    a_memory.append(expose_info)
+
     #print_a_memory(a_memory)
 
     return full_cards(remaining_cards), \
            limit_cards(trick_cards, 3), \
            limit_cards(must_cards[0], 4), limit_cards(must_cards[1], 4), limit_cards(must_cards[2], 4), limit_cards(must_cards[3], 4), \
            full_cards(score_cards[0]), full_cards(score_cards[1]), full_cards(score_cards[2]), full_cards(score_cards[3]), \
-           limit_cards(hand_cards, 13), limit_cards(valid_cards, 13)
+           limit_cards(hand_cards, 13), limit_cards(valid_cards, 13), expose_info
 
 
 def print_a_memory(played_data):
@@ -152,7 +155,7 @@ def print_a_memory(played_data):
     score_cards = played_data[3]
     hand_cards = played_data[4]
     valid_cards = played_data[5]
-    played_cards = played_data[6] if len(played_data) > 6 else None
+    expose_info = played_data[6]
     probs = played_data[7] if len(played_data) > 7 else None
     score = played_data[8] if len(played_data) > 8 else None
 
@@ -174,12 +177,13 @@ def print_a_memory(played_data):
     print("    valid_cards:", valid_cards)
     print("    valid_cards:", limit_cards(valid_cards, 13))
 
-    if played_cards:
-        print("   played_cards:", [(card, card2v(card)) for card in played_cards])
-        print("          probs:", probs)
-        print("          probs:", limit_cards(dict(zip(played_cards, probs)), 13))
-        print("          score:", score)
-        print()
+    print("    expose_info:", expose_info)
+
+    if probs:
+        print("      probs:", limit_cards(dict(zip(valid_cards, probs)), 13))
+        print("      score:", score)
+
+    print()
 
 
 if __name__ == "__main__":

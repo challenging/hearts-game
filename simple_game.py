@@ -36,7 +36,7 @@ class SimpleGame(object):
                  is_hearts_borken=False,
                  is_show_pig_card=False,
                  is_show_double_card=False,
-                 expose_hearts_ace=False,
+                 expose_info=[1, 1, 1, 1],
                  tricks=[]):
 
         self.position = position
@@ -80,7 +80,9 @@ class SimpleGame(object):
                 self.handle_current_info(cards)
 
         self.is_hearts_broken = is_hearts_borken
-        self.expose_hearts_ace = 2 if expose_hearts_ace else 1
+
+        self.expose_info = expose_info
+        self.expose_hearts_ace = max(self.expose_info)
 
         self.played_card = None
 
@@ -550,7 +552,7 @@ def run_simulation(seed, current_round_idx, position, num_hand_cards, init_trick
 
 
 def one_step_simulation(current_round_idx, position, hand_cards, tricks,
-                   void_info={}, score_cards=None, is_hearts_borken=False, expose_hearts_ace=False, played_card=None, selection_func=None):
+                   void_info={}, score_cards=None, is_hearts_borken=False, expose_info=False, played_card=None, selection_func=None):
 
     for player_idx, cards in enumerate(hand_cards):
         hand_cards[player_idx] = str_to_bitmask(cards)
@@ -560,13 +562,13 @@ def one_step_simulation(current_round_idx, position, hand_cards, tricks,
                     void_info=void_info, 
                     score_cards=score_cards, 
                     is_hearts_borken=is_hearts_borken, 
-                    expose_hearts_ace=expose_hearts_ace, 
+                    expose_info=expose_info, 
                     tricks=tricks)
 
     return sm.just_run_one_step(current_round_idx, selection_func=selection_func)
 
 
-def run_one_step(current_round_idx, position, num_hand_cards, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
+def run_one_step(current_round_idx, position, num_hand_cards, init_trick, hand_cards, is_hearts_broken, expose_info, cards,
                  score_cards=None, played_card=None, selection_func=random_choose, must_have={}, void_info={}):
 
     for trick_idx, (winner_index, trick) in enumerate(init_trick):
@@ -591,7 +593,7 @@ def run_one_step(current_round_idx, position, num_hand_cards, init_trick, hand_c
                                    void_info,
                                    copy.deepcopy(score_cards), 
                                    is_hearts_broken, 
-                                   expose_hearts_ace, 
+                                   expose_info, 
                                    played_card, 
                                    selection_func)
 
@@ -604,7 +606,7 @@ if __name__ == "__main__":
 
     position = 3
     current_round_idx = 1
-    expose_hearts_ace = False
+    expose_info = [1, 1, 1, 1]
     is_hearts_broken = False
 
     """
@@ -670,7 +672,7 @@ if __name__ == "__main__":
                                                          init_trick, 
                                                          myself_hand_cards, 
                                                          is_hearts_broken, 
-                                                         expose_hearts_ace, 
+                                                         expose_info, 
                                                          cards, 
                                                          score_cards, 
                                                          None, 

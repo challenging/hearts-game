@@ -43,9 +43,9 @@ class IntelligentGame(Game):
             raise ValueError("{} round - Not found {} card in this Player-{} hand cards({})".format(\
                 self.trick_nr, played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
 
-        played_cards, probs = [], []
+        valid_cards, probs = [], []
         for card, prob in results:
-            played_cards.append(card)
+            valid_cards.append(card)
             probs.append(prob)
 
         must_cards = [[], [], [], []]
@@ -55,10 +55,10 @@ class IntelligentGame(Game):
         score_cards = copy.deepcopy(self._cards_taken)
         remaining_cards = self.players[0].get_remaining_cards(hand_cards)
 
-        valid_cards = self.players[self.current_player_idx].get_valid_cards(hand_cards, self)
+        #valid_cards = self.players[self.current_player_idx].get_valid_cards(hand_cards, self)
+        expose_info = [2 if player.expose else 1 for player in self.players]
 
-        #if self.trick_nr < 11:
-        self._short_memory.append([remaining_cards[:], self.trick[:], must_cards, score_cards, hand_cards, valid_cards, played_cards, probs, self.current_player_idx])
+        self._short_memory.append([remaining_cards[:], self.trick[:], must_cards, score_cards, hand_cards, valid_cards, expose_info, probs, self.current_player_idx])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)

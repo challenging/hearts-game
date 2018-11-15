@@ -52,7 +52,7 @@ class NewSimplePlayer(MonteCarloPlayer7):
                                    copy.deepcopy(init_trick), 
                                    hand_cards, 
                                    game.is_heart_broken, 
-                                   game.expose_heart_ace, 
+                                   [2 if player.expose else 1 for player in game.players], 
                                    remaining_cards, 
                                    taken_cards, 
                                    None, 

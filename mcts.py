@@ -38,16 +38,6 @@ def say(message, *formatargs):
         print(message)
 
 
-REMAINING_CARDS = []
-
-#def policy_value_fn(trick_nr, state):
-#    global REMAINING_CARDS
-
-#    if REMAINING_CARDS:
-#        results = REMAINING_CARDS
-#    else:
-#        results = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1, is_playout=False)
-
 def policy_value_fn(prob_cards):
     return prob_cards, 0
 
@@ -151,19 +141,13 @@ class MCTS(object):
                  selection_func,
                  trick_nr,
                  is_heart_broken,
-                 expose_heart_ace,
+                 expose_info,
                  is_only_played_card=False,
                  simulation_time_limit=TIMEOUT_SECOND-0.1,
                  not_seen=False,
                  is_reset_percentage=False):
 
         stime = time.time()
-
-        if is_reset_percentage:
-            global REMAINING_CARDS
-            REMAINING_CARDS = get_remaining_cards(trick_nr+len(init_trick)-1, init_trick, score_cards)
-            if REMAINING_CARDS:
-                self.start_node.update_recursive_percentage(REMAINING_CARDS)
 
         simulation_cards = redistribute_cards(randint(0, 64),
                                               self._self_player_idx,
@@ -193,7 +177,7 @@ class MCTS(object):
                               void_info=void_info,
                               score_cards=copy.deepcopy(score_cards),
                               is_hearts_broken=is_heart_broken,
-                              expose_hearts_ace=expose_heart_ace,
+                              expose_info=expose_info,
                               tricks=copy.deepcopy(init_trick),
                               must_have=must_have)
 
@@ -215,6 +199,8 @@ class MCTS(object):
             except Exception as e:
                 ratio[1] += 1
 
+                raise
+
             if time.time()-stime > simulation_time_limit:
                 shooter = None
                 if stats_shoot_the_moon != {}:
@@ -228,14 +214,6 @@ class MCTS(object):
                     say("ratio of success/failed is {}", ratio)
 
                 break
-
-        """
-        from render_tree import get_tree 
-        tree = get_tree(self.root_node)
-        tree.show()
-        print("depth={}".format(tree.depth()))
-        sys.exit(1)
-        """
 
         if is_only_played_card:
             valid_cards = vcards
@@ -279,20 +257,27 @@ class MCTS(object):
             return results
 
 
+    def reinit_tree_node(self):
+        self.start_node = TreeNode(None, 1.0, None)
+
+
     def update_with_move(self, last_move):
-        if last_move in self.start_node._children:
-            self.start_node = self.start_node._children[last_move]
-        #elif self.start_node.is_root():
-        #    self.start_node.expand(None, [(last_move, 1.0)])
-        #    say("player-{} set new_node because not found {}", self._self_player_idx, last_move)
-
-        #    self.update_with_move(last_move)
+        if last_move == -1:
+            self.reinit_tree_node()
         else:
-            #print("last_move", last_move, self.start_node._children.values(), self.start_node.is_leaf(), self.start_node, self.start_node._parent)
-            self.start_node.expand(None, [(last_move, 1.0)])
-            say("player-{} expands new_node because not found {}", self._self_player_idx, last_move)
+            if last_move in self.start_node._children:
+                self.start_node = self.start_node._children[last_move]
+            #elif self.start_node.is_root():
+            #    self.start_node.expand(None, [(last_move, 1.0)])
+            #    say("player-{} set new_node because not found {}", self._self_player_idx, last_move)
 
-            self.update_with_move(last_move)
+            #    self.update_with_move(last_move)
+            else:
+                #print("last_move", last_move, self.start_node._children.values(), self.start_node.is_leaf(), self.start_node, self.start_node._parent)
+                self.start_node.expand(None, [(last_move, 1.0)])
+                say("player-{} expands new_node because not found {}", self._self_player_idx, last_move)
+
+                self.update_with_move(last_move)
 
 
     def print_tree(self, node=None, card=None, depth=0):
