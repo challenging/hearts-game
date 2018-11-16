@@ -53,8 +53,11 @@ class TreeNode(object):
 
 
     def get_value(self, c_puct):
-        self._u = (c_puct * self._P * math.log(self._parent._n_visits)/(1 + self._n_visits))**0.5
-        value = self._Q[self._player_idx]/(1e-16+self._n_visits) + self._u
+        u = (c_puct * self._P * math.log(self._parent._n_visits)/(1 + self._n_visits))**0.5
+        q = self._Q[self._player_idx]/(1e-16+self._n_visits)
+        value = q + u
+
+        #value = self._Q[self._player_idx]/(1e-16+self._n_visits) + self._u
 
         return value
 
@@ -74,6 +77,7 @@ class RedisTreeNode(TreeNode):
     def __init__(self, parent, prior_p, player_idx, level_idx=0, card="root"):
         global conn
 
+        self._parent = parent
         self._player_idx = player_idx
 
         self.level_idx = level_idx
@@ -81,7 +85,7 @@ class RedisTreeNode(TreeNode):
         self.key = "{}_{}".format(self.level_idx, card)
 
         if not conn.exists(self.key):
-            conn.hmset(self.key, {"parent": parent, 
+            conn.hmset(self.key, {"parent": self._parent, 
                                   "p": prior_p, 
                                   "n_visits": 0, 
                                   "q_1": 0.0,
@@ -89,8 +93,8 @@ class RedisTreeNode(TreeNode):
                                   "q_3": 0.0,
                                   "q_4": 0.0})
 
-            if parent is not None:
-                conn.lpush("{}:children".format(parent), self.key)
+            if self._parent is not None:
+                conn.lpush("{}:children".format(self._parent), self.key)
 
 
     def get_children(self):
@@ -109,12 +113,6 @@ class RedisTreeNode(TreeNode):
 
             if not conn.exists(key):
                 RedisTreeNode(self.key, prob, player_idx, level_idx=self.level_idx+1, card=card)
-
-
-    def get_parent(self):
-        global conn
-
-        return conn.hmget(self.key, "parent")
 
 
     def get_info(self, fields, key=None):
@@ -147,12 +145,17 @@ class RedisTreeNode(TreeNode):
         global conn
 
         info = self.get_info(["q_{}".format(self._player_idx), "n_visits"])
+        print("before", info)
         conn.hmset(self.key, {"q_{}".format(self._player_idx): float(info[0])+leaf_value, "n_visits": int(info[1])+1})
+
+        info = self.get_info(["q_{}".format(self._player_idx), "n_visits"])
+        print(" after", info)
 
 
     def update_recursive(self, scores):
         if self._parent:
-            self._parent.update_recursive(scores)
+            #self._parent.update_recursive(scores)
+            RedisTreeNode(self.key, prob, player_idx, level_idx=self.level_idx+1, card=card).update_recursive(scores)
 
         self.update(scores[self._player_idx])
 
@@ -167,19 +170,29 @@ class RedisTreeNode(TreeNode):
         n_visits, q_value, p = int(info[0]), float(info[1]), float(info[2])
 
         value = q_value/(1e-16+n_visits) + (c_puct * p * math.log(parent_n_visits+1)/(1 + n_visits))**0.5
-        print("-->", parent_n_visits, n_visits, q_value, p, value)
 
         return value
 
 
+    
+
+
 if __name__ == "__main__":
+    import time
+
+    stime = time.time()
+
     tree = RedisTreeNode(None, 1.0, None)
     tree.expand(1, [((0, 1), 1.0)])
 
     tree = RedisTreeNode("1_2C", 1.0, 2, 2, "4C")
     tree = RedisTreeNode("1_2C", 1.0, 2, 2, "6C")
 
-    tree = RedisTreeNode("0_root", 1.0, 1, 1, "2C")
+    tree.update_recursive([1, 2, 3, 4])
 
-    for card, node in tree.select(1024):
-        print(card, node)
+    #tree = RedisTreeNode("0_root", 1.0, 1, 1, "2C")
+
+    #for card, node in tree.select(1024):
+    #    print(card, node)
+
+    print(time.time()-stime)

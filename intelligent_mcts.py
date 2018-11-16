@@ -25,6 +25,10 @@ class IntelligentMCTS(MCTS):
             scores, is_shootthemoon = state.score()
         else:
             bcards, probs, scores = self._policy(trick_nr, state)
+            #print(bcards)
+            #print(probs)
+            #print()
+
             valid_cards = [v2card(v) for v in bcards if v > 0]
             action_probs = zip([(card.suit.value, 1<<(card.rank.value-2)) for card in valid_cards], probs)
 

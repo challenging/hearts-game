@@ -16,7 +16,6 @@ from orderedenum import OrderedEnum
 
 
 class Suit(OrderedEnum):
-
     clubs = 0
     diamonds = 1
     spades = 2
@@ -60,7 +59,6 @@ class Rank(OrderedEnum):
 
 
 class Card:
-
     def __init__(self, suit, rank):
         self.suit = suit
         self.rank = rank
@@ -91,7 +89,6 @@ CLUBS_T = Card(Suit.clubs, Rank.ten)
 
 
 class Deck:
-
     def __init__(self):
         self.cards = [Card(suit, rank) for suit in Suit for rank in Rank]
 

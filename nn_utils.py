@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-from card import Suit, Rank, Card, Deck, NUM_TO_INDEX
+from card import Suit, Rank, Card, Deck, SPADES_Q, CLUBS_T
+from card import NUM_TO_INDEX, SUIT_TO_INDEX
 from card import bitmask_to_card, batch_bitmask_to_card
 
 
@@ -111,7 +112,12 @@ def transform_game_info_to_nn(state, trick_nr):
     score_cards = [[], [], [], []]
     for player_idx, cards in enumerate(state.score_cards):
         for suit, ranks in enumerate(cards):
-            score_cards[player_idx].extend(list(batch_bitmask_to_card(suit, ranks)))
+            if suit == SUIT_TO_INDEX["C"] and ranks & NUM_TO_INDEX["T"]:
+                score_cards[player_idx].append(CLUBS_T)
+            elif suit == SUIT_TO_INDEX["S"] and ranks & NUM_TO_INDEX["Q"]:
+                score_cards[player_idx].append(SPADES_Q)
+            elif suit == SUIT_TO_INDEX["H"]:
+                score_cards[player_idx].extend(list(batch_bitmask_to_card(suit, ranks)))
 
         #score_cards[player_idx] = full_cards(score_cards[player_idx])
     a_memory.append(score_cards)
@@ -144,7 +150,7 @@ def transform_game_info_to_nn(state, trick_nr):
     return full_cards(remaining_cards), \
            limit_cards(trick_cards, 3), \
            limit_cards(must_cards[0], 4), limit_cards(must_cards[1], 4), limit_cards(must_cards[2], 4), limit_cards(must_cards[3], 4), \
-           full_cards(score_cards[0]), full_cards(score_cards[1]), full_cards(score_cards[2]), full_cards(score_cards[3]), \
+           limit_cards(score_cards[0], 15), limit_cards(score_cards[1], 15), limit_cards(score_cards[2], 15), limit_cards(score_cards[3], 15), \
            limit_cards(hand_cards, 13), limit_cards(valid_cards, 13), expose_info
 
 
@@ -169,7 +175,7 @@ def print_a_memory(played_data):
     print("     must_cards:", [limit_cards(cards, 4) for cards in must_cards])
 
     print("    score_cards:", [[(card, card2v(card)) for card in cards] for cards in score_cards])
-    print("    score_cards:", [limit_cards(cards, 52) for cards in score_cards])
+    print("    score_cards:", [limit_cards(cards, 15) for cards in score_cards])
 
     print("     hand_cards:", hand_cards)
     print("     hand_cards:", limit_cards(hand_cards, 13))

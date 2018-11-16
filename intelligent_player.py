@@ -17,8 +17,13 @@ from intelligent_mcts import IntelligentMCTS
 from render_tree import get_tree
 
 
-def softmax(x, temp):
-    probs = x / np.sum(x)
+def softmax(x, temp, small_v=1e-16):
+    x = 1.0/temp * np.log(np.array(x) + small_v)
+
+    probs = np.exp(x - np.max(x))
+    probs /= np.sum(probs)
+
+    #probs = x / np.sum(x)
 
     return probs
 

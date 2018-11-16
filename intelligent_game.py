@@ -2,7 +2,7 @@ import copy
 
 from collections import deque
 
-from rules import is_card_valid
+from rules import is_card_valid, is_score_card
 from nn_utils import print_a_memory
 
 from game import Game
@@ -52,7 +52,12 @@ class IntelligentGame(Game):
         for player_idx, cards in self.players[self.current_player_idx].transfer_cards.items():
             must_cards[player_idx] = cards
 
-        score_cards = copy.deepcopy(self._cards_taken)
+        score_cards = [[], [], [], []]
+        for player_idx, cards in enumerate(self._cards_taken):
+            for card in sorted(cards):
+                if is_score_card(card):
+                    score_cards[player_idx].append(card)
+
         remaining_cards = self.players[0].get_remaining_cards(hand_cards)
 
         #valid_cards = self.players[self.current_player_idx].get_valid_cards(hand_cards, self)
