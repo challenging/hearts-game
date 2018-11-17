@@ -1,10 +1,17 @@
 import os
 import sys
 
+import glob
+import shutil
+
+import shlex
+import subprocess
+
 import time
 import pickle
 
 import numpy as np
+import multiprocessing as mp
 
 from random import sample
 from collections import deque
@@ -16,7 +23,6 @@ from rules import evaluate_players
 from intelligent_game import IntelligentGame as Game
 from intelligent_player import IntelligentPlayer
 from new_simple_player import NewSimplePlayer
-from new_simulated_player import MonteCarloPlayer7
 
 from nn import PolicyValueNet
 from nn_utils import card2v, v2card, full_cards, limit_cards, print_a_memory
@@ -25,67 +31,88 @@ BASEPATH = "prob"
 BASEPATH_MODEL = os.path.join(BASEPATH, "model")
 BASEPATH_BEST_MODEL = os.path.join(BASEPATH_MODEL, "best")
 BASEPATH_DATA = os.path.join(BASEPATH, "data")
-BASEPATH_LOG = os.path.join("log", "intelligent_player")
+BASEPATH_LOG = os.path.join(BASEPATH, "log")
 
-#policy = PolicyValueNet()
-#policy_value_fn = policy.predict
+
+def run(init_model, c_puct, time, n_games, filepath_out, filepath_log):
+    command_line = "python make_memory.py {} {} {} {} {}".format(\
+        init_model, c_puct, time, n_games, filepath_out, filepath_log)
+
+    args = shlex.split(command_line)
+
+    with open(filepath_log, "w") as in_file:
+        p = subprocess.Popen(args, stdout=in_file)
+        ret = p.communicate()
+
+    return ret
 
 
 class TrainPipeline():
-    def __init__(self, init_model=None):
-        self.policy = PolicyValueNet(init_model)
+    def __init__(self, init_model=None, card_time=0.2, play_batch_size=1):
+        self.init_model = init_model
+
+        self.policy = PolicyValueNet(self.init_model)
         self.policy_value_fn = self.policy.predict
+
+        if self.init_model is None:
+            filepath_model = os.path.join(BASEPATH_MODEL, "init_policy.model")
+            self.policy.save_model(filepath_model)
+
+            self.init_model = filepath_model
+            print("create init model in {}".format(filepath_model))
 
         # training params
         self.learn_rate = 2e-6
         self.lr_multiplier = 1.0  # adaptively adjust the learning rate based on KL
-        self.c_puct = 2**10
+        self.c_puct = 1600
 
         self.buffer_size = 2**16
         self.batch_size = 32  # mini-batch size for training
         self.data_buffer = deque(maxlen=self.buffer_size)
 
-        self.play_batch_size = 16
-        self.epochs = 64  # num of train_steps for each update
-        self.check_freq = 4
+        self.play_batch_size = play_batch_size
+        self.epochs = 256  # num of train_steps for each update
+        self.check_freq = 1
         self.kl_targ = 0.02
 
         self.best_score = sys.maxsize
+
+        self.card_time = card_time
         self.pure_mcts_simulation_time_limit = 1
-        # num of simulations used for the pure mcts, which is used as
-        # the opponent to evaluate the trained policy
-
-        players = [IntelligentPlayer(self.policy_value_fn, c_puct=self.c_puct, is_self_play=True, verbose=(True if player_idx>-1 else False)) for player_idx in range(4)]
-
-        self.game = Game(players, simulation_time_limit=2.5, verbose=True)
 
 
     def collect_selfplay_data(self, n_games, game_idx):
-        """collect self-play data for training"""
+        global BASEPATH_DATA, BASEPATH_LOG
 
-        filepath_out = os.path.join(BASEPATH_LOG, "game.{}.log".format(game_idx))
-        self.game.out_file = open(filepath_out, "w")
+        row_number = int(time.time())
+        filepath_data = os.path.join(BASEPATH_DATA, "{:04d}".format(game_idx), "{}.{}.pkl".format(row_number, "{:02d}"))
+        filepath_log = os.path.join(BASEPATH_LOG, "{:04d}".format(game_idx), "{}.{}.log".format(row_number, "{:02d}"))
 
-        for i in range(n_games):
-            stime = time.time()
+        folder = os.path.dirname(filepath_log)
+        if os.path.exists(folder):
+            shutil.rmtree(folder)
+        os.makedirs(folder)
 
-            self.game.pass_cards(i%4)
-            self.game.play()
-            self.game.score()
+        cpu_count = 3
 
-            play_data = self.game.get_memory()
-            self.data_buffer.extend(play_data)
-            self.episode_len = len(play_data)
+        pool = mp.Pool(processes=cpu_count)
+        mul_result = [pool.apply_async(run, 
+                                       args=(self.init_model, 
+                                             self.c_puct, 
+                                             self.card_time, 
+                                             n_games, 
+                                             filepath_data.format(idx), 
+                                             filepath_log.format(idx))) for idx in range(cpu_count)]
+        results = [res.get() for res in mul_result]
 
-            self.game.reset()
+        for filepath_in in glob.glob(os.path.join(BASEPATH_DATA, "{:04d}".format(game_idx), "*.pkl")):
+            with open(filepath_in, "rb") as in_file:
+                data_buffer = pickle.load(in_file)
+                print("collect {} memory from {}".format(len(data_buffer), filepath_in))
 
-            print("cost {:.4f} seconds, training game: {:3d}".format(time.time()-stime, i+1))
+                self.data_buffer.extend(data_buffer)
 
-        filepath_in = os.path.join(BASEPATH_DATA, str(time.time()*1000)+".pkl")
-        with open(filepath_in, "wb") as in_file:
-            pickle.dump(self.data_buffer, in_file)
-
-        self.game.out_file.close()
+        print("collect {} memory for training".format(len(self.data_buffer)))
 
 
     def policy_update(self):
@@ -119,11 +146,13 @@ class TrainPipeline():
 
                 scores_batch.append(scores)
 
+            """
             old_probs, old_v = self.policy.policy_value(\
                 remaining_batch, trick_batch, \
                 must_batch_1, must_batch_2, must_batch_3, must_batch_4, \
                 scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4, \
                 hand_batch, valid_batch, expose_batch)
+            """
 
             loss, policy_loss, value_loss = self.policy.train_step(
                     remaining_batch, trick_batch, \
@@ -136,20 +165,21 @@ class TrainPipeline():
             print("epoch: {:3d}/{:3d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}".format(\
                 i+1, self.epochs, policy_loss, value_loss, loss))
 
+            """
             new_probs, new_v = self.policy.policy_value(\
                 remaining_batch, trick_batch, \
                 must_batch_1, must_batch_2, must_batch_3, must_batch_4, \
                 scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4, \
                 hand_batch, valid_batch, expose_batch)
 
-            #kl = np.mean(np.sum(old_probs * (
-            #        np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)),
-            #        axis=1))
+            kl = np.mean(np.sum(old_probs * (
+                    np.log(old_probs + 1e-10) - np.log(new_probs + 1e-10)),
+                    axis=1))
 
-            #if kl > self.kl_targ * 4:  # early stopping if D_KL diverges badly
-            #    break
+            if kl > self.kl_targ * 4:  # early stopping if D_KL diverges badly
+                break
+            """
 
-        # adaptively adjust the learning rate
         """
         if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
             self.lr_multiplier /= 1.5
@@ -157,19 +187,24 @@ class TrainPipeline():
             self.lr_multiplier *= 1.5
         """
 
-        print(("learning_rate: {:.8f}, lr_multiplier:{:.8f}").format(self.learn_rate, self.lr_multiplier))
+        print("kl: {:8f}, learning_rate: {:.8f}, lr_multiplier:{:.8f}".format(\
+            0, self.learn_rate, self.lr_multiplier))
 
         return loss, policy_loss, value_loss
 
 
     def policy_evaluate(self, game_idx, n_games=1):
+        global BASEPATH_LOG
+
         filepath_in = os.path.join(BASEPATH_LOG, "evaluation.{}.log".format(game_idx))
         out_file = open(filepath_in, "w")
 
         current_mcts_player = IntelligentPlayer(self.policy_value_fn, self.c_puct, is_self_play=False, verbose=True)
         players = [NewSimplePlayer(verbose=False) for _ in range(3)] + [current_mcts_player]
 
-        setting_cards = read_card_games("game/game_0008/02/game_1541503661.pkl")
+        #setting_cards = read_card_games("game/game_0004/02/game_1541503661.pkl")
+        setting_cards = read_card_games("game/game_0001/01/game_1542415443.pkl")
+
         final_scores, proactive_moon_scores, shooting_moon_scores = \
             evaluate_players(n_games, players, setting_cards, verbose=True, out_file=out_file)
 
@@ -188,8 +223,7 @@ class TrainPipeline():
             for i in range(game_batch_num):
                 self.collect_selfplay_data(self.play_batch_size, i+1)
 
-                print("batch i: {}, episode_len: {}, memory_size: {}".format(\
-                    i+1, self.episode_len, len(self.data_buffer)))
+                print("batch i: {}, memory_size: {}".format(i+1, len(self.data_buffer)))
 
                 #for played_data in self.data_buffer:
                 #    print_a_memory(played_data)
@@ -197,18 +231,24 @@ class TrainPipeline():
                 if len(self.data_buffer) >= self.batch_size:
                     loss, policy_loss, value_loss = self.policy_update()
 
+                    self.data_buffer.clear()
+                    print("clear the self.data_buffer({})".format(len(self.data_buffer)))
+
                 if i%self.check_freq == 0:
                     score = self.policy_evaluate(i+1)
-
                     print("current self-play batch: {}, and score ratio: {:.4f}".format(i+1, score))
 
-                    #self.policy.save_model(os.path.join(BASEPATH_MODEL, 'current_policy.model'))
+                    filepath_model = os.path.join(BASEPATH_MODEL, "current_policy.model")
+                    self.policy.save_model(filepath_model)
                     if score < self.best_score:
                         print("New best policy!!!!!!!!", score, self.best_score)
                         self.best_score = score
 
+                        filepath_model = os.path.join(BASEPATH_BEST_MODEL, "best_policy.model")
+                        self.init_model = filepath_model
+
                         # update the best_policy
-                        #policy.save_model(os.path.join(BASEPATH_BEST_MODEL, 'best_policy.model'))
+                        self.policy.save_model(filepath_model)
                         if score < 1:
                             self.pure_mcts_simulation_time_limit <<= 1
         except KeyboardInterrupt:
@@ -217,18 +257,13 @@ class TrainPipeline():
 
 if __name__ == "__main__":
     num_of_games = int(sys.argv[1])
-    sub_folder = sys.argv[2]
-    model_filepath = sys.argv[3] if len(sys.argv) > 3 else None
+    model_filepath = sys.argv[2] if len(sys.argv) > 2 else None
 
     BASEPATH = "prob"
-    BASEPATH_MODEL = os.path.join(BASEPATH, "model_{}".format(sub_folder))
-    BASEPATH_BEST_MODEL = os.path.join(BASEPATH_MODEL, "best")
-    BASEPATH_DATA = os.path.join(BASEPATH, "data_{}".format(sub_folder))
-    BASEPATH_LOG = os.path.join("log", "intelligent_player_{}".format(sub_folder))
 
     for folder in [BASEPATH_MODEL, BASEPATH_DATA, BASEPATH_LOG]:
         if not os.path.exists(folder):
             os.makedirs(folder)
 
-    training_pipeline = TrainPipeline(model_filepath)
+    training_pipeline = TrainPipeline(model_filepath, 2.5, 1)
     training_pipeline.run(max(num_of_games, 1))

@@ -39,7 +39,7 @@ class IntelligentPlayer(RiderPlayer):
     def reset(self):
         super(RiderPlayer, self).reset()
 
-        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=256*self.num)
+        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=0*self.num)
 
         #self.num += 0.02
 

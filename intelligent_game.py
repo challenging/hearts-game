@@ -1,6 +1,5 @@
+import sys
 import copy
-
-from collections import deque
 
 from rules import is_card_valid, is_score_card
 from nn_utils import print_a_memory
@@ -9,11 +8,9 @@ from game import Game
 
 
 class IntelligentGame(Game):
-    def __init__(self, players, buffer_size=2**15, simulation_time_limit=1, verbose=False):
-        super(IntelligentGame, self).__init__(players, verbose)
+    def __init__(self, players, buffer_size=2**15, simulation_time_limit=1, verbose=False, out_file=sys.stdout):
+        super(IntelligentGame, self).__init__(players, verbose, out_file=out_file)
 
-        self._short_memory = []
-        self._memory = deque(maxlen=buffer_size)
         self.simulation_time_limit = simulation_time_limit
 
 
@@ -24,7 +21,7 @@ class IntelligentGame(Game):
 
 
     def get_memory(self):
-        return self._memory
+        return self._short_memory
 
 
     def step(self, played_card=None):
@@ -63,7 +60,15 @@ class IntelligentGame(Game):
         #valid_cards = self.players[self.current_player_idx].get_valid_cards(hand_cards, self)
         expose_info = [2 if player.expose else 1 for player in self.players]
 
-        self._short_memory.append([remaining_cards[:], self.trick[:], must_cards, score_cards, hand_cards[:], valid_cards, expose_info, probs, self.current_player_idx])
+        self._short_memory.append([remaining_cards[:], 
+                                  self.trick[:], 
+                                  must_cards, 
+                                  score_cards, 
+                                  hand_cards[:], 
+                                  valid_cards, 
+                                  expose_info, 
+                                  probs, 
+                                  self.current_player_idx])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
@@ -85,7 +90,3 @@ class IntelligentGame(Game):
 
             for idx, memory in enumerate(self._short_memory):
                 self._short_memory[idx][-1] = scores
-
-            self._memory.extend(self._short_memory)
-
-            self._short_memory = []

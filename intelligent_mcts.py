@@ -11,7 +11,7 @@ class IntelligentTreeNode(TreeNode):
 
 
 class IntelligentMCTS(MCTS):
-    def __init__(self, policy_value_fn, self_player_idx, c_puct=5, min_times=256):
+    def __init__(self, policy_value_fn, self_player_idx, c_puct=5, min_times=0):
         super(IntelligentMCTS, self).__init__(policy_value_fn, self_player_idx, c_puct, min_times)
 
 

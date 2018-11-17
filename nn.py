@@ -78,14 +78,13 @@ class PolicyValueNet(object):
                                   hand_cards_flat, \
                                   valid_cards_flat, \
                                   self.expose_info], axis=1, name="concat_input")
-        #concat_input = tf.concat([remaining_cards_flat, trick_cards_flat], axis=1, name="concat_input")
 
 
         # 2. Common Networks Layers
-        input1 = tf.layers.dense(concat_input, units=1024, activation=tf.nn.relu)
-        input2 = tf.layers.dense(input1, units=512, activation=tf.nn.relu)
-        input3 = tf.layers.dense(input2, units=128, activation=tf.nn.relu)
-        input4 = tf.layers.dense(input3, units=32, activation=tf.nn.relu)
+        input1 = tf.layers.dense(concat_input, units=2048, activation=tf.nn.relu)
+        input2 = tf.layers.dense(input1, units=1024, activation=tf.nn.relu)
+        input3 = tf.layers.dense(input2, units=256, activation=tf.nn.relu)
+        input4 = tf.layers.dense(input3, units=64, activation=tf.nn.relu)
 
         # 3. Policy Networks
         self.action_fc = tf.layers.dense(inputs=input4, units=13, activation=tf.nn.log_softmax)
@@ -95,14 +94,12 @@ class PolicyValueNet(object):
         self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=4, activation=tf.nn.relu)
 
         # Define the Loss function
-        # 1. Label: the array containing if the game wins or not for each state
-        # 2. Predictions: the array containing the evaluation score of each state
-        # which is self.evaluation_fc2
-        # 3-1. Value Loss function
+        # 4-1. Value Loss function
         self.value_loss = tf.losses.mean_squared_error(self.score, self.evaluation_fc2)
 
+        # 4-2. Policy Loss function
         #self.policy_loss = tf.reduce_mean(tf.reduce_sum(tf.abs(tf.subtract(self.probs, self.action_fc)), 1))
-        self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))*64
+        self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))
 
         # 3-3. L2 penalty (regularization)
         l2_penalty_beta = 1e-4
@@ -111,15 +108,10 @@ class PolicyValueNet(object):
         # 3-4 Add up to be the Loss function
         self.loss = self.value_loss + l2_penalty + self.policy_loss
 
-        self.optimizer = tf.train.AdamOptimizer(
-                learning_rate=self.learning_rate).minimize(self.loss)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss)
 
         # Make a session
         self.session = tf.Session()
-
-        # calc policy entropy, for monitoring only
-        #self.entropy = tf.negative(tf.reduce_mean(
-        #        tf.reduce_sum(tf.exp(self.action_fc) * self.action_fc, 1)))
 
         # Initialize variables
         init = tf.global_variables_initializer()
@@ -128,7 +120,9 @@ class PolicyValueNet(object):
         # For saving and restoring
         self.saver = tf.train.Saver()
         if model_file is not None:
+            print("start to restore model from {}".format(model_file),)
             self.restore_model(model_file)
+            print("done")
 
 
     def policy_value(self, remaining_cards, trick_cards, \
@@ -212,3 +206,7 @@ class PolicyValueNet(object):
 
     def restore_model(self, model_path):
         self.saver.restore(self.session, model_path)
+
+
+    def close(self):
+        self.session.close()

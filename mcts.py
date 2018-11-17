@@ -198,7 +198,6 @@ class MCTS(object):
                 ratio[0] += 1
             except Exception as e:
                 ratio[1] += 1
-                raise
 
             if time.time()-stime > simulation_time_limit:
                 shooter = None

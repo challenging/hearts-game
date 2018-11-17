@@ -318,8 +318,9 @@ def get_remaining_cards(trick_nr, init_trick, score_cards):
 
 
 if __name__ == "__main__":
-    num_of_games = int(sys.argv[1])
-    filepath_in = "game/game_{:04d}/{}/game_{}.pkl".format(num_of_games, sys.argv[2], int(time.time()))
+    num_of_games, sub_folder = int(sys.argv[1]), int(sys.argv[2])
+    filepath_in = "game/game_{:04d}/{:02d}/game_{}.pkl".format(\
+        num_of_games, sub_folder, int(time.time()))
 
     if not os.path.exists(os.path.dirname(filepath_in)):
         os.makedirs(os.path.dirname(filepath_in))
