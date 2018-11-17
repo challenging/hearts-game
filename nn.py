@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import tensorflow as tf
 
@@ -65,41 +67,45 @@ class PolicyValueNet(object):
         self.valid_cards_embed = tf.nn.embedding_lookup(cards_embeddings, self.valid_cards)
         valid_cards_flat = tf.reshape(self.valid_cards_embed, [-1, 13*size_embed])
 
-        concat_input = tf.concat([remaining_cards_flat, \
-                                  trick_cards_flat, \
-                                  must_cards_flat_1, \
-                                  must_cards_flat_2, \
-                                  must_cards_flat_3, \
-                                  must_cards_flat_4, \
-                                  score_cards_flat_1, \
-                                  score_cards_flat_2, \
-                                  score_cards_flat_3, \
-                                  score_cards_flat_4, \
-                                  hand_cards_flat, \
-                                  valid_cards_flat, \
-                                  self.expose_info], axis=1, name="concat_input")
+        concat_action_input = tf.concat([remaining_cards_flat, \
+                                         trick_cards_flat, \
+                                         must_cards_flat_1, \
+                                         must_cards_flat_2, \
+                                         must_cards_flat_3, \
+                                         must_cards_flat_4, \
+                                         hand_cards_flat, \
+                                         valid_cards_flat], axis=1, name="concat_action_input")
 
 
         # 2. Common Networks Layers
-        input1 = tf.layers.dense(concat_input, units=2048, activation=tf.nn.relu)
-        input2 = tf.layers.dense(input1, units=1024, activation=tf.nn.relu)
-        input3 = tf.layers.dense(input2, units=256, activation=tf.nn.relu)
-        input4 = tf.layers.dense(input3, units=64, activation=tf.nn.relu)
+        input1 = tf.layers.dense(concat_action_input, units=1024, activation=tf.nn.relu)
+        input2 = tf.layers.dense(input1, units=512, activation=tf.nn.relu)
+        input3 = tf.layers.dense(input2, units=128, activation=tf.nn.relu)
+        input4 = tf.layers.dense(input3, units=32, activation=tf.nn.relu)
 
         # 3. Policy Networks
         self.action_fc = tf.layers.dense(inputs=input4, units=13, activation=tf.nn.log_softmax)
+        self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))*64
 
         # 4 Value Networks
-        self.evaluation_fc1 = tf.layers.dense(inputs=input4, units=16, activation=tf.nn.relu)
-        self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=4, activation=tf.nn.relu)
+        input5 = tf.concat([input4,
+                            score_cards_flat_1, \
+                            score_cards_flat_2, \
+                            score_cards_flat_3, \
+                            score_cards_flat_4,
+                            self.expose_info], axis=1, name="concat_value_input")
 
-        # Define the Loss function
-        # 4-1. Value Loss function
+        input6 = tf.layers.dense(input5, units=1024, activation=tf.nn.relu)
+        input7 = tf.layers.dense(input6, units=512, activation=tf.nn.relu)
+        input8 = tf.layers.dense(input7, units=128, activation=tf.nn.relu)
+        input9 = tf.layers.dense(input8, units=32, activation=tf.nn.relu)
+
+        self.evaluation_fc1 = tf.layers.dense(inputs=input9, units=16, activation=tf.nn.relu)
+        self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=4, activation=tf.nn.relu)
         self.value_loss = tf.losses.mean_squared_error(self.score, self.evaluation_fc2)
 
         # 4-2. Policy Loss function
         #self.policy_loss = tf.reduce_mean(tf.reduce_sum(tf.abs(tf.subtract(self.probs, self.action_fc)), 1))
-        self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))
 
         # 3-3. L2 penalty (regularization)
         l2_penalty_beta = 1e-4
@@ -119,7 +125,7 @@ class PolicyValueNet(object):
 
         # For saving and restoring
         self.saver = tf.train.Saver()
-        if model_file is not None:
+        if model_file is not None and os.path.exists(model_file):
             print("start to restore model from {}".format(model_file),)
             self.restore_model(model_file)
             print("done")

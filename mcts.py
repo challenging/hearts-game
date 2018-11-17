@@ -199,6 +199,8 @@ class MCTS(object):
             except Exception as e:
                 ratio[1] += 1
 
+                raise
+
             if time.time()-stime > simulation_time_limit:
                 shooter = None
                 if stats_shoot_the_moon != {}:

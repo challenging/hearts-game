@@ -7,12 +7,13 @@ from intelligent_game import IntelligentGame
 from intelligent_player import IntelligentPlayer
 
 from nn import PolicyValueNet
+from cnn import CNNPolicyValueNet as Net
 
 
 def run(init_model, c_puct, time, n_games, filepath_out):
     data_buffer = []
 
-    policy = PolicyValueNet(init_model)
+    policy = Net(init_model)
     policy_value_fn = policy.predict
 
     players = [IntelligentPlayer(policy_value_fn, c_puct=c_puct, is_self_play=True, verbose=(True if player_idx == 3 else False)) for player_idx in range(4)]

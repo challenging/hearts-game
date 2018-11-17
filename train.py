@@ -1,6 +1,7 @@
 import os
 import sys
 
+import copy
 import glob
 import shutil
 
@@ -25,18 +26,14 @@ from intelligent_player import IntelligentPlayer
 from new_simple_player import NewSimplePlayer
 
 from nn import PolicyValueNet
+from cnn import CNNPolicyValueNet as Net
 from nn_utils import card2v, v2card, full_cards, limit_cards, print_a_memory
 
-BASEPATH = "prob"
-BASEPATH_MODEL = os.path.join(BASEPATH, "model")
-BASEPATH_BEST_MODEL = os.path.join(BASEPATH_MODEL, "best")
-BASEPATH_DATA = os.path.join(BASEPATH, "data")
-BASEPATH_LOG = os.path.join(BASEPATH, "log")
 
-
-def run(init_model, c_puct, time, n_games, filepath_out, filepath_log):
+def run(idx, init_model, c_puct, time, n_games, filepath_out, filepath_log):
     command_line = "python make_memory.py {} {} {} {} {}".format(\
         init_model, c_puct, time, n_games, filepath_out, filepath_log)
+    print("cmd: {}".format(command_line))
 
     args = shlex.split(command_line)
 
@@ -48,14 +45,23 @@ def run(init_model, c_puct, time, n_games, filepath_out, filepath_log):
 
 
 class TrainPipeline():
-    def __init__(self, init_model=None, card_time=0.2, play_batch_size=1):
+    def __init__(self, init_model=None, card_time=0.2, play_batch_size=2):
+        self.basepath = "prob"
+        self.basepath_round = os.path.join(self.basepath, "round_{:04d}")
+        self.basepath_data = os.path.join(self.basepath_round, "data")
+        self.basepath_model = os.path.join(self.basepath_round, "model")
+        self.basepath_log = os.path.join(self.basepath_round, "log")
+
+        if not os.path.exists(self.basepath):
+            os.makedirs(self.basepath)
+
         self.init_model = init_model
 
-        self.policy = PolicyValueNet(self.init_model)
+        self.policy = Net(self.init_model)
         self.policy_value_fn = self.policy.predict
 
         if self.init_model is None:
-            filepath_model = os.path.join(BASEPATH_MODEL, "init_policy.model")
+            filepath_model = os.path.join(self.basepath, "init_policy.model")
             self.policy.save_model(filepath_model)
 
             self.init_model = filepath_model
@@ -81,23 +87,26 @@ class TrainPipeline():
         self.pure_mcts_simulation_time_limit = 1
 
 
-    def collect_selfplay_data(self, n_games, game_idx):
-        global BASEPATH_DATA, BASEPATH_LOG
+    def collect_selfplay_data(self, n_games):
+        self.data_buffer.clear()
+        print("clear the self.data_buffer({})".format(len(self.data_buffer)))
 
         row_number = int(time.time())
-        filepath_data = os.path.join(BASEPATH_DATA, "{:04d}".format(game_idx), "{}.{}.pkl".format(row_number, "{:02d}"))
-        filepath_log = os.path.join(BASEPATH_LOG, "{:04d}".format(game_idx), "{}.{}.log".format(row_number, "{:02d}"))
+        filepath_data = os.path.join(self.basepath_data, "{}.{}.pkl".format(row_number, "{:02d}"))
+        filepath_log = os.path.join(self.basepath_log, "{}.{}.log".format(row_number, "{:02d}"))
 
-        folder = os.path.dirname(filepath_log)
-        if os.path.exists(folder):
-            shutil.rmtree(folder)
-        os.makedirs(folder)
+        for filepath in [filepath_data, filepath_log]:
+            folder = os.path.dirname(filepath_log)
+            if os.path.exists(folder):
+                shutil.rmtree(folder)
+            os.makedirs(folder)
 
-        cpu_count = 3
+        cpu_count = mp.cpu_count()-2
 
         pool = mp.Pool(processes=cpu_count)
         mul_result = [pool.apply_async(run, 
-                                       args=(self.init_model, 
+                                       args=(idx,
+                                             self.init_model, 
                                              self.c_puct, 
                                              self.card_time, 
                                              n_games, 
@@ -105,7 +114,7 @@ class TrainPipeline():
                                              filepath_log.format(idx))) for idx in range(cpu_count)]
         results = [res.get() for res in mul_result]
 
-        for filepath_in in glob.glob(os.path.join(BASEPATH_DATA, "{:04d}".format(game_idx), "*.pkl")):
+        for filepath_in in glob.glob(os.path.join(self.basepath_data, "*.pkl")):
             with open(filepath_in, "rb") as in_file:
                 data_buffer = pickle.load(in_file)
                 print("collect {} memory from {}".format(len(data_buffer), filepath_in))
@@ -193,17 +202,19 @@ class TrainPipeline():
         return loss, policy_loss, value_loss
 
 
-    def policy_evaluate(self, game_idx, n_games=1):
-        global BASEPATH_LOG
+    def policy_evaluate(self, n_games=1):
+        filepath_in = os.path.join(self.basepath_log, "evaluation.log")
+        folder = os.path.dirname(filepath_in)
+        if not os.path.exists(folder):
+            os.makedirs(folder)
 
-        filepath_in = os.path.join(BASEPATH_LOG, "evaluation.{}.log".format(game_idx))
         out_file = open(filepath_in, "w")
 
         current_mcts_player = IntelligentPlayer(self.policy_value_fn, self.c_puct, is_self_play=False, verbose=True)
         players = [NewSimplePlayer(verbose=False) for _ in range(3)] + [current_mcts_player]
 
-        #setting_cards = read_card_games("game/game_0004/02/game_1541503661.pkl")
-        setting_cards = read_card_games("game/game_0001/01/game_1542415443.pkl")
+        setting_cards = read_card_games("game/game_0004/02/game_1541503661.pkl")
+        #setting_cards = read_card_games("game/game_0001/01/game_1542415443.pkl")
 
         final_scores, proactive_moon_scores, shooting_moon_scores = \
             evaluate_players(n_games, players, setting_cards, verbose=True, out_file=out_file)
@@ -215,14 +226,18 @@ class TrainPipeline():
 
         out_file.close()
 
-        return myself_score/others_score
+        return myself_score, others_score
 
 
     def run(self, game_batch_num):
         try:
             for i in range(game_batch_num):
-                self.collect_selfplay_data(self.play_batch_size, i+1)
+                basepath_round = self.basepath_round.format(i+1)
+                self.basepath_data = os.path.join(basepath_round, "data")
+                self.basepath_model = os.path.join(basepath_round, "model")
+                self.basepath_log = os.path.join(basepath_round, "log")
 
+                self.collect_selfplay_data(self.play_batch_size)
                 print("batch i: {}, memory_size: {}".format(i+1, len(self.data_buffer)))
 
                 #for played_data in self.data_buffer:
@@ -231,39 +246,35 @@ class TrainPipeline():
                 if len(self.data_buffer) >= self.batch_size:
                     loss, policy_loss, value_loss = self.policy_update()
 
-                    self.data_buffer.clear()
-                    print("clear the self.data_buffer({})".format(len(self.data_buffer)))
-
                 if i%self.check_freq == 0:
-                    score = self.policy_evaluate(i+1)
-                    print("current self-play batch: {}, and score ratio: {:.4f}".format(i+1, score))
+                    myself_score, others_score = self.policy_evaluate()
+                    print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
+                        i+1, myself_score, others_score))
 
-                    filepath_model = os.path.join(BASEPATH_MODEL, "current_policy.model")
+                    filepath_model = os.path.join(self.basepath_model, "current_policy.model")
+                    folder = os.path.dirname(filepath_model)
+                    if not os.path.exists(folder):
+                        os.makedirs(folder)
+
+                    self.init_model = filepath_model
+
                     self.policy.save_model(filepath_model)
-                    if score < self.best_score:
-                        print("New best policy!!!!!!!!", score, self.best_score)
-                        self.best_score = score
+                    if myself_score <= self.best_score:
+                        self.best_score = myself_score
 
-                        filepath_model = os.path.join(BASEPATH_BEST_MODEL, "best_policy.model")
-                        self.init_model = filepath_model
+                        filepath_model = os.path.join(self.basepath_model, "best_policy.model")
 
-                        # update the best_policy
                         self.policy.save_model(filepath_model)
-                        if score < 1:
-                            self.pure_mcts_simulation_time_limit <<= 1
+                        if myself_score/others_score < 1: self.pure_mcts_simulation_time_limit <<= 1
         except KeyboardInterrupt:
             print('\nquit')
 
 
 if __name__ == "__main__":
     num_of_games = int(sys.argv[1])
-    model_filepath = sys.argv[2] if len(sys.argv) > 2 else None
+    simulated_time = float(sys.argv[2])
+    played_batch = int(sys.argv[3])
+    model_filepath = sys.argv[4] if len(sys.argv) > 4 else None
 
-    BASEPATH = "prob"
-
-    for folder in [BASEPATH_MODEL, BASEPATH_DATA, BASEPATH_LOG]:
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-
-    training_pipeline = TrainPipeline(model_filepath, 2.5, 1)
+    training_pipeline = TrainPipeline(model_filepath, simulated_time, played_batch)
     training_pipeline.run(max(num_of_games, 1))
