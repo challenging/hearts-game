@@ -1,6 +1,7 @@
 import sys
 import copy
 
+from nn_utils import SCORE_SCALAR
 from rules import is_card_valid, is_score_card
 from nn_utils import print_a_memory
 
@@ -86,7 +87,7 @@ class IntelligentGame(Game):
 
         if self.trick_nr == 13:
             self.score()
-            scores = [score/312 for score in self.player_scores]
+            scores = [score/SCORE_SCALAR for score in self.player_scores]
 
             for idx, memory in enumerate(self._short_memory):
                 self._short_memory[idx][-1] = scores

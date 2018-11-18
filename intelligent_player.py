@@ -18,7 +18,7 @@ from render_tree import get_tree
 
 
 def softmax(x, temp, small_v=1e-16):
-    x = 1.0/temp * np.log(np.array(x) + small_v)
+    x = 1.0/temp * np.log(np.array(x)+small_v)
 
     probs = np.exp(x - np.max(x))
     probs /= np.sum(probs)
@@ -129,7 +129,7 @@ class IntelligentPlayer(RiderPlayer):
         else:
             move, scenario = None, None
             if valid_cards:
-                move = np.random.choice(valid_cards, p=valid_probs)
+                move = valid_cards[np.argmax(valid_probs)]
                 scenario = "1"
             else:
                 move = np.random.choice(vcards)

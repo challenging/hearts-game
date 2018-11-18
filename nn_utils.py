@@ -5,6 +5,8 @@ from card import NUM_TO_INDEX, SUIT_TO_INDEX
 from card import bitmask_to_card, batch_bitmask_to_card
 
 
+SCORE_SCALAR = 52
+
 NONE_CARD_INDEX = 0
 
 def card2v(card):

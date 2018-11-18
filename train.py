@@ -78,7 +78,6 @@ class TrainPipeline():
 
         self.play_batch_size = play_batch_size
         self.epochs = n_epoch
-        self.check_freq = 1
         self.kl_targ = 0.02
 
         self.best_score = sys.maxsize
@@ -246,32 +245,30 @@ class TrainPipeline():
                 self.collect_selfplay_data(self.play_batch_size)
                 print("batch i: {}, memory_size: {}".format(i+1, len(self.data_buffer)))
 
-                for played_data in self.data_buffer:
-                    print_a_memory(played_data)
+                #for played_data in self.data_buffer:
+                #    print_a_memory(played_data)
 
-                if len(self.data_buffer) >= self.batch_size:
-                    loss, policy_loss, value_loss = self.policy_update()
+                loss, policy_loss, value_loss = self.policy_update()
 
-                if i%self.check_freq == 0:
-                    myself_score, others_score = self.policy_evaluate()
-                    print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
-                        i+1, myself_score, others_score))
+                myself_score, others_score = self.policy_evaluate()
+                print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
+                    i+1, myself_score, others_score))
 
-                    filepath_model = os.path.join(self.basepath_model, "current_policy.model")
-                    folder = os.path.dirname(filepath_model)
-                    if not os.path.exists(folder):
-                        os.makedirs(folder)
+                filepath_model = os.path.join(self.basepath_model, "current_policy.model")
+                folder = os.path.dirname(filepath_model)
+                if not os.path.exists(folder):
+                    os.makedirs(folder)
 
-                    self.init_model = filepath_model
+                self.init_model = filepath_model
+
+                self.policy.save_model(filepath_model)
+                if myself_score <= self.best_score:
+                    self.best_score = myself_score
+
+                    filepath_model = os.path.join(self.basepath_model, "best_policy.model")
 
                     self.policy.save_model(filepath_model)
-                    if myself_score <= self.best_score:
-                        self.best_score = myself_score
-
-                        filepath_model = os.path.join(self.basepath_model, "best_policy.model")
-
-                        self.policy.save_model(filepath_model)
-                        if myself_score/others_score < 1: self.pure_mcts_simulation_time_limit <<= 1
+                    if myself_score/others_score < 1: self.pure_mcts_simulation_time_limit <<= 1
         except KeyboardInterrupt:
             print('\nquit')
 

@@ -1,7 +1,7 @@
 from card import Deck
 from rules import get_rating
 
-from nn_utils import v2card
+from nn_utils import v2card, SCORE_SCALAR
 from mcts import TreeNode, MCTS, say
 
 
@@ -25,7 +25,7 @@ class IntelligentMCTS(MCTS):
             scores, is_shootthemoon = state.score()
         else:
             bcards, probs, scores = self._policy(trick_nr, state)
-            scores *= 312
+            scores *= SCORE_SCALAR
 
             valid_cards = [v2card(v) for v in bcards if v > 0]
             action_probs = zip([(card.suit.value, 1<<(card.rank.value-2)) for card in valid_cards], probs)

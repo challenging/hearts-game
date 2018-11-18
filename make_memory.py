@@ -22,13 +22,18 @@ def run(init_model, c_puct, time, n_games, filepath_out):
     game = IntelligentGame(players, simulation_time_limit=time, verbose=True)
 
     for i in range(n_games):
-        game.pass_cards(i%4)
-        game.play()
-        game.score()
+        try:
+            game.pass_cards(i%4)
+            game.play()
+            game.score()
 
-        data_buffer.extend(game.get_memory())
+            data_buffer.extend(game.get_memory())
 
-        game.reset()
+            game.reset()
+        except:
+            game = IntelligentGame(players, simulation_time_limit=time, verbose=True)
+
+            game.reset()
 
     policy.close()
 
