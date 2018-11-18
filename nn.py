@@ -101,8 +101,8 @@ class PolicyValueNet(object):
         input9 = tf.layers.dense(input8, units=32, activation=tf.nn.relu)
 
         self.evaluation_fc1 = tf.layers.dense(inputs=input9, units=16, activation=tf.nn.relu)
-        self.evaluation_fc2 = tf.layers.dense(inputs=self.evaluation_fc1, units=4, activation=tf.nn.relu)
-        self.value_loss = tf.losses.mean_squared_error(self.score, self.evaluation_fc2)
+        self.evaluation_fc = tf.layers.dense(inputs=self.evaluation_fc1, units=4, activation=tf.nn.relu)
+        self.value_loss = tf.losses.mean_squared_error(self.score, self.evaluation_fc)
 
         # 4-2. Policy Loss function
         #self.policy_loss = tf.reduce_mean(tf.reduce_sum(tf.abs(tf.subtract(self.probs, self.action_fc)), 1))
@@ -136,7 +136,7 @@ class PolicyValueNet(object):
                      score_cards_1, score_cards_2, score_cards_3, score_cards_4, \
                      hand_cards, valid_cards, expose_info):
 
-        act_probs, value = self.session.run([self.action_fc, self.evaluation_fc2],
+        act_probs, value = self.session.run([self.action_fc, self.evaluation_fc],
                                             feed_dict={self.remaining_cards: remaining_cards,
                                                        self.trick_cards: trick_cards,
                                                        self.must_cards_1: must_cards_1,

@@ -187,7 +187,7 @@ class Game(object):
                 if s > 0:
                     self.player_scores[i] = 0
                 else:
-                    self.player_scores[i] = max_score*4
+                    self.player_scores[i] = (max_score<<2)
         else:
             for i in range(4):
                 self.player_scores[i] = self.count_points(self._cards_taken[i])

@@ -275,7 +275,7 @@ class MCTS(object):
             else:
                 #print("last_move", last_move, self.start_node._children.values(), self.start_node.is_leaf(), self.start_node, self.start_node._parent)
                 self.start_node.expand(None, [(last_move, 1.0)])
-                say("player-{} expands new_node because not found {}", self._self_player_idx, last_move)
+                #say("player-{} expands new_node because not found {}", self._self_player_idx, last_move)
 
                 self.update_with_move(last_move)
 

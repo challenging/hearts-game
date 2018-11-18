@@ -45,7 +45,7 @@ def run(idx, init_model, c_puct, time, n_games, filepath_out, filepath_log):
 
 
 class TrainPipeline():
-    def __init__(self, init_model=None, card_time=0.2, play_batch_size=2):
+    def __init__(self, init_model=None, card_time=0.2, play_batch_size=2, n_epoch=64):
         self.basepath = "prob"
         self.basepath_round = os.path.join(self.basepath, "round_{:04d}")
         self.basepath_data = os.path.join(self.basepath_round, "data")
@@ -77,7 +77,7 @@ class TrainPipeline():
         self.data_buffer = deque(maxlen=self.buffer_size)
 
         self.play_batch_size = play_batch_size
-        self.epochs = 256  # num of train_steps for each update
+        self.epochs = n_epoch
         self.check_freq = 1
         self.kl_targ = 0.02
 
@@ -101,7 +101,7 @@ class TrainPipeline():
                 shutil.rmtree(folder)
             os.makedirs(folder)
 
-        cpu_count = mp.cpu_count()-2
+        cpu_count = mp.cpu_count()
 
         pool = mp.Pool(processes=cpu_count)
         mul_result = [pool.apply_async(run, 
@@ -140,6 +140,13 @@ class TrainPipeline():
                 must_batch_2.append(limit_cards(must[1], 4))
                 must_batch_3.append(limit_cards(must[2], 4))
                 must_batch_4.append(limit_cards(must[3], 4))
+
+                """
+                scards_batch_1.append(full_cards(scards[0]))
+                scards_batch_2.append(full_cards(scards[1]))
+                scards_batch_3.append(full_cards(scards[2]))
+                scards_batch_4.append(full_cards(scards[3]))
+                """
 
                 scards_batch_1.append(limit_cards(scards[0], 15))
                 scards_batch_2.append(limit_cards(scards[1], 15))
@@ -213,8 +220,7 @@ class TrainPipeline():
         current_mcts_player = IntelligentPlayer(self.policy_value_fn, self.c_puct, is_self_play=False, verbose=True)
         players = [NewSimplePlayer(verbose=False) for _ in range(3)] + [current_mcts_player]
 
-        setting_cards = read_card_games("game/game_0004/02/game_1541503661.pkl")
-        #setting_cards = read_card_games("game/game_0001/01/game_1542415443.pkl")
+        setting_cards = read_card_games("game/game_0008/02/game_*.pkl")
 
         final_scores, proactive_moon_scores, shooting_moon_scores = \
             evaluate_players(n_games, players, setting_cards, verbose=True, out_file=out_file)
@@ -240,8 +246,8 @@ class TrainPipeline():
                 self.collect_selfplay_data(self.play_batch_size)
                 print("batch i: {}, memory_size: {}".format(i+1, len(self.data_buffer)))
 
-                #for played_data in self.data_buffer:
-                #    print_a_memory(played_data)
+                for played_data in self.data_buffer:
+                    print_a_memory(played_data)
 
                 if len(self.data_buffer) >= self.batch_size:
                     loss, policy_loss, value_loss = self.policy_update()
@@ -274,7 +280,8 @@ if __name__ == "__main__":
     num_of_games = int(sys.argv[1])
     simulated_time = float(sys.argv[2])
     played_batch = int(sys.argv[3])
-    model_filepath = sys.argv[4] if len(sys.argv) > 4 else None
+    n_epoch = int(sys.argv[4])
+    model_filepath = sys.argv[5] if len(sys.argv) > 5 else None
 
-    training_pipeline = TrainPipeline(model_filepath, simulated_time, played_batch)
+    training_pipeline = TrainPipeline(model_filepath, simulated_time, played_batch, n_epoch)
     training_pipeline.run(max(num_of_games, 1))

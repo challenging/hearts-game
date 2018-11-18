@@ -1,4 +1,6 @@
 import os
+os.environ["CUDA_VISABLE_DEVICES"] = ""
+
 import sys
 
 import pickle

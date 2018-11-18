@@ -25,9 +25,7 @@ class IntelligentMCTS(MCTS):
             scores, is_shootthemoon = state.score()
         else:
             bcards, probs, scores = self._policy(trick_nr, state)
-            #print(bcards)
-            #print(probs)
-            #print()
+            scores *= 312
 
             valid_cards = [v2card(v) for v in bcards if v > 0]
             action_probs = zip([(card.suit.value, 1<<(card.rank.value-2)) for card in valid_cards], probs)
@@ -40,7 +38,7 @@ class IntelligentMCTS(MCTS):
     def reinit_tree_node(self):
         self.start_node = IntelligentTreeNode(None, 1.0, None)
 
-        say("re-init tree node({})", self.start_node)
+        #say("re-init tree node({})", self.start_node)
 
 
     def __str__(self):
