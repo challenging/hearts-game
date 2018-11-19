@@ -85,7 +85,7 @@ class PolicyValueNet(object):
 
         # 3. Policy Networks
         self.action_fc = tf.layers.dense(inputs=input4, units=13, activation=tf.nn.log_softmax)
-        self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))*64
+        self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))
 
         # 4 Value Networks
         input5 = tf.concat([input4,
@@ -95,14 +95,12 @@ class PolicyValueNet(object):
                             score_cards_flat_4,
                             self.expose_info], axis=1, name="concat_value_input")
 
-        input6 = tf.layers.dense(input5, units=1024, activation=tf.nn.relu)
-        input7 = tf.layers.dense(input6, units=512, activation=tf.nn.relu)
-        input8 = tf.layers.dense(input7, units=128, activation=tf.nn.relu)
-        input9 = tf.layers.dense(input8, units=32, activation=tf.nn.relu)
+        input6 = tf.layers.dense(input5, units=256, activation=tf.nn.relu)
+        input7 = tf.layers.dense(input6, units=64, activation=tf.nn.relu)
 
-        self.evaluation_fc1 = tf.layers.dense(inputs=input9, units=16, activation=tf.nn.relu)
+        self.evaluation_fc1 = tf.layers.dense(inputs=input7, units=16, activation=tf.nn.relu)
         self.evaluation_fc = tf.layers.dense(inputs=self.evaluation_fc1, units=4, activation=tf.nn.relu)
-        self.value_loss = tf.losses.mean_squared_error(self.score, self.evaluation_fc)
+        self.value_loss = tf.losses.absolute_difference(self.score, self.evaluation_fc)
 
         # 4-2. Policy Loss function
         #self.policy_loss = tf.reduce_mean(tf.reduce_sum(tf.abs(tf.subtract(self.probs, self.action_fc)), 1))

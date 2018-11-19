@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import os
 os.environ["CUDA_VISABLE_DEVICES"] = ""
 
@@ -46,9 +48,12 @@ def run(init_model, c_puct, time, n_games, filepath_out):
 
 
 if __name__ == "__main__":
+    print(sys.argv)
     init_model, c_puct, time, n_games, filepath_out = \
         sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
     print("init_model: {}, c_puct: {}, time: {}, n_game: {}, filepath_out: {}".format(\
         init_model, c_puct, time, n_games, filepath_out))
 
     run(init_model, c_puct, time, n_games, filepath_out)
+
+    sys.exit(0)

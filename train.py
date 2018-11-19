@@ -31,17 +31,14 @@ from nn_utils import card2v, v2card, full_cards, limit_cards, print_a_memory
 
 
 def run(idx, init_model, c_puct, time, n_games, filepath_out, filepath_log):
-    command_line = "python make_memory.py {} {} {} {} {}".format(\
+    command_line = "./make_memory.py {} {} {} {} {}".format(\
         init_model, c_puct, time, n_games, filepath_out, filepath_log)
     print("cmd: {}".format(command_line))
 
     args = shlex.split(command_line)
 
     with open(filepath_log, "w") as in_file:
-        p = subprocess.Popen(args, stdout=in_file)
-        ret = p.communicate()
-
-    return ret
+        subprocess.check_call(args, stdout=in_file)
 
 
 class TrainPipeline():
@@ -98,6 +95,8 @@ class TrainPipeline():
             folder = os.path.dirname(filepath_log)
             if os.path.exists(folder):
                 shutil.rmtree(folder)
+                print("remove folder - {}".format(folder))
+
             os.makedirs(folder)
 
         cpu_count = mp.cpu_count()
@@ -119,6 +118,8 @@ class TrainPipeline():
                 print("collect {} memory from {}".format(len(data_buffer), filepath_in))
 
                 self.data_buffer.extend(data_buffer)
+
+        pool.close()
 
         print("collect {} memory for training".format(len(self.data_buffer)))
 
@@ -219,7 +220,7 @@ class TrainPipeline():
         current_mcts_player = IntelligentPlayer(self.policy_value_fn, self.c_puct, is_self_play=False, verbose=True)
         players = [NewSimplePlayer(verbose=False) for _ in range(3)] + [current_mcts_player]
 
-        setting_cards = read_card_games("game/game_0008/02/game_*.pkl")
+        setting_cards = read_card_games("game/game_0002/01/game_*.pkl")
 
         final_scores, proactive_moon_scores, shooting_moon_scores = \
             evaluate_players(n_games, players, setting_cards, verbose=True, out_file=out_file)
@@ -234,9 +235,9 @@ class TrainPipeline():
         return myself_score, others_score
 
 
-    def run(self, game_batch_num):
+    def run(self, game_batch_num, start_idx=0):
         try:
-            for i in range(game_batch_num):
+            for i in range(start_idx, game_batch_num):
                 basepath_round = self.basepath_round.format(i+1)
                 self.basepath_data = os.path.join(basepath_round, "data")
                 self.basepath_model = os.path.join(basepath_round, "model")
@@ -265,20 +266,27 @@ class TrainPipeline():
                 if myself_score <= self.best_score:
                     self.best_score = myself_score
 
-                    filepath_model = os.path.join(self.basepath_model, "best_policy.model")
+                    filepath_model = os.path.join(self.basepath, "best_policy.model")
 
                     self.policy.save_model(filepath_model)
-                    if myself_score/others_score < 1: self.pure_mcts_simulation_time_limit <<= 1
+                    if myself_score/others_score < 1:
+                        self.pure_mcts_simulation_time_limit <<= 1
         except KeyboardInterrupt:
             print('\nquit')
 
 
 if __name__ == "__main__":
+    model_filepath = os.path.join("prob", "best_policy.model.meta")
+    if not os.path.exists(model_filepath):
+        model_filepath = None
+
+    round_idx = 0
+    print("set model_filepath={}, round_idx={}".format(model_filepath, round_idx))
+
     num_of_games = int(sys.argv[1])
     simulated_time = float(sys.argv[2])
     played_batch = int(sys.argv[3])
     n_epoch = int(sys.argv[4])
-    model_filepath = sys.argv[5] if len(sys.argv) > 5 else None
 
     training_pipeline = TrainPipeline(model_filepath, simulated_time, played_batch, n_epoch)
-    training_pipeline.run(max(num_of_games, 1))
+    training_pipeline.run(max(num_of_games, 1), round_idx)

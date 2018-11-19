@@ -88,6 +88,7 @@ class IntelligentGame(Game):
         if self.trick_nr == 13:
             self.score()
             scores = [score/SCORE_SCALAR for score in self.player_scores]
+            print("final scalar scores", scores)
 
             for idx, memory in enumerate(self._short_memory):
                 self._short_memory[idx][-1] = scores

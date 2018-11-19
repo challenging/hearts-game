@@ -151,6 +151,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
                     game._player_hands = copy.deepcopy(cards)
 
+                    """
                     if passing_direction == 0:
                         print("pass cards to left-side")
                     elif passing_direction == 1:
@@ -159,6 +160,7 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                         print("pass cards to right-side")
                     else:
                         print("no passing cards")
+                    """
 
                     before_info = []
                     for player_idx in range(4):
@@ -176,10 +178,10 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                             game.expose_heart_ace = is_exposed
 
                             if game.expose_heart_ace:
-                                print("Player-{} exposes HEARTS ACE".format(player_idx))
+                                out_file.write("Player-{} exposes HEARTS ACE\n".format(player_idx))
 
                     for player_idx, (before_cards, after_cards) in enumerate(zip(before_info, after_info)):
-                        print("Player-{}'s init_cards: {} to {}".format(player_idx, before_cards, after_cards))
+                        out_file.write("Player-{}'s init_cards: {} to {}\n".format(player_idx, before_cards, after_cards))
 
                     for player_idx in range(4):
                         if hasattr(game, "evaluate_proactive_mode"):
