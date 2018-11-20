@@ -10,7 +10,6 @@ import pickle
 from intelligent_game import IntelligentGame
 from intelligent_player import IntelligentPlayer
 
-from nn import PolicyValueNet
 from cnn import CNNPolicyValueNet as Net
 
 
@@ -23,6 +22,7 @@ def run(init_model, c_puct, time, n_games, filepath_out):
     players = [IntelligentPlayer(policy_value_fn, c_puct=c_puct, is_self_play=True, verbose=(True if player_idx == 3 else False)) for player_idx in range(4)]
     game = IntelligentGame(players, simulation_time_limit=time, verbose=True)
 
+    count_s, count_f = 0, 0
     for i in range(n_games):
         try:
             game.pass_cards(i%4)
@@ -32,11 +32,16 @@ def run(init_model, c_puct, time, n_games, filepath_out):
             data_buffer.extend(game.get_memory())
 
             game.reset()
-        except:
+
+            count_s += 1
+        except Exception as e:
             game = IntelligentGame(players, simulation_time_limit=time, verbose=True)
 
             game.reset()
 
+            count_f += 1
+
+    sys.stderr.write("count_s, count_f = {}, {}\n".format(count_s, count_f))
     policy.close()
 
     folder = os.path.dirname(filepath_out)

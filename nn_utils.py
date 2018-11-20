@@ -148,13 +148,13 @@ def transform_game_info_to_nn(state, trick_nr):
     a_memory.append(expose_info)
 
     #print_a_memory(a_memory)
+    # limit_cards(must_cards[0], 4), limit_cards(must_cards[1], 4), limit_cards(must_cards[2], 4), limit_cards(must_cards[3], 4), \
     # limit_cards(score_cards[0], 15), limit_cards(score_cards[1], 15), limit_cards(score_cards[2], 15), limit_cards(score_cards[3], 15), \ 
-    # full_cards(score_cards[0]), full_cards(score_cards[1]), full_cards(score_cards[2]), full_cards(score_cards[3]), \
 
     return full_cards(remaining_cards), \
            limit_cards(trick_cards, 3), \
-           limit_cards(must_cards[0], 4), limit_cards(must_cards[1], 4), limit_cards(must_cards[2], 4), limit_cards(must_cards[3], 4), \
-           limit_cards(score_cards[0], 15), limit_cards(score_cards[1], 15), limit_cards(score_cards[2], 15), limit_cards(score_cards[3], 15), \
+           [limit_cards(must_cards[0], 4), limit_cards(must_cards[1], 4), limit_cards(must_cards[2], 4), limit_cards(must_cards[3], 4)], \
+           [limit_cards(score_cards[0], 15), limit_cards(score_cards[1], 15), limit_cards(score_cards[2], 15), limit_cards(score_cards[3], 15)], \
            limit_cards(hand_cards, 13), limit_cards(valid_cards, 13), expose_info
 
 

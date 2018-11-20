@@ -12,14 +12,21 @@ class CNNPolicyValueNet(PolicyValueNet):
         # 1. input:
         self.remaining_cards = tf.placeholder(tf.int32, shape=[None, 52], name="remaining_cards")
         self.trick_cards = tf.placeholder(tf.int32, shape=[None, 3], name="trick_cards")
+        """
         self.must_cards_1 = tf.placeholder(tf.int32, shape=[None, 4], name="must_cards_1")
         self.must_cards_2 = tf.placeholder(tf.int32, shape=[None, 4], name="must_cards_2")
         self.must_cards_3 = tf.placeholder(tf.int32, shape=[None, 4], name="must_cards_3")
         self.must_cards_4 = tf.placeholder(tf.int32, shape=[None, 4], name="must_cards_4")
+        """
+        self.must_cards = tf.placeholder(tf.int32, shape=[None, 4, 4], name="must_cards")
+        """
         self.score_cards_1 = tf.placeholder(tf.int32, shape=[None, size_score_card], name="score_cards_1")
         self.score_cards_2 = tf.placeholder(tf.int32, shape=[None, size_score_card], name="score_cards_2")
         self.score_cards_3 = tf.placeholder(tf.int32, shape=[None, size_score_card], name="score_cards_3")
         self.score_cards_4 = tf.placeholder(tf.int32, shape=[None, size_score_card], name="score_cards_4")
+        """
+        self.score_cards = tf.placeholder(tf.int32, shape=[None, 4, size_score_card], name="score_cards")
+
         self.hand_cards = tf.placeholder(tf.int32, shape=[None, 13], name="hand_cards")
         self.valid_cards = tf.placeholder(tf.int32, shape=[None, 13], name="valid_cards")
         self.expose_info = tf.placeholder(tf.float32, shape=[None, 4], name="expose_info")
@@ -65,23 +72,13 @@ class CNNPolicyValueNet(PolicyValueNet):
         remaining_flat = tf.reshape(remaining_conv, [-1, 4*52*size_embed], name="reshape_remaining")
 
         """
-        remaining_fd1 = tf.layers.dense(inputs=remaining_flat,
-                                        units=1024,
-                                        activation=tf.nn.relu)
-        remaining_fd2 = tf.layers.dense(inputs=remaining_fd1,
-                                        units=256,
-                                        activation=tf.nn.relu)
-        remaining_fd = tf.layers.dense(inputs=remaining_fd2,
-                                        units=64,
-                                        activation=tf.nn.relu)
-        """
-
-
         must_embed_1 = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.must_cards_1), [-1, 4, size_embed, 1], name="reshape_must1")
         must_embed_2 = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.must_cards_2), [-1, 4, size_embed, 1], name="reshape_must2")
         must_embed_3 = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.must_cards_3), [-1, 4, size_embed, 1], name="reshape_must3")
         must_embed_4 = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.must_cards_4), [-1, 4, size_embed, 1], name="reshape_must4")
         concat_must = tf.concat([must_embed_1, must_embed_2, must_embed_3, must_embed_4], axis=3, name="concat_must")
+        """
+        concat_must = tf.nn.embedding_lookup(cards_embeddings, self.must_cards)
 
         def conv2d(name, input, size):
             conv1 = tf.layers.conv2d(inputs=input,
@@ -105,30 +102,27 @@ class CNNPolicyValueNet(PolicyValueNet):
                                     data_format="channels_last",
                                     activation=tf.nn.relu)
 
-            return tf.reshape(conv, [-1, 4*size*size_embed], name="reshape_{}".format(name))
+            return tf.reshape(conv, [-1, int(4*size*size_embed)], name="reshape_{}".format(name))
 
-        must_flat = conv2d("must", concat_must, 4)
-        #must_fd = tf.layers.dense(inputs=must_flat, units=64, activation=tf.nn.relu)
+        must_flat = conv2d("must", concat_must, 0.5)
 
         trick_embed = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.trick_cards), [-1, 3, size_embed, 1])
         trick_flat = conv2d("trick", trick_embed, 3*1)
-        #trick_fd = tf.layers.dense(inputs=trick_flat, units=64, activation=tf.nn.relu)
 
         hand_embed = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.hand_cards), [-1, 13, size_embed, 1])
         hand_flat = conv2d("hand", hand_embed, 13*1)
-        #hand_fd1 = tf.layers.dense(inputs=hand_flat, units=256, activation=tf.nn.relu)
-        #hand_fd = tf.layers.dense(inputs=hand_fd1, units=64, activation=tf.nn.relu)
 
         valid_embed = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.valid_cards), [-1, 13, size_embed, 1])
         valid_flat = conv2d("valid", valid_embed, 13*1)
-        #valid_fd1 = tf.layers.dense(inputs=valid_flat, units=256, activation=tf.nn.relu)
-        #valid_fd = tf.layers.dense(inputs=valid_fd1, units=64, activation=tf.nn.relu)
 
+        """
         score_embed_1 = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.score_cards_1), [-1, size_score_card, size_embed, 1])
         score_embed_2 = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.score_cards_2), [-1, size_score_card, size_embed, 1])
         score_embed_3 = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.score_cards_3), [-1, size_score_card, size_embed, 1])
         score_embed_4 = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.score_cards_4), [-1, size_score_card, size_embed, 1])
         concat_score = tf.concat([score_embed_1, score_embed_2, score_embed_3, score_embed_4], axis=3, name="concat_score")
+        """
+        concat_score = tf.nn.embedding_lookup(cards_embeddings, self.score_cards)
 
         score_conv1 = tf.layers.conv2d(inputs=concat_score,
                                        filters=8,
@@ -158,10 +152,7 @@ class CNNPolicyValueNet(PolicyValueNet):
                                       data_format="channels_last",
                                       activation=tf.nn.relu)
 
-        score_flat = tf.reshape(score_conv, [-1, 4*size_score_card*size_embed], name="reshape_score")
-        #score_fd1 = tf.layers.dense(score_flat, units=1024, activation=tf.nn.relu)
-        #score_fd2 = tf.layers.dense(score_fd1, units=256, activation=tf.nn.relu)
-        #score_fd = tf.layers.dense(score_fd2, units=64, activation=tf.nn.relu)
+        score_flat = tf.reshape(score_conv, [-1, 4*4*15], name="reshape_score")
 
         concat_action_input = tf.concat([remaining_flat, 
                                          must_flat, 
@@ -180,14 +171,13 @@ class CNNPolicyValueNet(PolicyValueNet):
         self.action_fc = tf.layers.dense(inputs=input4, units=13, activation=tf.nn.log_softmax)
         self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))
 
-        concat_value_input = tf.concat([input2,
+        concat_value_input = tf.concat([input3,
                                         score_flat,
                                         self.expose_info],
                                         axis=1,
                                         name="concat_value_input")
 
-        evaluation_fc1 = tf.layers.dense(inputs=concat_value_input, units=2048, activation=tf.nn.relu)
-        evaluation_fc2 = tf.layers.dense(inputs=evaluation_fc1, units=256, activation=tf.nn.relu)
+        evaluation_fc2 = tf.layers.dense(inputs=concat_value_input, units=256, activation=tf.nn.relu)
         evaluation_fc3 = tf.layers.dense(inputs=evaluation_fc2, units=64, activation=tf.nn.relu)
         evaluation_fc4 = tf.layers.dense(inputs=evaluation_fc3, units=16, activation=tf.nn.relu)
         self.evaluation_fc = tf.layers.dense(inputs=evaluation_fc4, units=4, activation=tf.nn.relu)

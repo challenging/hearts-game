@@ -98,6 +98,9 @@ class IntelligentPlayer(RiderPlayer):
                 valid_cards.append(bitmask_to_card(card[0], card[1]))
                 valid_probs.append(n_visits)
 
+                if not self.is_self_play and valid_probs[-1] > 0:
+                    self.say("Player-{}, played card: {}, {} times", self.position, valid_cards[-1], valid_probs[-1])
+
         valid_probs = softmax(valid_probs, temp)
 
         if self.is_self_play:
@@ -109,7 +112,7 @@ class IntelligentPlayer(RiderPlayer):
                 probs.append(n_visits)
 
                 if probs[-1] > 0:
-                    self.say("Player-{}, played card: {}, {} times, ", self.position, cards[-1], probs[-1], value)
+                    self.say("Player-{}, played card: {}, {} times, value={}", self.position, cards[-1], probs[-1], value)
 
             probs = softmax(probs, temp)
 

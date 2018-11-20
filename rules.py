@@ -151,17 +151,6 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
                     game._player_hands = copy.deepcopy(cards)
 
-                    """
-                    if passing_direction == 0:
-                        print("pass cards to left-side")
-                    elif passing_direction == 1:
-                        print("pass cards to cross-side")
-                    elif passing_direction == 2:
-                        print("pass cards to right-side")
-                    else:
-                        print("no passing cards")
-                    """
-
                     before_info = []
                     for player_idx in range(4):
                         before_info.append(cards[player_idx])

@@ -31,8 +31,6 @@ class IntelligentGame(Game):
         if played_card is None:
             played_card, results = self.players[self.current_player_idx].play_card(self, simulation_time_limit=self.simulation_time_limit)
 
-            #self.say("Pick {} card from {} for this trick({})", played_card, hand_cards, self.trick)
-
         if not is_card_valid(hand_cards, self.trick, played_card, self.trick_nr, self.is_heart_broken):
             raise ValueError('{} round - Player {} ({}) played an invalid card {}({}) to the trick {}.'.format(\
                 self.trick_nr, self.current_player_idx, type(self.players[self.current_player_idx]).__name__, played_card, hand_cards, self.trick))
@@ -50,27 +48,37 @@ class IntelligentGame(Game):
         for player_idx, cards in self.players[self.current_player_idx].transfer_cards.items():
             must_cards[player_idx] = cards
 
-        score_cards = [[], [], [], []]
+        void_info, score_cards = [[], [], [], []], [[], [], [], []]
         for player_idx, cards in enumerate(self._cards_taken):
             for card in sorted(cards):
                 if is_score_card(card):
                     score_cards[player_idx].append(card)
 
-        remaining_cards = self.players[0].get_remaining_cards(hand_cards)
+            for sub_player_idx, info in self.players[player_idx].void_info.items():
+                for suit, is_void in sorted(info.items(), key=lambda x: x[0]):
+                    void_info[player_idx].append(is_void)
 
-        #valid_cards = self.players[self.current_player_idx].get_valid_cards(hand_cards, self)
+        self.player_action_pos[self.current_player_idx][self.trick_nr] = len(self.trick)+1
+
+        remaining_cards = self.players[0].get_remaining_cards(hand_cards)
         expose_info = [2 if player.expose else 1 for player in self.players]
 
-        self._short_memory.append([remaining_cards[:], 
-                                  self.trick[:], 
-                                  must_cards, 
-                                  score_cards, 
-                                  hand_cards[:], 
-                                  valid_cards, 
-                                  expose_info, 
-                                  probs, 
+        self._short_memory.append([remaining_cards[:],
+                                  self.trick[:],
+                                  must_cards,
+                                  self._historical_cards,
+                                  score_cards,
+                                  hand_cards[:],
+                                  valid_cards,
+                                  expose_info,
+                                  void_info,
+                                  probs,
+                                  self.trick_nr,
+                                  self.player_action_pos,
+                                  self.player_winning_info,
                                   self.current_player_idx])
 
+        self._historical_cards[self.current_player_idx].append(played_card)
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
 

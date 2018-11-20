@@ -130,21 +130,14 @@ class PolicyValueNet(object):
 
 
     def policy_value(self, remaining_cards, trick_cards, \
-                     must_cards_1, must_cards_2, must_cards_3, must_cards_4, \
-                     score_cards_1, score_cards_2, score_cards_3, score_cards_4, \
+                     must_cards, score_cards,\
                      hand_cards, valid_cards, expose_info):
 
         act_probs, value = self.session.run([self.action_fc, self.evaluation_fc],
                                             feed_dict={self.remaining_cards: remaining_cards,
                                                        self.trick_cards: trick_cards,
-                                                       self.must_cards_1: must_cards_1,
-                                                       self.must_cards_2: must_cards_2,
-                                                       self.must_cards_3: must_cards_3,
-                                                       self.must_cards_4: must_cards_4,
-                                                       self.score_cards_1: score_cards_1,
-                                                       self.score_cards_2: score_cards_2,
-                                                       self.score_cards_3: score_cards_3,
-                                                       self.score_cards_4: score_cards_4,
+                                                       self.must_cards: must_cards,
+                                                       self.score_cards: score_cards,
                                                        self.hand_cards: hand_cards,
                                                        self.valid_cards: valid_cards,
                                                        self.expose_info: expose_info})
@@ -153,47 +146,36 @@ class PolicyValueNet(object):
 
 
     def predict(self, trick_nr, state):
-        remaining_cards, trick_cards, must_cards_1, must_cards_2, must_cards_3, must_cards_4, \
-            score_cards_1, score_cards_2, score_card_3, score_cards_4, hand_cards, valid_cards, expose_info = transform_game_info_to_nn(state, trick_nr)
+        remaining_cards, trick_cards, must_cards, score_cards, hand_cards, valid_cards, expose_info = transform_game_info_to_nn(state, trick_nr)
 
         act_probs, act_values = self.policy_value([remaining_cards], [trick_cards],\
-                                                  [must_cards_1], [must_cards_2], [must_cards_3], [must_cards_4],\
-                                                  [score_cards_1], [score_cards_2], [score_card_3], [score_cards_4],\
+                                                  [must_cards], [score_cards],\
                                                   [hand_cards], [valid_cards], [expose_info])
 
         return valid_cards, act_probs[0], act_values[0]
 
 
     def policy_value_fn(self, remaining_cards, trick_cards, \
-                        must_cards_1, must_cards_2, must_cards_3, must_cards_4, \
-                        score_cards_1, score_cards_2, score_cards_3, score_cards_4, \
+                        must_cards, score_cards,\
                         hadn_cards, valid_cards, expose_info):
 
         act_probs, act_values = self.policy_value(remaining_cards, trick_cards,\
-                                                  must_cards_1, must_cards_2, must_cards_3, must_cards_4,\
-                                                  score_cards_1, score_cards_2, score_card_3, score_cards_4,\
+                                                  must_cards, score_cards,\
                                                   hand_cards, valid_cards, expose_info)
 
         return act_probs, act_values
 
 
     def train_step(self, remaining_cards, trick_cards, \
-                   must_cards_1, must_cards_2, must_cards_3, must_cards_4, \
-                   score_cards_1, score_cards_2, score_cards_3, score_cards_4, \
+                   must_cards, score_cards,\
                    hand_cards, valid_cards, expose_info, probs, score, lr):
 
         loss, policy_loss, value_loss, _ = self.session.run(
                 [self.loss, self.policy_loss, self.value_loss, self.optimizer],
                 feed_dict={self.remaining_cards: remaining_cards,
                            self.trick_cards: trick_cards,
-                           self.must_cards_1: must_cards_1,
-                           self.must_cards_2: must_cards_2,
-                           self.must_cards_3: must_cards_3,
-                           self.must_cards_4: must_cards_4,
-                           self.score_cards_1: score_cards_1,
-                           self.score_cards_2: score_cards_2,
-                           self.score_cards_3: score_cards_3,
-                           self.score_cards_4: score_cards_4,
+                           self.must_cards: must_cards,
+                           self.score_cards: score_cards,
                            self.hand_cards: hand_cards,
                            self.valid_cards: valid_cards,
                            self.expose_info: expose_info,
