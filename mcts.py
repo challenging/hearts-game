@@ -62,7 +62,6 @@ class MCTS(object):
         while not state.is_finished:
             prob_cards = []
             valid_cards = state.get_valid_cards(state.hand_cards[state.start_pos], trick_nr+len(state.tricks)-1)
-            #print("--->", state.start_pos, state.hand_cards[state.start_pos], valid_cards)
 
             is_all_traverse, candicated_cards = True, []
             for suit, ranks in valid_cards.items():
@@ -112,7 +111,6 @@ class MCTS(object):
 
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
         if not state.is_finished:
-            #print("prob_cards", prob_cards, node, node._parent)
             action_probs, _ = self._policy(prob_cards)
             node.expand(state.start_pos, action_probs)
 
@@ -134,6 +132,7 @@ class MCTS(object):
                  valid_cards,
                  remaining_cards,
                  score_cards,
+                 historical_cards,
                  num_hand_cards,
                  init_trick,
                  void_info,
@@ -142,6 +141,7 @@ class MCTS(object):
                  trick_nr,
                  is_heart_broken,
                  expose_info,
+                 winning_info,
                  is_only_played_card=False,
                  simulation_time_limit=TIMEOUT_SECOND-0.1,
                  not_seen=False,
@@ -176,8 +176,10 @@ class MCTS(object):
                               hand_cards=simulation_card,
                               void_info=void_info,
                               score_cards=copy.deepcopy(score_cards),
+                              historical_cards=copy.deepcopy(historical_cards),
                               is_hearts_broken=is_heart_broken,
                               expose_info=expose_info,
+                              winning_info=winning_info,
                               tricks=copy.deepcopy(init_trick),
                               must_have=must_have)
 

@@ -25,8 +25,7 @@ from intelligent_game import IntelligentGame as Game
 from intelligent_player import IntelligentPlayer
 from new_simple_player import NewSimplePlayer
 
-from nn import PolicyValueNet
-from cnn import CNNPolicyValueNet as Net
+from nn import CNNPolicyValueNet as Net
 from nn_utils import card2v, v2card, full_cards, limit_cards, print_a_memory
 
 
@@ -41,7 +40,7 @@ def run(idx, init_model, c_puct, time, n_games, filepath_out, filepath_log):
     args = shlex.split(command_line)
 
     with open(filepath_log, "w") as in_file:
-        subprocess.check_call(args, stdout=in_file)
+        subprocess.check_call(args, stdout=sys.stdout if DEBUG else in_file)
 
 
 class TrainPipeline():
@@ -68,15 +67,15 @@ class TrainPipeline():
             print("create init model in {}".format(filepath_model))
 
         # training params
-        self.learn_rate = 2e-6
-        self.c_puct = 1600
+        self.learning_rate = 2e-6
+        self.c_puct = 256
 
         self.buffer_size = 2**16
-        self.batch_size = 32
+        self.batch_size = 16
         self.data_buffer = deque(maxlen=self.buffer_size)
 
         self.cpu_count = min(mp.cpu_count(), 12)
-        self.epochs = 16
+        self.epochs = 32
 
         self.play_batch_size = int(self.batch_size*self.epochs/52/self.cpu_count)
         print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}".format(\
@@ -91,7 +90,7 @@ class TrainPipeline():
 
     def collect_selfplay_data(self, n_games):
         self.data_buffer.clear()
-        print("clear the self.data_buffer({})".format(len(self.data_buffer)))
+        #print("clear the self.data_buffer({})".format(len(self.data_buffer)))
 
         row_number = int(time.time())
         filepath_data = os.path.join(self.basepath_data, "{}.{}.pkl".format(row_number, "{:02d}"))
@@ -101,7 +100,6 @@ class TrainPipeline():
             folder = os.path.dirname(filepath_log)
             if os.path.exists(folder):
                 shutil.rmtree(folder)
-                print("remove folder - {}".format(folder))
 
             os.makedirs(folder)
 
@@ -130,54 +128,42 @@ class TrainPipeline():
 
     def policy_update(self):
         for i in range(self.epochs):
-            remaining_batch, trick_batch = [], []
-            must_batch, score_batch = [], []
-            #must_batch_1, must_batch_2, must_batch_3, must_batch_4 = [], [], [], []
-            historical_batch_1, historical_batch_2, historical_batch_3, historical_batch_4 = [], [], [], []
-            #scards_batch_1, scards_batch_2, scards_batch_3, scards_batch_4 = [], [], [], []
-            hand_batch, valid_batch, expose_batch = [], [], []
-            void_info_batch, trick_nr_batch, action_pos_batch = [], [], []
-            winning_info_batch, probs_batch, scores_batch = [], [], []
+            remaining_batch = []
+            trick_nr_batch, trick_order_batch, pos_batch, played_order_batch, trick_batch = [], [], [], [], []
+            must_batch, score_batch, historical_batch, hand_batch, valid_batch = [], [], [], [], []
+            expose_batch, void_batch, winning_batch = [], [], []
+            probs_batch, scores_batch = [], []
 
-            for remaining, trick, must, hitory, scards, hand_cards, valid_cards, expose_info, void_info, probs, trick_nr, action_pos, winning_info, scores in sample(self.data_buffer, self.batch_size):
+            samples = sample(self.data_buffer, self.batch_size)
+            for remaining, trick_nr, trick_order, pos, played_order, trick, must, history, scards, hand, valid, expose_info, void_info, winning_info, probs, scores in samples:
                 remaining_batch.append(full_cards(remaining))
+
+                trick_nr_batch.append([trick_nr])
+                trick_order_batch.append(trick_order)
+                pos_batch.append([pos])
+                played_order_batch.append([played_order])
                 trick_batch.append(limit_cards(trick, 3))
 
-                """
-                must_batch_1.append(limit_cards(must[0], 4))
-                must_batch_2.append(limit_cards(must[1], 4))
-                must_batch_3.append(limit_cards(must[2], 4))
-                must_batch_4.append(limit_cards(must[3], 4))
-
-                scards_batch_1.append(limit_cards(scards[0], 15))
-                scards_batch_2.append(limit_cards(scards[1], 15))
-                scards_batch_3.append(limit_cards(scards[2], 15))
-                scards_batch_4.append(limit_cards(scards[3], 15))
-                """
                 must_batch.append([limit_cards(must[0], 4), limit_cards(must[1], 4), limit_cards(must[2], 4), limit_cards(must[3], 4)])
+                historical_batch.append([limit_cards(history[0], 13), limit_cards(history[1], 13), limit_cards(history[2], 13), limit_cards(history[3], 13)])
                 score_batch.append([limit_cards(scards[0], 15), limit_cards(scards[1], 15), limit_cards(scards[2], 15), limit_cards(scards[3], 15)])
-
-                hand_batch.append(limit_cards(hand_cards, 13))
-
-                valid_batch.append(limit_cards(valid_cards, 13))
+                hand_batch.append(limit_cards(hand, 13))
+                valid_batch.append(limit_cards(valid, 13))
 
                 expose_batch.append(expose_info)
+                void_batch.append(void_info)
+                winning_batch.append(winning_info)
 
-                void_info_batch.append(void_info)
-                trick_nr_batch.append(trick_nr)
-                action_pos_batch.append(action_pos)
-                winning_info_batch.append(winning_info)
-
-                probs_batch.append(limit_cards(dict(zip(valid_cards, probs)), 13))
-
+                probs_batch.append(limit_cards(dict(zip(valid, probs)), 13))
                 scores_batch.append(scores)
 
             loss, policy_loss, value_loss = self.policy.train_step(
-                    remaining_batch, trick_batch, \
-                    must_batch, score_batch, \
-                    hand_batch, valid_batch, expose_batch, \
+                    remaining_batch, \
+                    trick_nr_batch, trick_order_batch, pos_batch, played_order_batch, trick_batch, \
+                    must_batch, historical_batch, score_batch, hand_batch, valid_batch, \
+                    expose_batch, void_batch, winning_batch, \
                     probs_batch, scores_batch,\
-                    self.learn_rate)
+                    self.learning_rate)
 
             print("epoch: {:3d}/{:3d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}".format(\
                 i+1, self.epochs, policy_loss, value_loss, loss))
@@ -191,7 +177,10 @@ class TrainPipeline():
         if not os.path.exists(folder):
             os.makedirs(folder)
 
-        out_file = open(filepath_in, "w")
+        if DEBUG:
+            out_file = sys.stdout
+        else:
+            out_file = open(filepath_in, "w")
 
         current_mcts_player = IntelligentPlayer(self.policy_value_fn, self.c_puct_evaluation, is_self_play=False, verbose=True)
         players = [NewSimplePlayer(verbose=False) for _ in range(3)] + [current_mcts_player]
@@ -204,7 +193,8 @@ class TrainPipeline():
         myself_score, others_score = np.mean(final_scores[3]), np.mean(final_scores[:3])
         print("myself_score: {:.4f}, others_score: {:.4f}".format(myself_score, others_score))
 
-        out_file.close()
+        if not DEBUG:
+            out_file.close()
 
         return myself_score, others_score
 
@@ -223,32 +213,35 @@ class TrainPipeline():
                     myself_score, others_score = self.policy_evaluate()
                     print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
                         i+1, myself_score, others_score))
-                else:
-                    self.collect_selfplay_data(self.play_batch_size)
-                    print("batch i: {}, memory_size: {}".format(i+1, len(self.data_buffer)))
 
-                    if DEBUG:
-                        for played_data in self.data_buffer:
-                            print_a_memory(played_data)
+                    continue
 
-                    loss, policy_loss, value_loss = self.policy_update()
+                self.collect_selfplay_data(self.play_batch_size)
+                print("batch i: {}, memory_size: {}".format(i+1, len(self.data_buffer)))
 
-                    myself_score, others_score = self.policy_evaluate()
-                    print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
-                        i+1, myself_score, others_score))
+                if DEBUG:
+                    for played_data in self.data_buffer:
+                        print_a_memory(played_data)
+
+                loss, policy_loss, value_loss = self.policy_update()
+
+                myself_score, others_score = self.policy_evaluate()
+                print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
+                    i+1, myself_score, others_score))
 
                 filepath_model = os.path.join(self.basepath_model, "current_policy.model")
                 folder = os.path.dirname(filepath_model)
                 if not os.path.exists(folder):
                     os.makedirs(folder)
 
-                self.init_model = filepath_model
                 self.policy.save_model(filepath_model)
 
                 if myself_score <= best_score:
                     if best_score != sys.maxsize:
                         filepath_model = os.path.join(self.basepath, "best_policy.model")
                         self.policy.save_model(filepath_model)
+
+                        self.init_model = filepath_model
 
                     best_score = myself_score
 

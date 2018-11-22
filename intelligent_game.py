@@ -1,7 +1,7 @@
 import sys
 import copy
 
-from nn_utils import SCORE_SCALAR
+from nn_utils import SCORE_SCALAR, print_a_memory
 from rules import is_card_valid, is_score_card
 from nn_utils import print_a_memory
 
@@ -54,29 +54,36 @@ class IntelligentGame(Game):
                 if is_score_card(card):
                     score_cards[player_idx].append(card)
 
-            for sub_player_idx, info in self.players[player_idx].void_info.items():
-                for suit, is_void in sorted(info.items(), key=lambda x: x[0]):
-                    void_info[player_idx].append(is_void)
+        for player_idx, info in self.players[self.current_player_idx].void_info.items():
+            for suit, is_void in sorted(info.items(), key=lambda x: x[0]):
+                void_info[player_idx].append(is_void)
 
         self.player_action_pos[self.current_player_idx][self.trick_nr] = len(self.trick)+1
 
         remaining_cards = self.players[0].get_remaining_cards(hand_cards)
         expose_info = [2 if player.expose else 1 for player in self.players]
 
+        leading_idx = (self.players[self.current_player_idx].position+3-len(self.trick)+1)%4
+        trick_order = [(leading_idx+idx)%4 for idx in range(4)]
+
         self._short_memory.append([remaining_cards[:],
-                                  self.trick[:],
-                                  must_cards,
-                                  self._historical_cards,
-                                  score_cards,
-                                  hand_cards[:],
-                                  valid_cards,
-                                  expose_info,
-                                  void_info,
-                                  probs,
-                                  self.trick_nr,
-                                  self.player_action_pos,
-                                  self.player_winning_info,
-                                  self.current_player_idx])
+                                   self.trick_nr,
+                                   trick_order,
+                                   self.players[self.current_player_idx].position,
+                                   self.trick_nr*4+len(self.trick),
+                                   self.trick[:],
+                                   must_cards,
+                                   self._historical_cards,
+                                   score_cards,
+                                   hand_cards[:],
+                                   valid_cards,
+                                   expose_info,
+                                   void_info,
+                                   self.player_winning_info,
+                                   probs,
+                                   self.current_player_idx])
+
+        #print_a_memory(self._short_memory[-1])
 
         self._historical_cards[self.current_player_idx].append(played_card)
         self._player_hands[self.current_player_idx].remove(played_card)

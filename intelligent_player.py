@@ -61,7 +61,7 @@ class IntelligentPlayer(RiderPlayer):
 
         game.are_hearts_broken()
 
-        hand_cards, init_trick, must_have, selection_func = \
+        hand_cards, historical_cards, init_trick, must_have, selection_func = \
             self.get_simple_game_info(game)
 
         vcards = self.get_valid_cards(game._player_hands[self.position], game)
@@ -77,6 +77,7 @@ class IntelligentPlayer(RiderPlayer):
                                vcards, 
                                self.remaining_cards, 
                                game._b_cards_taken,
+                               historical_cards,
                                self.num_hand_cards, 
                                init_trick, 
                                self.void_info, 
@@ -85,6 +86,7 @@ class IntelligentPlayer(RiderPlayer):
                                game.trick_nr+1, 
                                game.is_heart_broken, 
                                [2 if player.expose else 1 for player in game.players], 
+                               game.player_winning_info,
                                False, 
                                etime, 
                                True,

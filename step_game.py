@@ -34,10 +34,12 @@ class StepGame(SimpleGame):
                  hand_cards,
                  void_info=None,
                  score_cards=None,
+                 historical_cards=[[], [], [], []],
                  is_hearts_broken=False,
                  is_show_pig_card=False,
                  is_show_double_card=False,
                  expose_info=[1, 1, 1, 1],
+                 winning_info=[[0]*13, [0]*13, [0]*13, [0]*13],
                  tricks=[],
                  must_have={}):
 
@@ -51,9 +53,12 @@ class StepGame(SimpleGame):
                                        expose_info,
                                        tricks)
 
+        self.historical_cards = historical_cards
+
         self.must_have = must_have
 
         self.init_round_idx = init_round_idx
+        self.winning_info = winning_info
 
         self.start_pos = self.position
         self.is_finished = False
@@ -144,11 +149,19 @@ class StepGame(SimpleGame):
             self.played_card = played_card
             #print(self.start_pos, "setting.....", func, self.played_card)
 
+        self.historical_cards[self.start_pos].append(played_card)
         self.add_card_to_trick(self.start_pos, played_card)
         self.remove_card(self.hand_cards[self.start_pos], played_card)
 
         if len(self.tricks[-1][1]) == 4:
             winning_index, winning_card = self.winning_index()
+
+            for player_idx in range(4):
+                if winning_index == player_idx:
+                    self.winning_info[player_idx][current_round_idx-1] = 1
+                else:
+                    self.winning_info[player_idx][current_round_idx-1] = 2
+
             self.start_pos = (self.position+(winning_index-self.current_index))%4
 
             self.tricks[-1][0] = (self.start_pos)%4

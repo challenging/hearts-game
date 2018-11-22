@@ -28,7 +28,7 @@ class Game(object):
 
         self.player_scores = [0, 0, 0, 0]
         self.player_action_pos = [[0]*13, [0]*13, [0]*13, [0]*13]
-        self.player_winning_info = [[0]*12, [0]*12, [0]*12, [0]*12]
+        self.player_winning_info = [[0]*13, [0]*13, [0]*13, [0]*13]
 
         self.expose_heart_ace = False
         self.take_pig_card = False
@@ -232,9 +232,9 @@ class Game(object):
 
         for player_idx in range(4):
             if winning_player_index == player_idx:
-                self.player_winning_info[player_idx] = 1
+                self.player_winning_info[player_idx][self.trick_nr] = 1
             else:
-                self.player_winning_info[player_idx] = 2
+                self.player_winning_info[player_idx][self.trick_nr] = 2
 
         self._cards_taken[winning_player_index].extend(self.trick)
         self.post_round_over(winning_index, winning_player_index)
@@ -281,6 +281,7 @@ class Game(object):
             raise ValueError("Not found {} card in this Player-{} hand cards({})".format(\
                 played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
 
+        self._historical_cards[self.current_player_idx].append(played_card)
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
 
