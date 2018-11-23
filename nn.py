@@ -146,7 +146,7 @@ class CNNPolicyValueNet(object):
 
         concat_score_input = tf.concat([historical_flat, hand_flat, score_flat, expose_flat, winning_flat], axis=1, name="concat_value_input")
         concat_action_input = tf.concat([step, trick_nr, trick_flat,
-                                         remaining_flat, must_flat, historical_flat, valid_flat, hand_flat, expose_flat, void_flat], 
+                                         remaining_flat, must_flat, historical_flat, score_flat, valid_flat, hand_flat, expose_flat, void_flat, winning_flat], 
                                         axis=1, 
                                         name="concat_action_input")
 
@@ -172,7 +172,7 @@ class CNNPolicyValueNet(object):
         vars = tf.trainable_variables()
         l2_penalty = l2_penalty_beta * tf.add_n([tf.nn.l2_loss(v) for v in vars if 'bias' not in v.name.lower()])
         # 3-4 Add up to be the Loss function
-        self.loss = self.value_loss + l2_penalty + self.policy_loss
+        self.loss = l2_penalty + self.policy_loss
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss)
 

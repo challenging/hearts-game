@@ -67,7 +67,7 @@ class TrainPipeline():
             print("create init model in {}".format(filepath_model))
 
         # training params
-        self.learning_rate = 2e-6
+        self.learning_rate = 1e-4
         self.c_puct = 512
 
         self.buffer_size = 2**16
@@ -247,10 +247,8 @@ class TrainPipeline():
 
                     if myself_score/others_score < 1:
                         self.pure_mcts_simulation_time_limit <<= 1
-
-                    self.card_time >>= 1
                 else:
-                    self.card_time <<= 1
+                    self.card_time *= 1
         except KeyboardInterrupt:
             print('\nquit')
 

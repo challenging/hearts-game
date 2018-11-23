@@ -20,10 +20,9 @@ class IntelligentMCTS(MCTS):
 
 
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
-        scores = None
-        if state.is_finished:
-            scores, is_shootthemoon = state.score()
-        else:
+        if not state.is_finished:
+            #scores, is_shootthemoon = state.score()
+        #else:
             bcards, probs, scores = self._policy(trick_nr, state)
             scores *= SCORE_SCALAR
 
@@ -32,7 +31,9 @@ class IntelligentMCTS(MCTS):
 
             node.expand(state.start_pos, action_probs)
 
-        node.update_recursive(get_rating(scores))
+        #node.update_recursive(get_rating(scores))
+        rating = self._evaluate_rollout(trick_nr, state, selection_func)
+        node.update_recursive(rating)
 
 
     def reinit_tree_node(self):
