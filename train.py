@@ -44,7 +44,7 @@ def run(idx, init_model, c_puct, time, n_games, filepath_out, filepath_log):
 
 
 class TrainPipeline():
-    def __init__(self, init_model=None, card_time=0.2):
+    def __init__(self, init_model=None, card_time=2):
         self.basepath = "prob"
         self.basepath_round = os.path.join(self.basepath, "round_{:04d}")
         self.basepath_data = os.path.join(self.basepath_round, "data")
@@ -68,14 +68,14 @@ class TrainPipeline():
 
         # training params
         self.learning_rate = 2e-6
-        self.c_puct = 256
+        self.c_puct = 512
 
         self.buffer_size = 2**16
-        self.batch_size = 16
+        self.batch_size = 8
         self.data_buffer = deque(maxlen=self.buffer_size)
 
         self.cpu_count = min(mp.cpu_count(), 12)
-        self.epochs = 32
+        self.epochs = 64
 
         self.play_batch_size = int(self.batch_size*self.epochs/52/self.cpu_count)
         print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}".format(\
@@ -247,6 +247,10 @@ class TrainPipeline():
 
                     if myself_score/others_score < 1:
                         self.pure_mcts_simulation_time_limit <<= 1
+
+                    self.card_time >>= 1
+                else:
+                    self.card_time <<= 1
         except KeyboardInterrupt:
             print('\nquit')
 
