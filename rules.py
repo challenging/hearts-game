@@ -141,6 +141,8 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
     stime = time.time()
 
     final_scores, proactive_moon_scores, shooting_moon_scores = [[], [], [], []], [[], [], [], []], [[], [], [], []]
+
+    print("nr_of_games={}".format(nr_of_games))
     for game_idx in range(nr_of_games):
         for game_nr, cards in enumerate(copy.deepcopy(setting_cards)):
             for round_idx in range(0, 4):

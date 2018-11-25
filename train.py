@@ -32,9 +32,9 @@ from nn_utils import card2v, v2card, full_cards, limit_cards, print_a_memory
 DEBUG = False
 
 
-def run(idx, init_model, c_puct, time, n_games, filepath_out, filepath_log):
-    command_line = "./make_memory.py {} {} {} {} {}".format(\
-        init_model, c_puct, time, n_games, filepath_out, filepath_log)
+def run(idx, init_model, c_puct, time, min_times, n_games, filepath_out, filepath_log):
+    command_line = "./make_memory.py {} {} {} {} {} {}".format(\
+        init_model, c_puct, time, min_times, n_games, filepath_out, filepath_log)
     print("cmd: {}".format(command_line))
 
     args = shlex.split(command_line)
@@ -56,6 +56,33 @@ class TrainPipeline():
 
         self.init_model = init_model
 
+        self.init_nn_model()
+
+        # training params
+        self.learning_rate = 1e-4
+        self.c_puct = 1024
+        self.min_times = 32
+
+        self.buffer_size = 2**16
+        self.batch_size = 8
+        self.data_buffer = deque(maxlen=self.buffer_size)
+
+        self.cpu_count = min(mp.cpu_count(), 12)
+
+        self.play_batch_size = 4
+        self.epochs = int(52*self.cpu_count/8/self.play_batch_size)
+        print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}".format(\
+            self.cpu_count, self.batch_size, self.epochs, self.play_batch_size))
+
+        self.c_puct_evaluation = self.c_puct
+        self.filepath_evaluation = os.path.join("game", "game_0004", "01", "game_*.pkl")
+        print("filepath_evaluation={}".format(self.filepath_evaluation))
+
+        self.card_time = card_time
+        self.pure_mcts_simulation_time_limit = 1
+
+
+    def init_nn_model(self):
         self.policy = Net(self.init_model)
         self.policy_value_fn = self.policy.predict
 
@@ -66,31 +93,9 @@ class TrainPipeline():
             self.init_model = filepath_model
             print("create init model in {}".format(filepath_model))
 
-        # training params
-        self.learning_rate = 1e-4
-        self.c_puct = 512
-
-        self.buffer_size = 2**16
-        self.batch_size = 8
-        self.data_buffer = deque(maxlen=self.buffer_size)
-
-        self.cpu_count = min(mp.cpu_count(), 12)
-        self.epochs = 64
-
-        self.play_batch_size = int(self.batch_size*self.epochs/52/self.cpu_count)
-        print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}".format(\
-            self.cpu_count, self.batch_size, self.epochs, self.play_batch_size))
-
-        self.c_puct_evaluation = self.c_puct/2
-        self.filepath_evaluation = os.path.join("game", "game_0002", "01", "game_*.pkl")
-
-        self.card_time = card_time
-        self.pure_mcts_simulation_time_limit = 1
-
 
     def collect_selfplay_data(self, n_games):
         self.data_buffer.clear()
-        #print("clear the self.data_buffer({})".format(len(self.data_buffer)))
 
         row_number = int(time.time())
         filepath_data = os.path.join(self.basepath_data, "{}.{}.pkl".format(row_number, "{:02d}"))
@@ -98,10 +103,8 @@ class TrainPipeline():
 
         for filepath in [filepath_data, filepath_log]:
             folder = os.path.dirname(filepath_log)
-            if os.path.exists(folder):
-                shutil.rmtree(folder)
-
-            os.makedirs(folder)
+            if not os.path.exists(folder):
+                os.makedirs(folder)
 
         pool = mp.Pool(processes=self.cpu_count)
         mul_result = [pool.apply_async(run, 
@@ -109,6 +112,7 @@ class TrainPipeline():
                                              self.init_model, 
                                              self.c_puct, 
                                              self.card_time, 
+                                             self.min_times,
                                              n_games, 
                                              filepath_data.format(idx), 
                                              filepath_log.format(idx))) for idx in range(self.cpu_count)]
@@ -127,7 +131,9 @@ class TrainPipeline():
 
 
     def policy_update(self):
-        for i in range(self.epochs):
+        n_epochs = max(256, len(self.data_buffer) // self.batch_size * 2)
+
+        for i in range(n_epochs):
             remaining_batch = []
             trick_nr_batch, trick_order_batch, pos_batch, played_order_batch, trick_batch = [], [], [], [], []
             must_batch, score_batch, historical_batch, hand_batch, valid_batch = [], [], [], [], []
@@ -157,7 +163,7 @@ class TrainPipeline():
                 probs_batch.append(limit_cards(dict(zip(valid, probs)), 13))
                 scores_batch.append(scores)
 
-            loss, policy_loss, value_loss = self.policy.train_step(
+            loss, policy_loss = self.policy.train_step(
                     remaining_batch, \
                     trick_nr_batch, trick_order_batch, pos_batch, played_order_batch, trick_batch, \
                     must_batch, historical_batch, score_batch, hand_batch, valid_batch, \
@@ -165,14 +171,14 @@ class TrainPipeline():
                     probs_batch, scores_batch,\
                     self.learning_rate)
 
-            print("epoch: {:3d}/{:3d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}".format(\
-                i+1, self.epochs, policy_loss, value_loss, loss))
+            print("epoch: {:4d}/{:4d}, policy_loss: {:.8f}, loss: {:.8f}".format(\
+                i+1, n_epochs, policy_loss, loss))
 
-        return loss, policy_loss, value_loss
+        return loss, policy_loss
 
 
     def policy_evaluate(self, n_games=1):
-        filepath_in = os.path.join(self.basepath_log, "evaluation.log")
+        filepath_in = os.path.join(self.basepath_log, "evaluation.{}.log".format(int(time.time())))
         folder = os.path.dirname(filepath_in)
         if not os.path.exists(folder):
             os.makedirs(folder)
@@ -188,7 +194,7 @@ class TrainPipeline():
         setting_cards = read_card_games(self.filepath_evaluation)
 
         final_scores, proactive_moon_scores, shooting_moon_scores = \
-            evaluate_players(n_games, players, setting_cards, verbose=True, out_file=out_file)
+            evaluate_players(n_games, players, setting_cards, verbose=True, is_rotating=False, out_file=out_file)
 
         myself_score, others_score = np.mean(final_scores[3]), np.mean(final_scores[:3])
         print("myself_score: {:.4f}, others_score: {:.4f}".format(myself_score, others_score))
@@ -203,52 +209,58 @@ class TrainPipeline():
         try:
             best_score = sys.maxsize
 
-            for i in range(start_idx, sys.maxsize):
-                basepath_round = self.basepath_round.format(i+1)
+            start_idx
+            while True:
+                basepath_round = self.basepath_round.format(start_idx+1)
                 self.basepath_data = os.path.join(basepath_round, "data")
                 self.basepath_model = os.path.join(basepath_round, "model")
                 self.basepath_log = os.path.join(basepath_round, "log")
 
-                if i == -1:
+                self.init_nn_model()
+
+                if start_idx == -1:
                     myself_score, others_score = self.policy_evaluate()
                     print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
-                        i+1, myself_score, others_score))
+                        start_idx+1, myself_score, others_score))
+                else:
+                    self.collect_selfplay_data(self.play_batch_size)
+                    print("batch i: {}, memory_size: {}".format(start_idx+1, len(self.data_buffer)))
 
-                    continue
+                    if DEBUG:
+                        for played_data in self.data_buffer:
+                            print_a_memory(played_data)
 
-                self.collect_selfplay_data(self.play_batch_size)
-                print("batch i: {}, memory_size: {}".format(i+1, len(self.data_buffer)))
+                    self.policy_update()
 
-                if DEBUG:
-                    for played_data in self.data_buffer:
-                        print_a_memory(played_data)
+                    myself_score, others_score = self.policy_evaluate()
+                    print("current self-play batch: {}, and myself_score: {:.4f}, others_score: {:.4f}".format(\
+                        start_idx+1, myself_score, others_score))
 
-                loss, policy_loss, value_loss = self.policy_update()
+                    filepath_model = os.path.join(self.basepath, "round{:04d}_policy.model".format(start_idx+1))
+                    folder = os.path.dirname(filepath_model)
+                    if not os.path.exists(folder):
+                        os.makedirs(folder)
 
-                myself_score, others_score = self.policy_evaluate()
-                print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
-                    i+1, myself_score, others_score))
+                    self.policy.save_model(filepath_model)
 
-                filepath_model = os.path.join(self.basepath_model, "current_policy.model")
-                folder = os.path.dirname(filepath_model)
-                if not os.path.exists(folder):
-                    os.makedirs(folder)
-
-                self.policy.save_model(filepath_model)
-
-                if myself_score <= best_score:
-                    if best_score != sys.maxsize:
+                    if myself_score <= best_score:
                         filepath_model = os.path.join(self.basepath, "best_policy.model")
                         self.policy.save_model(filepath_model)
 
                         self.init_model = filepath_model
 
-                    best_score = myself_score
+                        best_score = myself_score
+                        if myself_score/others_score < 1:
+                            self.pure_mcts_simulation_time_limit <<= 1
 
-                    if myself_score/others_score < 1:
-                        self.pure_mcts_simulation_time_limit <<= 1
-                else:
-                    self.card_time *= 1
+                        self.card_time /= 1.1
+                    else:
+                        self.card_time *= 1.1
+                        #self.c_puct *= 1.1
+                        #self.min_times *= 1.1
+
+                        start_idx -= 1
+                start_idx += 1
         except KeyboardInterrupt:
             print('\nquit')
 

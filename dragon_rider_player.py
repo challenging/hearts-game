@@ -104,7 +104,7 @@ class RiderPlayer(MonteCarloPlayer7):
         super(RiderPlayer, self).see_played_trick(card, game)
 
         card = (card.suit.value, 1<<(card.rank.value-2))
-        self.mcts.update_with_move(card)
+        self.mcts.update_with_move(card, game.current_player_idx)
 
         valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
         hand_cards, historical_cards, init_trick, must_have, selection_func = \
@@ -166,7 +166,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [expert_choose]*4
+        selection_func = [random_choose]*4
 
         return hand_cards, historical_cards, init_trick, must_have, selection_func
 

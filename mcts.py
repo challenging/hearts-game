@@ -46,7 +46,7 @@ class MCTS(object):
     def __init__(self, policy_value_fn, self_player_idx, c_puct=5, min_times=32):
         self._self_player_idx = self_player_idx
 
-        self.root_node = TreeNode(None, 1.0, None)
+        self.root_node = TreeNode(None, 1.0, self_player_idx)
         self.start_node = self.root_node
 
         self._policy = policy_value_fn
@@ -262,23 +262,18 @@ class MCTS(object):
         self.start_node = TreeNode(None, 1.0, None)
 
 
-    def update_with_move(self, last_move):
+    def update_with_move(self, last_move, player_idx):
         if last_move == -1:
             self.reinit_tree_node()
         else:
             if last_move in self.start_node._children:
                 self.start_node = self.start_node._children[last_move]
-            #elif self.start_node.is_root():
-            #    self.start_node.expand(None, [(last_move, 1.0)])
-            #    say("player-{} set new_node because not found {}", self._self_player_idx, last_move)
-
-            #    self.update_with_move(last_move)
             else:
                 #print("last_move", last_move, self.start_node._children.values(), self.start_node.is_leaf(), self.start_node, self.start_node._parent)
-                self.start_node.expand(None, [(last_move, 1.0)])
+                self.start_node.expand(player_idx, [(last_move, 1.0)])
                 #say("player-{} expands new_node because not found {}", self._self_player_idx, last_move)
 
-                self.update_with_move(last_move)
+                self.update_with_move(last_move, player_idx)
 
 
     def print_tree(self, node=None, card=None, depth=0):

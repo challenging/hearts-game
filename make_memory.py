@@ -13,13 +13,13 @@ from intelligent_player import IntelligentPlayer
 from nn import CNNPolicyValueNet as Net
 
 
-def run(init_model, c_puct, time, n_games, filepath_out):
+def run(init_model, c_puct, time, min_times, n_games, filepath_out):
     data_buffer = []
 
     policy = Net(init_model)
     policy_value_fn = policy.predict
 
-    players = [IntelligentPlayer(policy_value_fn, c_puct=c_puct, is_self_play=True, verbose=(True if player_idx == 3 else False)) for player_idx in range(4)]
+    players = [IntelligentPlayer(policy_value_fn, c_puct=c_puct, is_self_play=True, min_times=min_times, verbose=(True if player_idx == 3 else False)) for player_idx in range(4)]
     game = IntelligentGame(players, simulation_time_limit=time, verbose=True)
 
     count_s, count_f = 0, 0
@@ -55,11 +55,11 @@ def run(init_model, c_puct, time, n_games, filepath_out):
 
 if __name__ == "__main__":
     print(sys.argv)
-    init_model, c_puct, time, n_games, filepath_out = \
-        sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
-    print("init_model: {}, c_puct: {}, time: {}, n_game: {}, filepath_out: {}".format(\
-        init_model, c_puct, time, n_games, filepath_out))
+    init_model, c_puct, time, min_times, n_games, filepath_out = \
+        sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]), int(sys.argv[5]), sys.argv[6]
+    print("init_model: {}, c_puct: {}, time: {}, min_times:{}, n_game: {}, filepath_out: {}".format(\
+        init_model, c_puct, time, min_times, n_games, filepath_out))
 
-    run(init_model, c_puct, time, n_games, filepath_out)
+    run(init_model, c_puct, time, min_times, n_games, filepath_out)
 
     sys.exit(0)

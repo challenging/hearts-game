@@ -44,14 +44,18 @@ if __name__ == "__main__":
     card_set = sys.argv[3].lower()
 
     setting_cards = None
-    if card_set == "small":
-        sub_card_set = sys.argv[4].lower()
+    if card_set == "tiny":
+        sub_card_set = int(sys.argv[4].lower())
 
-        setting_cards = read_card_games("game/game_0008/{}/game_*.pkl".format(sub_card_set))
+        setting_cards = read_card_games("game/game_0002/{:02d}/game_*.pkl".format(sub_card_set))
+    elif card_set == "small":
+        sub_card_set = int(sys.argv[4].lower())
+
+        setting_cards = read_card_games("game/game_0008/{:02d}/game_*.pkl".format(sub_card_set))
     elif card_set == "big":
-        sub_card_set = sys.argv[4].lower()
+        sub_card_set = int(sys.argv[4].lower())
 
-        setting_cards = read_card_games("game/game_0032/{}/game_*.pkl".format(sub_card_set))
+        setting_cards = read_card_games("game/game_0032/{:02d}/game_*.pkl".format(sub_card_set))
     else:
         setting_cards = get_setting_cards()
 

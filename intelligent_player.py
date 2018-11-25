@@ -29,23 +29,24 @@ def softmax(x, temp, small_v=1e-16):
 
 
 class IntelligentPlayer(RiderPlayer):
-    def __init__(self, policy, c_puct, is_self_play=False, verbose=False):
+    def __init__(self, policy, c_puct, is_self_play=False, min_times=32, verbose=False):
         super(IntelligentPlayer, self).__init__(policy, c_puct, verbose=verbose)
 
         self.is_self_play = is_self_play
+        self.min_times = min_times
 
 
     def reset(self):
         super(RiderPlayer, self).reset()
 
-        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=32)
+        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=self.min_times)
 
 
     def see_played_trick(self, card, game):
         super(RiderPlayer, self).see_played_trick(card, game)
 
         card = (card.suit.value, 1<<(card.rank.value-2))
-        self.mcts.update_with_move(card)
+        self.mcts.update_with_move(card, game.current_player_idx)
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND, temp=1):
@@ -140,6 +141,6 @@ class IntelligentPlayer(RiderPlayer):
             self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}, Scenario: {}", \
                 time.time()-stime, hand_cards, valid_cards, move, scenario)
 
-            self.mcts.update_with_move(-1)
+            self.mcts.update_with_move(-1, game.current_player_idx)
 
             return move

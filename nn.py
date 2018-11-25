@@ -117,7 +117,7 @@ class CNNPolicyValueNet(object):
         step_embeddings = tf.Variable(tf.random_uniform([52, 4], -1.0, 1.0), name="embedding_step")
 
         remaining_embed = tf.reshape(tf.nn.embedding_lookup(cards_embeddings, self.remaining_cards), [-1, 52, size_embed, 1], name="reshape_remaining_embed")
-        remaining_flat = conv2d_2("remaining", remaining_embed, 2*52)
+        remaining_flat = conv2d_2("remaining", remaining_embed, int(size_embed/4)*52)
 
         trick_nr = tf.reshape(tf.nn.embedding_lookup(nr_embeddings, self.trick_nr), [-1, 4], name="reshape_trick_nr")
         #trick_order = tf.reshape(tf.nn.embedding_lookup(position_embeddings, self.trick_order), [-1, 4*4], name="reshape_trick_nr")
@@ -144,7 +144,6 @@ class CNNPolicyValueNet(object):
 
         score_flat = conv2d_2("score", tf.nn.embedding_lookup(cards_embeddings, self.score_cards), size_score_card)
 
-        concat_score_input = tf.concat([historical_flat, hand_flat, score_flat, expose_flat, winning_flat], axis=1, name="concat_value_input")
         concat_action_input = tf.concat([step, trick_nr, trick_flat,
                                          remaining_flat, must_flat, historical_flat, score_flat, valid_flat, hand_flat, expose_flat, void_flat, winning_flat], 
                                         axis=1, 
@@ -158,14 +157,6 @@ class CNNPolicyValueNet(object):
 
         self.action_fc = tf.layers.dense(inputs=action_fd, units=13, activation=tf.nn.log_softmax)
         self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))
-
-        value_fd1 = tf.layers.dense(inputs=concat_score_input, units=512, activation=activation_fn)
-        value_fd2 = tf.layers.dense(inputs=value_fd1, units=128, activation=activation_fn)
-        value_fd3 = tf.layers.dense(inputs=value_fd2, units=64, activation=activation_fn)
-        value_fd = tf.layers.dense(inputs=value_fd3, units=16, activation=activation_fn)
-
-        self.evaluation_fc = tf.layers.dense(inputs=value_fd, units=4, activation=tf.nn.relu)
-        self.value_loss = tf.losses.absolute_difference(self.score, self.evaluation_fc)
 
         # 3-3. L2 penalty (regularization)
         l2_penalty_beta = 1e-4
@@ -205,27 +196,23 @@ class CNNPolicyValueNet(object):
                      hand_cards, valid_cards, \
                      expose_info, void_info, winning_info):
 
-        act_probs, value = self.session.run([self.action_fc, self.evaluation_fc],
-                                            feed_dict={self.remaining_cards: remaining_cards,
-                                                       self.trick_nr: trick_nr,
-                                                       #self.trick_order: trick_order,
-                                                       #self.position: pos,
-                                                       self.played_order: played_order,
-                                                       self.trick_cards: trick_cards,
-                                                       self.must_cards: self.transpose(position, must_cards),
-                                                       self.historical_cards: self.transpose(position, historical_cards),
-                                                       self.score_cards: self.transpose(position, score_cards),
-                                                       self.hand_cards: hand_cards,
-                                                       self.valid_cards: valid_cards,
-                                                       self.expose_info: expose_info,
-                                                       self.void_info: self.transpose(position, void_info),
-                                                       self.winning_info: self.transpose(position, winning_info)})
+        act_probs = self.session.run(self.action_fc,
+                                     feed_dict={self.remaining_cards: remaining_cards,
+                                                self.trick_nr: trick_nr,
+                                                #self.trick_order: trick_order,
+                                                #self.position: pos,
+                                                self.played_order: played_order,
+                                                self.trick_cards: trick_cards,
+                                                self.must_cards: self.transpose(position, must_cards),
+                                                self.historical_cards: self.transpose(position, historical_cards),
+                                                self.score_cards: self.transpose(position, score_cards),
+                                                self.hand_cards: hand_cards,
+                                                self.valid_cards: valid_cards,
+                                                self.expose_info: expose_info,
+                                                self.void_info: self.transpose(position, void_info),
+                                                self.winning_info: self.transpose(position, winning_info)})
 
-        results = []
-        for pos, sub_value in zip(position, value):
-            results.append(sub_value[[player_idx-pos[0] for player_idx in range(4)]])
-
-        return np.exp(act_probs), results
+        return np.exp(act_probs)
 
 
     def predict(self, trick_nr, state):
@@ -233,12 +220,12 @@ class CNNPolicyValueNet(object):
         must_cards, historical_cards, score_cards, hand_cards, valid_cards, \
         expose_info, void_info, winning_info = transform_game_info_to_nn(state, trick_nr)
 
-        act_probs, act_values = self.policy_value([remaining_cards], \
-                                                  [[trick_nr]], [trick_order], [[pos]], [[played_order]], [trick_cards],\
-                                                  [must_cards], [historical_cards], [score_cards], [hand_cards], [valid_cards], \
-                                                  [expose_info], [void_info], [winning_info])
+        act_probs = self.policy_value([remaining_cards], \
+                                      [[trick_nr]], [trick_order], [[pos]], [[played_order]], [trick_cards],\
+                                      [must_cards], [historical_cards], [score_cards], [hand_cards], [valid_cards], \
+                                      [expose_info], [void_info], [winning_info])
 
-        return valid_cards, act_probs[0], act_values[0]
+        return valid_cards, act_probs[0]
 
 
     def policy_value_fn(self, remaining_cards, \
@@ -246,12 +233,12 @@ class CNNPolicyValueNet(object):
                         must_cards, historical_cards, score_cards, hadn_cards, valid_cards, \
                         expose_info, void_info, winning_info):
 
-        act_probs, act_values = self.policy_value(remaining_cards, \
-                                                  trick_nr, trick_order, pos, played_order, trick_cards,\
-                                                  must_cards, historical_cards, score_cards, hand_cards, valid_cards, \
-                                                  expose_info, void_info, winning_info)
+        act_probs = self.policy_value(remaining_cards, \
+                                      trick_nr, trick_order, pos, played_order, trick_cards,\
+                                      must_cards, historical_cards, score_cards, hand_cards, valid_cards, \
+                                      expose_info, void_info, winning_info)
 
-        return act_probs, act_values
+        return act_probs
 
 
     def train_step(self, remaining_cards, \
@@ -259,8 +246,8 @@ class CNNPolicyValueNet(object):
                    must_cards, historical_cards, score_cards, hand_cards, valid_cards, \
                    expose_info, void_info, winning_info, probs, score, lr):
 
-        loss, policy_loss, value_loss, _ = self.session.run(
-                [self.loss, self.policy_loss, self.value_loss, self.optimizer],
+        loss, policy_loss, _ = self.session.run(
+                [self.loss, self.policy_loss, self.optimizer],
                 feed_dict={self.remaining_cards: remaining_cards,
                            self.trick_nr: trick_nr,
                            #self.trick_order: trick_order,
@@ -279,11 +266,12 @@ class CNNPolicyValueNet(object):
                            self.score: self.transpose(pos, score),
                            self.learning_rate: lr})
 
-        return loss, policy_loss, value_loss
+        return loss, policy_loss
 
 
     def save_model(self, model_path):
         self.saver.save(self.session, model_path)
+        print("save model in {}".format(model_path))
 
 
     def restore_model(self, model_path):
