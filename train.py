@@ -75,7 +75,7 @@ class TrainPipeline():
             self.cpu_count, self.batch_size, self.epochs, self.play_batch_size))
 
         self.c_puct_evaluation = self.c_puct
-        self.filepath_evaluation = os.path.join("game", "game_0004", "01", "game_*.pkl")
+        self.filepath_evaluation = os.path.join("game", "game_0008", "01", "game_*.pkl")
         print("filepath_evaluation={}".format(self.filepath_evaluation))
 
         self.card_time = card_time
@@ -218,10 +218,12 @@ class TrainPipeline():
 
                 self.init_nn_model()
 
-                if start_idx == -1:
+                if start_idx == 0:
                     myself_score, others_score = self.policy_evaluate()
                     print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
                         start_idx+1, myself_score, others_score))
+
+                    sys.exit(0)
                 else:
                     self.collect_selfplay_data(self.play_batch_size)
                     print("batch i: {}, memory_size: {}".format(start_idx+1, len(self.data_buffer)))
@@ -253,7 +255,7 @@ class TrainPipeline():
                         if myself_score/others_score < 1:
                             self.pure_mcts_simulation_time_limit <<= 1
 
-                        self.card_time /= 1.1
+                        self.card_time = 1
                     else:
                         self.card_time *= 1.1
                         #self.c_puct *= 1.1
@@ -276,7 +278,7 @@ if __name__ == "__main__":
         else:
             model_filepath = os.path.join("prob", "init_policy.model")
     else:
-        model_filepath = os.path.join("prob", "best_policy.model")
+        model_filepath = os.path.join("prob", "round0001_policy.model")
 
     simulated_time = float(sys.argv[1])
     round_idx = int(sys.argv[2]) if len(sys.argv) > 2 else 0
