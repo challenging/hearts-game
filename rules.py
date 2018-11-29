@@ -163,15 +163,12 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                     for player_idx in range(4):
                         after_info.append(game._player_hands[player_idx])
 
-                    if not game.expose_heart_ace:
-                        for player_idx in range(4):
-                            is_expose = players[player_idx].expose_hearts_ace(game._player_hands[player_idx])
+                    for player_idx in range(4):
+                        is_expose = players[player_idx].expose_hearts_ace(game._player_hands[player_idx])
 
-                            if is_expose:
-                                game.expose_info[player_idx] = 2
-
-                            if game.expose_heart_ace:
-                                out_file.write("Player-{} exposes HEARTS ACE\n".format(player_idx))
+                        if is_expose:
+                            game.expose_info[player_idx] = 2
+                            out_file.write("Player-{} exposes HEARTS ACE\n".format(player_idx))
 
                     for player_idx, (before_cards, after_cards) in enumerate(zip(before_info, after_info)):
                         out_file.write("Player-{}'s init_cards: {} to {}\n".format(player_idx, before_cards, after_cards))

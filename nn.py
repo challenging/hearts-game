@@ -259,8 +259,6 @@ class PolicyValueNet(object):
     def save_model(self, model_path):
         self.saver.save(self.session, model_path)
         print("save model in {}".format(model_path))
-        print("trick_cards", trick_cards)
-        print("trick_cards", trick_cards)
 
 
     def restore_model(self, model_path):

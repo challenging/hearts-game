@@ -24,7 +24,11 @@ class Game(object):
         self.trick_nr = 0
 
         self.current_player_idx = 0
+
         self.trick = []
+        self.trick_cards = []
+        for _ in range(13):
+            self.trick_cards.append([None, None, None, None])
 
         self.player_scores = [0, 0, 0, 0]
         self.player_action_pos = [[0]*13, [0]*13, [0]*13, [0]*13]
@@ -278,6 +282,10 @@ class Game(object):
 
         for i in range(4):
             self.players[i].see_played_trick(played_card, self)
+
+        for idx, card in zip(range(4, 0, -1), self.trick[::-1]):
+            player_idx = (self.current_player_idx+idx)%4
+            self.trick_cards[self.trick_nr][player_idx] = card
 
         self.current_player_idx = (self.current_player_idx+1)%4
         if len(self.trick) == 4:

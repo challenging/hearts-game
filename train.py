@@ -25,8 +25,8 @@ from intelligent_game import IntelligentGame as Game
 from intelligent_player import IntelligentPlayer
 from new_simple_player import NewSimplePlayer
 
-from nn import CNNPolicyValueNet as Net
-from nn_utils import card2v, v2card, full_cards, limit_cards, print_a_memory
+from nn import PolicyValueNet as Net
+from nn_utils import print_a_memory
 
 
 DEBUG = False
