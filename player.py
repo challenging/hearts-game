@@ -26,9 +26,9 @@ class Player(object):
         self.expose = False
         self.proactive_mode = set()
 
-        self.void_info = {0: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 
-                          1: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 
-                          2: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}, 
+        self.void_info = {0: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False},
+                          1: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False},
+                          2: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False},
                           3: {Suit.spades: False, Suit.hearts: False, Suit.diamonds: False, Suit.clubs: False}}
         self.remaining_cards = set(Deck().cards)
         self.num_hand_cards = {0: 13, 1: 13, 2: 13, 3: 13}
@@ -99,7 +99,7 @@ class Player(object):
             self.remaining_cards.remove(card)
 
         if game.trick[0].suit != card.suit:
-            self.void_info[game.current_player_idx][card.suit] = True
+            self.void_info[game.current_player_idx][game.trick[0].suit] = True
 
         self.num_hand_cards[game.current_player_idx] -= 1
 

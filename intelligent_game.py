@@ -1,9 +1,7 @@
 import sys
-import copy
 
-from nn_utils import SCORE_SCALAR, print_a_memory
+from nn_utils import print_a_memory, card2v
 from rules import is_card_valid, is_score_card
-from nn_utils import print_a_memory
 
 from game import Game
 
@@ -17,6 +15,12 @@ class IntelligentGame(Game):
 
     def reset(self):
         super(IntelligentGame, self).reset()
+
+        self.trick_cards = []
+        for _ in range(13):
+            self.trick_cards.append([None, None, None, None])
+
+        self.score_cards = [[], [], [], []]
 
         self._short_memory = []
 
@@ -39,60 +43,63 @@ class IntelligentGame(Game):
             raise ValueError("{} round - Not found {} card in this Player-{} hand cards({})".format(\
                 self.trick_nr, played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
 
-        valid_cards, probs = [], []
-        for card, prob in results:
-            valid_cards.append(card)
-            probs.append(prob)
-
-        must_cards = [[], [], [], []]
-        for player_idx, cards in self.players[self.current_player_idx].transfer_cards.items():
-            must_cards[player_idx] = cards
-
-        void_info, score_cards = [[], [], [], []], [[], [], [], []]
-        for player_idx, cards in enumerate(self._cards_taken):
-            for card in sorted(cards):
-                if is_score_card(card):
-                    score_cards[player_idx].append(card)
+        possible_cards = [[], [], [], []]
+        possible_cards[self.current_player_idx] = hand_cards
 
         for player_idx, info in self.players[self.current_player_idx].void_info.items():
-            for suit, is_void in sorted(info.items(), key=lambda x: x[0]):
-                void_info[player_idx].append(is_void)
+            if player_idx != self.current_player_idx:
+                possible_cards[player_idx] = self.players[self.current_player_idx].get_remaining_cards(hand_cards)[:]
+                for suit, is_void in sorted(info.items(), key=lambda x: x[0]):
+                    if is_void:
+                        for card in possible_cards[player_idx][:]:
+                            if card.suit == suit:
+                                possible_cards[player_idx].remove(card)
+                                #print("try to remove {} card from player-{}, current_suit is {}, {}".format(\
+                                #    card, player_idx, suit, info))
 
-        self.player_action_pos[self.current_player_idx][self.trick_nr] = len(self.trick)+1
+        for player_idx, cards in self.players[self.current_player_idx].transfer_cards.items():
+            for idx in range(len(possible_cards)):
+                if idx != player_idx:
+                    for card in cards:
+                        if card in possible_cards[idx]:
+                            possible_cards[idx].remove(card)
 
-        remaining_cards = self.players[0].get_remaining_cards(hand_cards)
-        expose_info = [2 if player.expose else 1 for player in self.players]
+        trick_cards = self.trick
 
-        leading_idx = (self.players[self.current_player_idx].position+3-len(self.trick)+1)%4
-        trick_order = [(leading_idx+idx)%4 for idx in range(4)]
+        valid_cards, probs = [], [0]*52
+        for card, prob in results:
+            valid_cards.append(card)
+            probs[card2v(card)] = prob
 
-        self._short_memory.append([remaining_cards[:],
-                                   self.trick_nr,
-                                   trick_order,
-                                   self.players[self.current_player_idx].position,
-                                   self.trick_nr*4+len(self.trick),
-                                   self.trick[:],
-                                   must_cards,
-                                   self._historical_cards,
-                                   score_cards,
-                                   hand_cards[:],
+        leading_cards = len(self.trick) == 0
+        expose_cards = self.expose_info
+
+        self._short_memory.append([self.current_player_idx,
+                                   self.trick_cards,
+                                   self.score_cards,
+                                   possible_cards,
+                                   trick_cards,
                                    valid_cards,
-                                   expose_info,
-                                   void_info,
-                                   self.player_winning_info,
+                                   leading_cards,
+                                   expose_cards,
                                    probs,
-                                   self.current_player_idx])
+                                   None])
 
         #print_a_memory(self._short_memory[-1])
 
-        self._historical_cards[self.current_player_idx].append(played_card)
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
+
+        if len(self.trick) == 4:
+            for idx, card in zip(range(4, 0, -1), self.trick[::-1]):
+                player_idx = (self.current_player_idx+idx)%4
+                self.trick_cards[self.trick_nr][player_idx] = card
 
         for i in range(4):
             self.players[i].see_played_trick(played_card, self)
 
         self.current_player_idx = (self.current_player_idx+1)%4
+
         if len(self.trick) == 4:
             self.round_over()
 
@@ -100,10 +107,19 @@ class IntelligentGame(Game):
     def round_over(self):
         super(IntelligentGame, self).round_over()
 
+        for player_idx, cards in enumerate(self._cards_taken):
+            self.score_cards[player_idx] = cards
+
         if self.trick_nr == 13:
             self.score()
-            scores = [score/SCORE_SCALAR for score in self.player_scores]
-            print("final scalar scores", scores)
+
+            results = [[], [], [], []]
+            for player_idx, cards in enumerate(self._cards_taken):
+                for card in cards:
+                    if is_score_card(card):
+                        results[player_idx].append(card)
 
             for idx, memory in enumerate(self._short_memory):
-                self._short_memory[idx][-1] = scores
+                self._short_memory[idx][-1] = results
+
+            #print_a_memory(self._short_memory[-1])

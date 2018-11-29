@@ -22,6 +22,7 @@ from redistribute_cards import redistribute_cards
 from strategy_play import random_choose, greedy_choose
 from expert_play import expert_choose
 
+from nn_utils import transform_game_info_to_nn
 
 IS_DEBUG = False
 
@@ -32,14 +33,13 @@ class StepGame(SimpleGame):
                  init_round_idx,
                  position,
                  hand_cards,
+                 trick_cards,
                  void_info=None,
                  score_cards=None,
-                 historical_cards=[[], [], [], []],
                  is_hearts_broken=False,
                  is_show_pig_card=False,
                  is_show_double_card=False,
                  expose_info=[1, 1, 1, 1],
-                 winning_info=[[0]*13, [0]*13, [0]*13, [0]*13],
                  tricks=[],
                  must_have={}):
 
@@ -53,15 +53,44 @@ class StepGame(SimpleGame):
                                        expose_info,
                                        tricks)
 
-        self.historical_cards = historical_cards
+        if trick_cards:
+            self.trick_cards = trick_cards
+        else:
+            self.trick_cards = []
+            for _ in range(13):
+                self.trick_cards.append([None, None, None, None])
 
         self.must_have = must_have
 
         self.init_round_idx = init_round_idx
-        self.winning_info = winning_info
 
         self.start_pos = self.position
         self.is_finished = False
+
+
+    def get_possible_cards(self):
+        possible_cards = [{}, {}, {}, {}]
+
+        remaining_cards = self.get_remaining_cards()
+        for player_idx in range(4):
+            if player_idx == self.position:
+                possible_cards[player_idx] = self.hand_cards[self.position]
+            else:
+                possible_cards[player_idx] = copy.deepcopy(remaining_cards)
+
+                for suit, is_void in self.void_info[player_idx].items():
+                    if is_void:
+                        possible_cards[player_idx][suit] = 0
+
+                for idx, cards in self.must_have.items():
+                    if player_idx != idx:
+                        for card in cards:
+                            suit, rank = card.suit.value, 1<<(card.rank.value-2)
+
+                            if possible_cards[player_idx][suit] & rank:
+                                possible_cards[player_idx][suit] ^= rank
+
+        return possible_cards
 
 
     def get_valid_cards(self, cards, current_round_idx, is_playout=True):
@@ -120,6 +149,8 @@ class StepGame(SimpleGame):
         if self.start_pos == self.position:
             self.current_index = len(self.tricks[-1][1])
 
+            #transform_game_info_to_nn(self, current_round_idx, is_debug=True)
+
         valid_cards, func = None, None
         if played_card is None:
             valid_cards = self.get_valid_cards(self.hand_cards[self.start_pos], current_round_idx)
@@ -147,20 +178,16 @@ class StepGame(SimpleGame):
 
         if self.start_pos == self.position and self.played_card is None:
             self.played_card = played_card
-            #print(self.start_pos, "setting.....", func, self.played_card)
 
-        self.historical_cards[self.start_pos].append(played_card)
         self.add_card_to_trick(self.start_pos, played_card)
         self.remove_card(self.hand_cards[self.start_pos], played_card)
 
         if len(self.tricks[-1][1]) == 4:
-            winning_index, winning_card = self.winning_index()
+            for idx, card in zip(range(4, 0, -1), self.tricks[-1][1][::-1]):
+                player_idx = (self.start_pos+idx)%4
+                self.trick_cards[current_round_idx-1][player_idx] = card
 
-            for player_idx in range(4):
-                if winning_index == player_idx:
-                    self.winning_info[player_idx][current_round_idx-1] = 1
-                else:
-                    self.winning_info[player_idx][current_round_idx-1] = 2
+            winning_index, winning_card = self.winning_index()
 
             self.start_pos = (self.position+(winning_index-self.current_index))%4
 
@@ -230,7 +257,7 @@ class StepGame(SimpleGame):
 
 
 def simulation(current_round_idx, position, hand_cards, tricks,
-               void_info={}, score_cards=None, is_hearts_broken=False, expose_hearts_ace=False, played_card=None, selection_func=None,
+               void_info={}, score_cards=None, is_hearts_broken=False, expose_info=False, played_card=None, selection_func=None,
                proactive_mode=None):
 
     sm = None
@@ -241,11 +268,13 @@ def simulation(current_round_idx, position, hand_cards, tricks,
         sm = StepGame(current_round_idx,
                       position=position, 
                       hand_cards=hand_cards, 
+                      trick_cards=None,
                       void_info=void_info,
                       score_cards=score_cards, 
                       is_hearts_broken=is_hearts_broken, 
-                      expose_hearts_ace=expose_hearts_ace, 
-                      tricks=tricks)
+                      expose_info=expose_info, 
+                      tricks=tricks,
+                      must_have={0: [Card(Suit.spades, Rank.six), Card(Suit.spades, Rank.queen)]})
 
         if IS_DEBUG:
             for player_idx, cards in enumerate(hand_cards):
@@ -274,7 +303,7 @@ def simulation(current_round_idx, position, hand_cards, tricks,
         return None, None, None, None
 
 
-def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is_hearts_broken, expose_hearts_ace, cards,
+def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is_hearts_broken, expose_info, cards,
                    score_cards=None, played_card=None, selection_func=random_choose, must_have={}, void_info={}, 
                    proactive_mode=None, simulation_time=0.93):
 
@@ -305,7 +334,7 @@ def run_simulation(seed, current_round_idx, position, init_trick, hand_cards, is
                                                           void_info,
                                                           copy.deepcopy(score_cards), 
                                                           is_hearts_broken, 
-                                                          expose_hearts_ace, 
+                                                          expose_info, 
                                                           played_card, 
                                                           selection_func,
                                                           proactive_mode)
@@ -329,16 +358,8 @@ if __name__ == "__main__":
 
     position = 3
     current_round_idx = 1
-    expose_hearts_ace = False
+    expose_info = [1, 1, 1, 1]
     is_hearts_broken = False
-
-    """
-    init_trick = [[None, [Card(Suit.clubs, Rank.two)]]]
-    hand_1 = "".replace(" ", "")
-    hand_2 = "".replace(" ", "")
-    hand_3 = "".replace(" ", "")
-    hand_4 = "".replace(" ", "")
-    """
 
     init_trick = [[None, []]]
     hand_1 = "JH, TC, 7H, 8C, 6H, 5H, 6C, 3H, 2H, 3S, QS, QC, 9H".replace(" ", "")
@@ -378,7 +399,7 @@ if __name__ == "__main__":
                                                          init_trick, 
                                                          myself_hand_cards, 
                                                          is_hearts_broken, 
-                                                         expose_hearts_ace, 
+                                                         expose_info, 
                                                          cards, 
                                                          score_cards, 
                                                          None, 

@@ -134,47 +134,33 @@ class TrainPipeline():
         n_epochs = max(256, len(self.data_buffer) // self.batch_size * 2)
 
         for i in range(n_epochs):
-            remaining_batch = []
-            trick_nr_batch, trick_order_batch, pos_batch, played_order_batch, trick_batch = [], [], [], [], []
-            must_batch, score_batch, historical_batch, hand_batch, valid_batch = [], [], [], [], []
-            expose_batch, void_batch, winning_batch = [], [], []
+            trick_cards_batch, score_cards_batch, possible_cards = [], [], []
+            this_trick_batch, valid_cards_batch = [], []
+            leading_cards_batch, expose_cards_batch = [], []
             probs_batch, scores_batch = [], []
 
             samples = sample(self.data_buffer, self.batch_size)
-            for remaining, trick_nr, trick_order, pos, played_order, trick, must, history, scards, hand, valid, expose_info, void_info, winning_info, probs, scores in samples:
-                remaining_batch.append(full_cards(remaining))
+            for current_player_idx, trick_cards, score_cards, possible_cards, this_trick, valid_cards, is_leading, is_expose, probs, scores in samples:
+                trick_cards_batch.append(transform_trick_cards(trick_cards))
+                score_cards_batch.append(transform_score_cards(score_cards))
+                possible_cards_batch.append(transform_possible_cards(possible_cards))
+                this_trick_batch.append(transform_this_trick_cards(current_player_idx, this_trick_cards))
+                valid_cards_batch.append(transform_valid_cards(current_player_idx, valid_cards))
+                leading_cards_batch.append(transform_leading_cards(current_player_idx, leading_cards))
+                expose_cards_batch.append(transform_expose_cards(expose_cards))
 
-                trick_nr_batch.append([trick_nr])
-                trick_order_batch.append(trick_order)
-                pos_batch.append([pos])
-                played_order_batch.append([played_order])
-                trick_batch.append(limit_cards(trick, 3))
-
-                must_batch.append([limit_cards(must[0], 4), limit_cards(must[1], 4), limit_cards(must[2], 4), limit_cards(must[3], 4)])
-                historical_batch.append([limit_cards(history[0], 13), limit_cards(history[1], 13), limit_cards(history[2], 13), limit_cards(history[3], 13)])
-                score_batch.append([limit_cards(scards[0], 15), limit_cards(scards[1], 15), limit_cards(scards[2], 15), limit_cards(scards[3], 15)])
-                hand_batch.append(limit_cards(hand, 13))
-                valid_batch.append(limit_cards(valid, 13))
-
-                expose_batch.append(expose_info)
-                void_batch.append(void_info)
-                winning_batch.append(winning_info)
-
-                probs_batch.append(limit_cards(dict(zip(valid, probs)), 13))
+                probs_batch.append(probs)
                 scores_batch.append(scores)
 
-            loss, policy_loss = self.policy.train_step(
-                    remaining_batch, \
-                    trick_nr_batch, trick_order_batch, pos_batch, played_order_batch, trick_batch, \
-                    must_batch, historical_batch, score_batch, hand_batch, valid_batch, \
-                    expose_batch, void_batch, winning_batch, \
+            loss, policy_loss, value_loss = self.policy.train_step(
+                    trick_cards_batch, score_cards_batch, possible_cards, \
+                    this_trick_batch, valid_cards_batch, \
+                    leading_cards_batch, expose_cards_batch, \
                     probs_batch, scores_batch,\
                     self.learning_rate)
 
-            print("epoch: {:4d}/{:4d}, policy_loss: {:.8f}, loss: {:.8f}".format(\
-                i+1, n_epochs, policy_loss, loss))
-
-        return loss, policy_loss
+            print("epoch: {:4d}/{:4d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}".format(\
+                i+1, n_epochs, policy_loss, value_loss, loss))
 
 
     def policy_evaluate(self, n_games=1):

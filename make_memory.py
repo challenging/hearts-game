@@ -10,7 +10,7 @@ import pickle
 from intelligent_game import IntelligentGame
 from intelligent_player import IntelligentPlayer
 
-from nn import CNNPolicyValueNet as Net
+from nn import PolicyValueNet as Net
 
 
 def run(init_model, c_puct, time, min_times, n_games, filepath_out):
@@ -57,6 +57,7 @@ if __name__ == "__main__":
     print(sys.argv)
     init_model, c_puct, time, min_times, n_games, filepath_out = \
         sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]), int(sys.argv[5]), sys.argv[6]
+
     print("init_model: {}, c_puct: {}, time: {}, min_times:{}, n_game: {}, filepath_out: {}".format(\
         init_model, c_puct, time, min_times, n_games, filepath_out))
 

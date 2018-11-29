@@ -26,7 +26,7 @@ class TreeNode(object):
                 self._children[action] = TreeNode(self, prob, player_idx)
             else:
                 self._children[action]._player_idx = player_idx
-                self._children[action]._P = prob
+                self._children[action]._P = (self._children[action]._P + prob)/2
 
 
     def select(self, c_puct):
@@ -51,7 +51,9 @@ class TreeNode(object):
 
 
     def get_value(self, c_puct):
-        u = (c_puct * self._P * math.log(self._parent._n_visits)/(1 + self._n_visits))**0.5
+        #u = (c_puct * self._P * math.log(self._parent._n_visits)/(1 + self._n_visits))**0.5
+        u = (c_puct * self._P * (self._parent._n_visits)**0.5 / (1 + self._n_visits))
+
         q = self._Q[self._player_idx]/(1e-16+self._n_visits)
         value = q + u
 

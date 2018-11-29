@@ -140,7 +140,6 @@ class RiderPlayer(MonteCarloPlayer7):
                                game.trick_nr+1, 
                                game.is_heart_broken, 
                                [2 if player.expose else 1 for player in game.players], 
-                               game.player_winning_info,
                                True, 
                                steal_time,
                                False,
@@ -153,10 +152,7 @@ class RiderPlayer(MonteCarloPlayer7):
     def get_simple_game_info(self, state):
         hand_cards = [[] if player_idx != self.position else state._player_hands[player_idx] for player_idx in range(4)]
 
-        historical_cards = [[], [], [], []]
-        for player_idx, cards in enumerate(state._historical_cards):
-            for card in cards:
-                historical_cards[player_idx].append((card.suit.value, 1<<(card.rank.value-2)))
+        trick_cards = state.trick_cards
 
         init_trick = [[None, state.trick[:]]]
         for trick_idx, (winner_index, trick) in enumerate(init_trick):
@@ -168,7 +164,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         selection_func = [random_choose]*4
 
-        return hand_cards, historical_cards, init_trick, must_have, selection_func
+        return hand_cards, trick_cards, init_trick, must_have, selection_func
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
@@ -184,7 +180,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         game.are_hearts_broken()
 
-        hand_cards, historical_cards, init_trick, must_have, selection_func = \
+        hand_cards, trick_cards, init_trick, must_have, selection_func = \
             self.get_simple_game_info(game)
 
         valid_cards = self.get_valid_cards(game._player_hands[self.position], game)
@@ -195,7 +191,7 @@ class RiderPlayer(MonteCarloPlayer7):
                                valid_cards,
                                self.remaining_cards, 
                                game._b_cards_taken, 
-                               historical_cards,
+                               trick_cards,
                                self.num_hand_cards, 
                                init_trick, 
                                self.void_info, 

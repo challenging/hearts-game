@@ -120,7 +120,7 @@ def transform_cards(card_strings):
             for card in card_s.split(separator):
                 card = card.strip()
 
-                rank = card[0]#"".join(card[:-1])
+                rank = card[0] #"".join(card[:-1])
                 suit = card[1]
 
                 t.append(transform(rank, suit))
@@ -165,8 +165,10 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
                     if not game.expose_heart_ace:
                         for player_idx in range(4):
-                            is_exposed = players[player_idx].expose_hearts_ace(game._player_hands[player_idx])
-                            game.expose_heart_ace = is_exposed
+                            is_expose = players[player_idx].expose_hearts_ace(game._player_hands[player_idx])
+
+                            if is_expose:
+                                game.expose_info[player_idx] = 2
 
                             if game.expose_heart_ace:
                                 out_file.write("Player-{} exposes HEARTS ACE\n".format(player_idx))
@@ -211,9 +213,9 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
                             n_mean_moon_score = sum([1 for score in shooting_moon_scores[player_idx] if score == 0])
                             mean_moon_score = statistics.mean(shooting_moon_scores[player_idx]+proactive_moon_scores[player_idx]+final_scores[player_idx])
 
-                            out_file.write("--> {:16s}({}): {:3d} points, expose_hearts_ace={}, stats: (n={}/{}/{}, mean={:.3f}/{:.3f}/{:.3f})\n".format(\
+                            out_file.write("--> {:16s}({}): {:3d} points, expose_info={}, stats: (n={}/{}/{}, mean={:.3f}/{:.3f}/{:.3f})\n".format(\
                                 type(player).__name__, player_idx, scores[player_idx], \
-                                game.expose_heart_ace, len(final_scores[player_idx]), n_proactive_mean_moon_score, n_mean_moon_score, \
+                                game.expose_info, len(final_scores[player_idx]), n_proactive_mean_moon_score, n_mean_moon_score, \
                                 mean_score, proactive_mean_moon_score, mean_moon_score))
 
                     game.reset()

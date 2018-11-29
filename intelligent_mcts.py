@@ -1,9 +1,10 @@
 from card import Deck
 from rules import get_rating
 
-from nn_utils import v2card, SCORE_SCALAR
+from nn_utils import v2card
 from mcts import TreeNode, MCTS, say
 
+SCORE_SCALAR = 52
 
 class IntelligentTreeNode(TreeNode):
     def __init__(self, parent, prior_p, player_idx):
@@ -21,15 +22,14 @@ class IntelligentMCTS(MCTS):
 
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
         if not state.is_finished:
-            bcards, probs = self._policy(trick_nr, state)
+            probs, scores = self._policy(trick_nr, state)
+            #print("probs", probs, scores)
 
-            valid_cards = [v2card(v) for v in bcards if v > 0]
-            action_probs = zip([(card.suit.value, 1<<(card.rank.value-2)) for card in valid_cards], probs)
+            node.expand(state.start_pos, probs)
+        else:
+            scores, _ = state.score()
 
-            node.expand(state.start_pos, action_probs)
-
-        rating = self._evaluate_rollout(trick_nr, state, selection_func)
-        node.update_recursive(rating)
+        node.update_recursive(get_rating(scores))
 
 
     def reinit_tree_node(self):

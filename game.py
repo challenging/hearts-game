@@ -28,9 +28,8 @@ class Game(object):
 
         self.player_scores = [0, 0, 0, 0]
         self.player_action_pos = [[0]*13, [0]*13, [0]*13, [0]*13]
-        self.player_winning_info = [[0]*13, [0]*13, [0]*13, [0]*13]
 
-        self.expose_heart_ace = False
+        self.expose_info = [1, 1, 1, 1]
         self.take_pig_card = False
         self.is_heart_broken = False
         self.is_shootmoon = False
@@ -41,7 +40,6 @@ class Game(object):
 
         deck = Deck()
 
-        self._historical_cards = [[], [], [], []]
         self._player_hands = list(deck.deal())
         self._cards_taken = ([], [], [], [])
         self._b_cards_taken = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
@@ -85,8 +83,8 @@ class Game(object):
 
 
     def print_game_status(self):
-        self.say("trick_nr: {:2d}, leading_position: {}, is_heart_broken: {}, expose_hearts_ace: {}", \
-            self.trick_nr, self.current_player_idx, self.is_heart_broken, self.expose_heart_ace)
+        self.say("trick_nr: {:2d}, leading_position: {}, is_heart_broken: {}, expose_info: {}", \
+            self.trick_nr, self.current_player_idx, self.is_heart_broken, self.expose_info)
         self.say("="*128)
         for player_idx, (player, hand_cards, taken_cards, lacking_cards) in enumerate(zip(self.players, self._player_hands, self._cards_taken, self.lacking_cards)):
             self.say("position: {}, name:{:18s}, lacking_info: {}, hand_cards: {}, score: {:3d}, taken_cards: {}",\
@@ -230,12 +228,6 @@ class Game(object):
         winning_index, winning_card = self.winning_index()
         winning_player_index = (self.current_player_idx + winning_index) % 4
 
-        for player_idx in range(4):
-            if winning_player_index == player_idx:
-                self.player_winning_info[player_idx][self.trick_nr] = 1
-            else:
-                self.player_winning_info[player_idx][self.trick_nr] = 2
-
         self._cards_taken[winning_player_index].extend(self.trick)
         self.post_round_over(winning_index, winning_player_index)
 
@@ -254,7 +246,7 @@ class Game(object):
                 self.say("")
 
             self.say("the winning_player_index is {}({}, {}), is_heart_broken: {}, expose_heart_ace: {}", \
-                winning_player_index, self.current_player_idx, winning_index, self.is_heart_broken, self.expose_heart_ace)
+                winning_player_index, self.current_player_idx, winning_index, self.is_heart_broken, self.expose_info)
             self.say("player {}({}) win this {:2d} trick by {} card based on {}",\
                 winning_player_index, type(self.players[winning_player_index]).__name__, self.trick_nr, winning_card, self.trick)
             self.say("after {:3d} round, status of every players' hand cards", self.trick_nr)
@@ -281,7 +273,6 @@ class Game(object):
             raise ValueError("Not found {} card in this Player-{} hand cards({})".format(\
                 played_card, self.current_player_idx, self._player_hands[self.current_player_idx]))
 
-        self._historical_cards[self.current_player_idx].append(played_card)
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
 
@@ -329,9 +320,11 @@ class Game(object):
         Count the number of points in cards, where cards is a list of Cards.
         """
 
+        is_expose = max(self.expose_info) == 2
+
         point, is_double = 0, 1
         for card in cards:
-            point += card_points(card)*(2 if self.expose_heart_ace and card.suit == Suit.hearts else 1)
+            point += card_points(card)*(2 if is_expose and card.suit == Suit.hearts else 1)
 
             if card == Card(Suit.clubs, Rank.ten):
                 is_double = 2

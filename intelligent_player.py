@@ -84,7 +84,6 @@ class IntelligentPlayer(RiderPlayer):
                                game.trick_nr+1, 
                                game.is_heart_broken, 
                                [2 if player.expose else 1 for player in game.players], 
-                               game.player_winning_info,
                                False, 
                                etime, 
                                True,

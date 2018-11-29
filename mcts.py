@@ -132,7 +132,7 @@ class MCTS(object):
                  valid_cards,
                  remaining_cards,
                  score_cards,
-                 historical_cards,
+                 trick_cards,
                  num_hand_cards,
                  init_trick,
                  void_info,
@@ -141,7 +141,6 @@ class MCTS(object):
                  trick_nr,
                  is_heart_broken,
                  expose_info,
-                 winning_info,
                  is_only_played_card=False,
                  simulation_time_limit=TIMEOUT_SECOND-0.1,
                  not_seen=False,
@@ -159,9 +158,15 @@ class MCTS(object):
                                               void_info,
                                               not_seen)
 
-        vcards = str_to_bitmask(valid_cards) if not_seen else None
+        b_trick_cards = []
+        for idx in range(13):
+            b_trick_cards.append([None, None, None, None])
 
-        c_puct = self._c_puct
+            for card_idx, card in enumerate(trick_cards[idx]):
+                if card:
+                    b_trick_cards[idx][card_idx] = (card.suit.value, 1<<(card.rank.value-2))
+
+        vcards = str_to_bitmask(valid_cards) if not_seen else None
 
         ratio, stats_shoot_the_moon = [0, 0], {}
         for simulation_card in simulation_cards:
@@ -174,12 +179,11 @@ class MCTS(object):
                 sm = StepGame(trick_nr,
                               position=first_player_idx,
                               hand_cards=simulation_card,
+                              trick_cards=copy.deepcopy(b_trick_cards),
                               void_info=void_info,
                               score_cards=copy.deepcopy(score_cards),
-                              historical_cards=copy.deepcopy(historical_cards),
                               is_hearts_broken=is_heart_broken,
                               expose_info=expose_info,
-                              winning_info=winning_info,
                               tricks=copy.deepcopy(init_trick),
                               must_have=must_have)
 
@@ -189,7 +193,7 @@ class MCTS(object):
                 if len(init_trick[-1][1]) == 4:
                     sm.post_round_end()
 
-                self._playout(trick_nr, sm, selection_func, c_puct)
+                self._playout(trick_nr, sm, selection_func, self._c_puct)
 
                 scores, is_shoot_the_moon = sm.score()
                 if is_shoot_the_moon:
@@ -200,7 +204,7 @@ class MCTS(object):
                 ratio[0] += 1
             except Exception as e:
                 ratio[1] += 1
-                #raise
+                raise
 
             if time.time()-stime > simulation_time_limit:
                 shooter = None

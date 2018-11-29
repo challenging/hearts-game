@@ -130,7 +130,7 @@ class SimpleGame(object):
         for suit, ranks in seen_cards.items():
             cards[suit] ^= ranks
 
-        for suit, ranks in self.hand_cards.items():
+        for suit, ranks in self.hand_cards[self.position].items():
             cards[suit] ^= ranks
 
         return cards
@@ -430,7 +430,7 @@ class SimpleGame(object):
 
 
     def print_tricks(self, scores):
-        for round_idx in range(1, len(self.tricks)+1):
+        for round_idx in range(1, len(self.tricks)):
             print("Round {:2d}: Tricks: {}".format(\
                 round_idx, ["{}{}".format(INDEX_TO_NUM[rank], INDEX_TO_SUIT[suit]) for suit, rank in self.tricks[round_idx-1][1]]))
 
