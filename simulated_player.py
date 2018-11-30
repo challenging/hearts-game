@@ -6,7 +6,14 @@ import time
 
 import multiprocessing as mp
 
-from statistics import mean
+try:
+    import statistics
+
+    mean = statistics.mean
+except:
+    def mean(numbers):
+        return float(sum(numbers)) / max(len(numbers), 1)
+
 from random import randint
 
 from functools import cmp_to_key

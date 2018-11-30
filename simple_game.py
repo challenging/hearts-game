@@ -5,8 +5,14 @@ import sys
 import time
 import copy
 
-#import numpy as np
-import statistics
+try:
+    import statistics
+
+    mean = statistics.mean
+except:
+    def mean(numbers):
+        return float(sum(numbers)) / max(len(numbers), 1)
+
 from random import choice
 
 from collections import defaultdict
@@ -690,4 +696,4 @@ if __name__ == "__main__":
     pool.close()
 
     for played_card, scores in results.items():
-        print(played_card, len(scores), statistics.mean([score[0] for score in scores]))
+        print(played_card, len(scores), mean([score[0] for score in scores]))

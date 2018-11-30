@@ -26,6 +26,8 @@ from intelligent_player import IntelligentPlayer
 from new_simple_player import NewSimplePlayer
 
 from nn import PolicyValueNet as Net
+from nn_utils import transform_trick_cards, transform_score_cards, transform_possible_cards
+from nn_utils import transform_this_trick_cards, transform_valid_cards, transfer_expose_cards, transfer_leading_cards
 from nn_utils import print_a_memory
 
 
@@ -59,17 +61,20 @@ class TrainPipeline():
         self.init_nn_model()
 
         # training params
+        self.kl_targ = 0.02
+        self.lr_multiplier = 1.0
         self.learning_rate = 1e-4
-        self.c_puct = 1024
+
+        self.c_puct = 64
         self.min_times = 32
 
         self.buffer_size = 2**16
-        self.batch_size = 8
+        self.batch_size = 16
         self.data_buffer = deque(maxlen=self.buffer_size)
 
         self.cpu_count = min(mp.cpu_count(), 12)
 
-        self.play_batch_size = 4
+        self.play_batch_size = 16
         self.epochs = int(52*self.cpu_count/8/self.play_batch_size)
         print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}".format(\
             self.cpu_count, self.batch_size, self.epochs, self.play_batch_size))
@@ -133,6 +138,7 @@ class TrainPipeline():
     def policy_update(self):
         n_epochs = max(256, len(self.data_buffer) // self.batch_size * 2)
 
+        old_probs, old_values = None, None
         for i in range(n_epochs):
             trick_cards_batch, score_cards_batch, possible_cards = [], [], []
             this_trick_batch, valid_cards_batch = [], []
@@ -152,15 +158,45 @@ class TrainPipeline():
                 probs_batch.append(probs)
                 scores_batch.append(scores)
 
-            loss, policy_loss, value_loss = self.policy.train_step(
+            loss, policy_loss, value_loss, entropy = self.policy.train_step(
+                trick_cards_batch, score_cards_batch, possible_cards, \
+                this_trick_batch, valid_cards_batch, \
+                leading_cards_batch, expose_cards_batch, \
+                probs_batch, scores_batch,\
+                self.learning_rate*self.lr_multiplier)
+
+            if i == 0:
+                old_probs, old_values = self.policy.policy_value_fn( \
                     trick_cards_batch, score_cards_batch, possible_cards, \
                     this_trick_batch, valid_cards_batch, \
                     leading_cards_batch, expose_cards_batch, \
                     probs_batch, scores_batch,\
-                    self.learning_rate)
+                    self.learning_rate))
+            else:
+                new_probs, new_values = self.policy.policy_value_fn( \
+                    trick_cards_batch, score_cards_batch, possible_cards, \
+                    this_trick_batch, valid_cards_batch, \
+                    leading_cards_batch, expose_cards_batch, \
+                    probs_batch, scores_batch,\
+                    self.learning_rate))
 
-            print("epoch: {:4d}/{:4d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}".format(\
-                i+1, n_epochs, policy_loss, value_loss, loss))
+                kl = np.mean(np.sum(old_probs * (np.log(old_probs + 1e-16) - np.log(new_probs + 1e-16)),
+                             axis=1))
+
+                if kl > self.kl_targ * 4:  # early stopping if D_KL diverges badly
+                    break
+
+            explained_var_old = (1 - np.var(np.array(scores_batch) - old_values.flatten()) / np.var(np.array(scores_batch)))
+            explained_var_new = (1 - np.var(np.array(scores_batch) - new_values.flatten()) / np.var(np.array(scores_batch)))
+
+            print("epoch: {:4d}/{:4d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}, entropy: {:.8f}, explained_var_old: {:.8f}, explained_var_new: {:.8f}".format(\
+                i+1, n_epochs, policy_loss, value_loss, loss, entropy, explained_var_old, explained_var_new))
+
+        # adaptively adjust the learning rate
+        if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
+            self.lr_multiplier /= 1.5
+        elif kl < self.kl_targ / 2 and self.lr_multiplier < 10:
+            self.lr_multiplier *= 1.5
 
 
     def policy_evaluate(self, n_games=1):
@@ -208,8 +244,6 @@ class TrainPipeline():
                     myself_score, others_score = self.policy_evaluate()
                     print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
                         start_idx+1, myself_score, others_score))
-
-                    sys.exit(0)
                 else:
                     self.collect_selfplay_data(self.play_batch_size)
                     print("batch i: {}, memory_size: {}".format(start_idx+1, len(self.data_buffer)))
@@ -244,10 +278,7 @@ class TrainPipeline():
                         self.card_time = 1
                     else:
                         self.card_time *= 1.1
-                        #self.c_puct *= 1.1
-                        #self.min_times *= 1.1
 
-                        start_idx -= 1
                 start_idx += 1
         except KeyboardInterrupt:
             print('\nquit')

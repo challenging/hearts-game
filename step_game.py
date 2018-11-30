@@ -7,7 +7,14 @@ import copy
 
 from random import choice
 from collections import defaultdict
-from statistics import mean
+
+try:
+    import statistics
+
+    mean = statistics.mean
+except:
+    def mean(numbers):
+        return float(sum(numbers)) / max(len(numbers), 1)
 
 from card import Rank, Suit, Card
 

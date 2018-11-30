@@ -3,18 +3,13 @@ import time
 
 import numpy as np
 
-from card import NUM_TO_INDEX, SUIT_TO_INDEX
 from card import bitmask_to_card, card_to_bitmask
 
-from strategy_play import random_choose, greedy_choose
-from expert_play import expert_choose
+from strategy_play import random_choose
 
 from dragon_rider_player import RiderPlayer
 from simulated_player import TIMEOUT_SECOND
-from new_simulated_player import MonteCarloPlayer7
 from intelligent_mcts import IntelligentMCTS
-
-from render_tree import get_tree
 
 
 def softmax(x, temp, small_v=1e-16):
@@ -47,6 +42,13 @@ class IntelligentPlayer(RiderPlayer):
 
         card = (card.suit.value, 1<<(card.rank.value-2))
         self.mcts.update_with_move(card, game.current_player_idx)
+
+
+    def get_simple_game_info(self, state):
+        hand_cards, trick_cards, init_trick, must_have, _ = \
+            super(RiderPlayer, self).get_simple_game_info(state)
+
+        return hand_cards, trick_cards, init_trick, must_have, [random_choose]*4
 
 
     def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND, temp=1):
@@ -114,11 +116,6 @@ class IntelligentPlayer(RiderPlayer):
                     self.say("Player-{}, played card: {}, {} times, value={}", self.position, cards[-1], probs[-1], value)
 
             probs = softmax(probs, temp)
-
-            """
-            tree = get_tree(self.mcts.start_node)
-            tree.show()
-            """
 
             move = np.random.choice(
                     valid_cards,

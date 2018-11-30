@@ -6,7 +6,13 @@ import sys
 import copy
 import time
 
-import statistics
+try:
+    import statistics
+
+    mean = statistics.mean
+except:
+    def mean(numbers):
+        return float(sum(numbers)) / max(len(numbers), 1)
 
 from random import shuffle, randint
 
@@ -202,13 +208,13 @@ def evaluate_players(nr_of_games, players, setting_cards, is_rotating=True, verb
 
                     if verbose and final_scores[player_idx]:
                         for player_idx, player in enumerate(players):
-                            mean_score = statistics.mean(final_scores[player_idx])
+                            mean_score = mean(final_scores[player_idx])
 
                             n_proactive_mean_moon_score = sum([1 for score in proactive_moon_scores[player_idx] if score == 0])
-                            proactive_mean_moon_score = statistics.mean(proactive_moon_scores[player_idx]+final_scores[player_idx])
+                            proactive_mean_moon_score = mean(proactive_moon_scores[player_idx]+final_scores[player_idx])
 
                             n_mean_moon_score = sum([1 for score in shooting_moon_scores[player_idx] if score == 0])
-                            mean_moon_score = statistics.mean(shooting_moon_scores[player_idx]+proactive_moon_scores[player_idx]+final_scores[player_idx])
+                            mean_moon_score = mean(shooting_moon_scores[player_idx]+proactive_moon_scores[player_idx]+final_scores[player_idx])
 
                             out_file.write("--> {:16s}({}): {:3d} points, expose_info={}, stats: (n={}/{}/{}, mean={:.3f}/{:.3f}/{:.3f})\n".format(\
                                 type(player).__name__, player_idx, scores[player_idx], \

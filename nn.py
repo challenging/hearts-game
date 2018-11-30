@@ -197,9 +197,10 @@ class PolicyValueNet(object):
 
         is_expose = (np.max(expose_cards) == 2)
 
-        scores, double_player_idx = [0, 0, 0, 0], None
+        scores, double_player_idx = [[], [], [], []], None
         for card, sub_results in zip(SORTED_CARDS, results[1:]):
             player_idx = np.argmax(sub_results)
+            scores[player_idx].append(card)
 
             if card.suit == Suit.hearts:
                 scores[player_idx] += (2 if is_expose else 1)
@@ -219,10 +220,8 @@ class PolicyValueNet(object):
 
         return probs, scores
 
-    """
     def policy_value_fn(self, trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards):
         return self.policy_value(trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards)
-    """
 
 
     def train_step(self, \
@@ -232,8 +231,8 @@ class PolicyValueNet(object):
         inputs = np.concatenate((trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards), \
                                 axis=0)
 
-        loss, policy_loss, value_loss, _ = self.session.run(
-                [self.loss, self.policy_loss, self.value_loss, self.optimizer],
+        loss, policy_loss, value_loss, entropy, _ = self.session.run(
+                [self.loss, self.policy_loss, self.value_loss, self.entropy, self.optimizer],
                 feed_dict={self.inputs: inputs,
                            self.probs: probs,
                            self.score_1: scores[0],
@@ -253,7 +252,7 @@ class PolicyValueNet(object):
                            self.score_15: scores[14],
                            self.learning_rate: learning_rate})
 
-        return loss, policy_loss, value_loss
+        return loss, policy_loss, value_loss, entropy
 
 
     def save_model(self, model_path):
