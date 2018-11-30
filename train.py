@@ -17,7 +17,7 @@ import multiprocessing as mp
 from random import sample
 from collections import deque
 
-from card import Suit, Rank, Card
+from card import Suit, Rank, Card, POINT_CARDS
 from card import read_card_games
 from rules import evaluate_players
 
@@ -27,9 +27,13 @@ from new_simple_player import NewSimplePlayer
 
 from nn import PolicyValueNet as Net
 from nn_utils import transform_trick_cards, transform_score_cards, transform_possible_cards
-from nn_utils import transform_this_trick_cards, transform_valid_cards, transfer_expose_cards, transfer_leading_cards
+from nn_utils import transform_this_trick_cards, transform_valid_cards, transform_expose_cards, transform_leading_cards
 from nn_utils import print_a_memory
 
+SORTED_CARDS = sorted(list(POINT_CARDS))
+SORTED_CARDS = SORTED_CARDS[2:] + SORTED_CARDS[:2]
+
+MIN_CARD_TIME = 0.8
 
 DEBUG = False
 
@@ -74,7 +78,7 @@ class TrainPipeline():
 
         self.cpu_count = min(mp.cpu_count(), 12)
 
-        self.play_batch_size = 16
+        self.play_batch_size = 1
         self.epochs = int(52*self.cpu_count/8/self.play_batch_size)
         print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}".format(\
             self.cpu_count, self.batch_size, self.epochs, self.play_batch_size))
@@ -100,6 +104,8 @@ class TrainPipeline():
 
 
     def collect_selfplay_data(self, n_games):
+        global MIN_CARD_TIME
+
         self.data_buffer.clear()
 
         row_number = int(time.time())
@@ -116,7 +122,7 @@ class TrainPipeline():
                                        args=(idx,
                                              self.init_model, 
                                              self.c_puct, 
-                                             self.card_time, 
+                                             max(MIN_CARD_TIME, self.card_time), 
                                              self.min_times,
                                              n_games, 
                                              filepath_data.format(idx), 
@@ -138,9 +144,8 @@ class TrainPipeline():
     def policy_update(self):
         n_epochs = max(256, len(self.data_buffer) // self.batch_size * 2)
 
-        old_probs, old_values = None, None
         for i in range(n_epochs):
-            trick_cards_batch, score_cards_batch, possible_cards = [], [], []
+            trick_cards_batch, score_cards_batch, possible_cards_batch = [], [], []
             this_trick_batch, valid_cards_batch = [], []
             leading_cards_batch, expose_cards_batch = [], []
             probs_batch, scores_batch = [], []
@@ -150,53 +155,83 @@ class TrainPipeline():
                 trick_cards_batch.append(transform_trick_cards(trick_cards))
                 score_cards_batch.append(transform_score_cards(score_cards))
                 possible_cards_batch.append(transform_possible_cards(possible_cards))
-                this_trick_batch.append(transform_this_trick_cards(current_player_idx, this_trick_cards))
+                this_trick_batch.append(transform_this_trick_cards(current_player_idx, this_trick))
                 valid_cards_batch.append(transform_valid_cards(current_player_idx, valid_cards))
-                leading_cards_batch.append(transform_leading_cards(current_player_idx, leading_cards))
-                expose_cards_batch.append(transform_expose_cards(expose_cards))
+                leading_cards_batch.append(transform_leading_cards(current_player_idx, is_leading))
+                expose_cards_batch.append(transform_expose_cards(is_expose))
 
                 probs_batch.append(probs)
                 scores_batch.append(scores)
 
-            loss, policy_loss, value_loss, entropy = self.policy.train_step(
+            old_probs, old_values = self.policy.policy_value_fn( \
+                trick_cards_batch, score_cards_batch, possible_cards_batch, \
+                this_trick_batch, valid_cards_batch, \
+                leading_cards_batch, expose_cards_batch)
+
+            old_card_owners = self.policy.get_card_loss( \
                 trick_cards_batch, score_cards_batch, possible_cards, \
+                this_trick_batch, valid_cards_batch, \
+                leading_cards_batch, expose_cards_batch)
+
+            # update the PolicyValueNetwork
+            loss, policy_loss, value_loss, entropy = self.policy.train_step(
+                trick_cards_batch, score_cards_batch, possible_cards_batch, \
                 this_trick_batch, valid_cards_batch, \
                 leading_cards_batch, expose_cards_batch, \
                 probs_batch, scores_batch,\
                 self.learning_rate*self.lr_multiplier)
 
-            if i == 0:
-                old_probs, old_values = self.policy.policy_value_fn( \
-                    trick_cards_batch, score_cards_batch, possible_cards, \
-                    this_trick_batch, valid_cards_batch, \
-                    leading_cards_batch, expose_cards_batch, \
-                    probs_batch, scores_batch,\
-                    self.learning_rate))
-            else:
-                new_probs, new_values = self.policy.policy_value_fn( \
-                    trick_cards_batch, score_cards_batch, possible_cards, \
-                    this_trick_batch, valid_cards_batch, \
-                    leading_cards_batch, expose_cards_batch, \
-                    probs_batch, scores_batch,\
-                    self.learning_rate))
+            new_probs, new_values = self.policy.policy_value_fn( \
+                trick_cards_batch, score_cards_batch, possible_cards_batch, \
+                this_trick_batch, valid_cards_batch, \
+                leading_cards_batch, expose_cards_batch)
 
-                kl = np.mean(np.sum(old_probs * (np.log(old_probs + 1e-16) - np.log(new_probs + 1e-16)),
-                             axis=1))
+            new_card_owners = self.policy.get_card_loss( \
+                trick_cards_batch, score_cards_batch, possible_cards_batch, \
+                this_trick_batch, valid_cards_batch, \
+                leading_cards_batch, expose_cards_batch)
 
-                if kl > self.kl_targ * 4:  # early stopping if D_KL diverges badly
-                    break
+            kl = np.mean(np.sum(old_probs * (np.log(old_probs + 1e-16) - np.log(new_probs + 1e-16)),
+                         axis=1))
 
-            explained_var_old = (1 - np.var(np.array(scores_batch) - old_values.flatten()) / np.var(np.array(scores_batch)))
-            explained_var_new = (1 - np.var(np.array(scores_batch) - new_values.flatten()) / np.var(np.array(scores_batch)))
+            if kl > self.kl_targ*4:
+                print("early stopping because of {:.8f} > {:.8f}".format(kl, self.kl_targ*4))
+                break
 
-            print("epoch: {:4d}/{:4d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}, entropy: {:.8f}, explained_var_old: {:.8f}, explained_var_new: {:.8f}".format(\
-                i+1, n_epochs, policy_loss, value_loss, loss, entropy, explained_var_old, explained_var_new))
+            print("epoch: {:4d}/{:4d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}, entropy: {:.8f}".format(\
+                i+1, n_epochs, policy_loss, value_loss, loss, entropy))
+
+            owners = {}
+            for card in SORTED_CARDS:
+                owners[card] = [0, 0]
+
+            for old_cards, new_cards, owner_cards in zip(old_card_owners, new_card_owners, scores_batch):
+                for card, old_card, new_card in zip(SORTED_CARDS, old_cards, new_cards):
+                    for real_player_idx, owner_card in enumerate(owner_cards):
+                        if card in owner_card:
+                            break
+
+                    old_player_idx, new_player_idx = np.argmax(old_card), np.argmax(new_card)
+                    if old_player_idx == real_player_idx:
+                        owners[card][0] += 1
+
+                    if new_player_idx == real_player_idx:
+                        owners[card][1] += 1
+
+            for card, losses in owners.items():
+                print("\t loss of {}: {:.8f}".format(card, sum([loss[0] for loss in losses])/len(scores_batch)))
 
         # adaptively adjust the learning rate
         if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
+            print("decrease the self.lr_multiplier from {} --> ".format(self.lr_multiplier),)
             self.lr_multiplier /= 1.5
+
+            print(self.lr_multiplier)
         elif kl < self.kl_targ / 2 and self.lr_multiplier < 10:
+            print("increase the self.lr_multiplier from {} --> ".format(self.lr_multiplier),)
             self.lr_multiplier *= 1.5
+
+            print(self.lr_multiplier)
 
 
     def policy_evaluate(self, n_games=1):
@@ -240,13 +275,13 @@ class TrainPipeline():
 
                 self.init_nn_model()
 
-                if start_idx == 0:
+                if start_idx == -1:
                     myself_score, others_score = self.policy_evaluate()
                     print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
                         start_idx+1, myself_score, others_score))
                 else:
                     self.collect_selfplay_data(self.play_batch_size)
-                    print("batch i: {}, memory_size: {}".format(start_idx+1, len(self.data_buffer)))
+                    print("batch i: {:04d}, memory_size: {:5d}".format(start_idx+1, len(self.data_buffer)))
 
                     if DEBUG:
                         for played_data in self.data_buffer:

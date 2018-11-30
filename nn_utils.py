@@ -151,6 +151,7 @@ def transform_results(score_cards):
                 _, rank_idx = get_index(card)
 
                 results[rank_idx, player_idx] = 1
+
     return results
 
 

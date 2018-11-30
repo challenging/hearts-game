@@ -90,66 +90,62 @@ class PolicyValueNet(object):
             return tf.losses.softmax_cross_entropy(labels, logits)
 
         self.score_evaluation_fc1 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_1 = get_loss(self.score_1, self.score_evaluation_fc1)
+        self.loss_1 = get_loss(self.score_1, self.score_evaluation_fc1)
 
         self.score_evaluation_fc2 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_2 = get_loss(self.score_2, self.score_evaluation_fc2)
+        self.loss_2 = get_loss(self.score_2, self.score_evaluation_fc2)
 
         self.score_evaluation_fc3 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_3 = get_loss(self.score_3, self.score_evaluation_fc3)
+        self.loss_3 = get_loss(self.score_3, self.score_evaluation_fc3)
 
         self.score_evaluation_fc4 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_4 = get_loss(self.score_4, self.score_evaluation_fc4)
+        self.loss_4 = get_loss(self.score_4, self.score_evaluation_fc4)
 
         self.score_evaluation_fc5 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_5 = get_loss(self.score_5, self.score_evaluation_fc5)
+        self.loss_5 = get_loss(self.score_5, self.score_evaluation_fc5)
 
         self.score_evaluation_fc6 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_6 = get_loss(self.score_6, self.score_evaluation_fc6)
+        self.loss_6 = get_loss(self.score_6, self.score_evaluation_fc6)
 
         self.score_evaluation_fc7 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_7 = get_loss(self.score_7, self.score_evaluation_fc7)
+        self.loss_7 = get_loss(self.score_7, self.score_evaluation_fc7)
 
         self.score_evaluation_fc8 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_8 = get_loss(self.score_8, self.score_evaluation_fc8)
+        self.loss_8 = get_loss(self.score_8, self.score_evaluation_fc8)
 
         self.score_evaluation_fc9 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_9 = get_loss(self.score_9, self.score_evaluation_fc9)
+        self.loss_hearts_ten = get_loss(self.score_9, self.score_evaluation_fc9)
 
         self.score_evaluation_fc10 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_10 = get_loss(self.score_10, self.score_evaluation_fc10)
+        self.loss_hearts_jack = get_loss(self.score_10, self.score_evaluation_fc10)
 
         self.score_evaluation_fc11 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_11 = get_loss(self.score_11, self.score_evaluation_fc11)
+        self.loss_hearts_queen = get_loss(self.score_11, self.score_evaluation_fc11)
 
         self.score_evaluation_fc12 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_12 = get_loss(self.score_12, self.score_evaluation_fc12)
+        self.loss_hearts_king = get_loss(self.score_12, self.score_evaluation_fc12)
 
         self.score_evaluation_fc13 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_13 = get_loss(self.score_13, self.score_evaluation_fc13)
+        self.loss_hearts_ace = get_loss(self.score_13, self.score_evaluation_fc13)
 
         self.score_evaluation_fc14 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_14 = get_loss(self.score_14, self.score_evaluation_fc14)
+        self.loss_spades_queen = get_loss(self.score_14, self.score_evaluation_fc14)
 
         self.score_evaluation_fc15 = tf.layers.dense(inputs=evaluation_fc2, units=4, activation=tf.nn.tanh)
-        loss_15 = get_loss(self.score_15, self.score_evaluation_fc15)
+        self.loss_clubs_ten = get_loss(self.score_15, self.score_evaluation_fc15)
 
-        self.score_hearts_loss = loss_1 + loss_2 + loss_3 + loss_4 + loss_5 + loss_6 + loss_7 + \
-                                 loss_8 + loss_9 + loss_10 + loss_11 + loss_12 + loss_13
-
-        self.score_spades_loss = loss_14
-        self.score_clubs_loss = loss_15
-
-        self.value_loss = self.score_hearts_loss + self.score_spades_loss + self.score_clubs_loss
-
-        self.loss = self.policy_loss + self.value_loss
+        self.value_loss = self.loss_1 + self.loss_2 + self.loss_3 + self.loss_4 + self.loss_5 + \
+                          self.loss_6 + self.loss_7 + self.loss_8 + \
+                          self.loss_hearts_ten + self.loss_hearts_jack + self.loss_hearts_queen + \
+                          self.loss_hearts_king + self.loss_spades_queen + self.loss_clubs_ten
 
         # 3-3. L2 penalty (regularization)
         l2_penalty_beta = 1e-4
         vars = tf.trainable_variables()
         l2_penalty = l2_penalty_beta * tf.add_n([tf.nn.l2_loss(v) for v in vars if 'bias' not in v.name.lower()])
+
         # 3-4 Add up to be the Loss function
-        self.loss = l2_penalty + self.policy_loss
+        self.loss = l2_penalty + self.policy_loss + self.value_loss
 
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss)
 
@@ -172,8 +168,6 @@ class PolicyValueNet(object):
 
 
     def policy_value(self, trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards):
-        global SORTED_CARDS
-
         inputs = np.concatenate((trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards), \
                                 axis=0)
 
@@ -197,10 +191,9 @@ class PolicyValueNet(object):
 
         is_expose = (np.max(expose_cards) == 2)
 
-        scores, double_player_idx = [[], [], [], []], None
+        scores, double_player_idx = [0, 0, 0, 0], None
         for card, sub_results in zip(SORTED_CARDS, results[1:]):
             player_idx = np.argmax(sub_results)
-            scores[player_idx].append(card)
 
             if card.suit == Suit.hearts:
                 scores[player_idx] += (2 if is_expose else 1)
@@ -212,7 +205,6 @@ class PolicyValueNet(object):
         scores[double_player_idx] <<= 1
 
         where, probs = np.where(valid_cards[0, state.start_pos] == 1), []
-        #print("where", where, valid_cards, results)
 
         for pos_x, pos_y in zip(where[0], where[1]):
             pos = pos_x*13+pos_y
@@ -220,14 +212,35 @@ class PolicyValueNet(object):
 
         return probs, scores
 
-    def policy_value_fn(self, trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards):
+
+    def policy_value_fn(self, trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards, is_debug=False):
+        if is_debug:
+            print("     trick_cards:", np.array(trick_cards).shape)
+            print("     score_cards:", np.array(score_cards).shape)
+            print("  possible_cards:", np.array(possible_cards).shape)
+            print("this_trick_cards:", np.array(this_trick_cards).shape)
+            print("     valid_cards:", np.array(valid_cards).shape)
+            print("   leading_cards:", np.array(leading_cards).shape)
+            print("    expose_cards:", np.array(expose_cards).shape)
+
         return self.policy_value(trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards)
+
+
+    def get_card_loss(self, trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards):
+        inputs = np.concatenate((trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards), \
+                                axis=0)
+
+        card_losses = self.session.run([self.loss_1, self.loss_2, self.loss_3, sef.loss_4, self.loss_5, self.loss_6, self.loss_7, self.loss_8,
+                                        self.loss_hearts_ten, self.loss_hearts_jack, self.loss_hearts_queen, self.loss_hearts_king,
+                                        self.loss_spades_queen, self.loss_clubs_ten],
+                                       feed_dict={self.inputs: inputs})
+
+        return card_losses
 
 
     def train_step(self, \
                    trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards, \
                    probs, scores, learning_rate):
-
         inputs = np.concatenate((trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards), \
                                 axis=0)
 

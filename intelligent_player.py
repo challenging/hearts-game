@@ -45,8 +45,7 @@ class IntelligentPlayer(RiderPlayer):
 
 
     def get_simple_game_info(self, state):
-        hand_cards, trick_cards, init_trick, must_have, _ = \
-            super(RiderPlayer, self).get_simple_game_info(state)
+        hand_cards, trick_cards, init_trick, must_have, _ = super(IntelligentPlayer, self).get_simple_game_info(state)
 
         return hand_cards, trick_cards, init_trick, must_have, [random_choose]*4
 

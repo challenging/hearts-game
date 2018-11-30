@@ -7,7 +7,13 @@ import time
 
 import logging
 
-from statistics import mean
+try:
+    import statistics
+
+    mean = statistics.mean
+except:
+    def mean(numbers):
+        return float(sum(numbers)) / max(len(numbers), 1)
 
 from abc import abstractmethod
 from collections import defaultdict
@@ -167,19 +173,6 @@ class BrainBot(LowPlayBot):
         for card_str in data['self']['cards']:
             card = transform(card_str[0], card_str[1])
             self.my_hand_cards.append(card)
-
-        #message = "My Cards:{}".format(self.game._player_hands[self.player.position])
-        #system_log.show_message(message)
-
-        #message = "Pick Card Event Content:{}".format(data)
-        #system_log.show_message(message)
-
-        #message = "Candidate Cards:{}".format(candidate_cards)
-        #system_log.show_message(message)
-
-        #print("players's position", self.player.position, self.player.proactive_mode, self.player.seen_cards)
-        #print("current trick", self.game.trick)
-        #print("current hand cards", self.game._player_hands[self.player.position])
 
         self.game.current_player_idx = self.player.position
         self.game._player_hands[self.player.position] = self.my_hand_cards
