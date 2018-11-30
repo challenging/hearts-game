@@ -143,9 +143,9 @@ def transform_results(score_cards):
 
     for player_idx, cards in enumerate(score_cards):
         for card in cards:
-            if card == SPADES_Q:
+            if card == CLUBS_T:
                 results[13, player_idx] = 1
-            elif card == CLUBS_T:
+            elif card == SPADES_Q:
                 results[14, player_idx] = 1
             else:
                 _, rank_idx = get_index(card)

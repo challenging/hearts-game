@@ -26,7 +26,7 @@ from intelligent_player import IntelligentPlayer
 from new_simple_player import NewSimplePlayer
 
 from nn import PolicyValueNet as Net
-from nn_utils import transform_trick_cards, transform_score_cards, transform_possible_cards
+from nn_utils import transform_trick_cards, transform_score_cards, transform_possible_cards, transform_results
 from nn_utils import transform_this_trick_cards, transform_valid_cards, transform_expose_cards, transform_leading_cards
 from nn_utils import print_a_memory
 
@@ -106,8 +106,6 @@ class TrainPipeline():
     def collect_selfplay_data(self, n_games):
         global MIN_CARD_TIME
 
-        self.data_buffer.clear()
-
         row_number = int(time.time())
         filepath_data = os.path.join(self.basepath_data, "{}.{}.pkl".format(row_number, "{:02d}"))
         filepath_log = os.path.join(self.basepath_log, "{}.{}.log".format(row_number, "{:02d}"))
@@ -129,14 +127,16 @@ class TrainPipeline():
                                              filepath_log.format(idx))) for idx in range(self.cpu_count)]
         results = [res.get() for res in mul_result]
 
+        pool.close()
+
+
+    def collect_memory(self):
+        self.data_buffer.clear()
+
         for filepath_in in glob.glob(os.path.join(self.basepath_data, "*.pkl")):
             with open(filepath_in, "rb") as in_file:
                 data_buffer = pickle.load(in_file)
-                print("collect {} memory from {}".format(len(data_buffer), filepath_in))
-
                 self.data_buffer.extend(data_buffer)
-
-        pool.close()
 
         print("collect {} memory for training".format(len(self.data_buffer)))
 
@@ -145,13 +145,16 @@ class TrainPipeline():
         n_epochs = max(256, len(self.data_buffer) // self.batch_size * 2)
 
         for i in range(n_epochs):
+            player_idx_batch = []
             trick_cards_batch, score_cards_batch, possible_cards_batch = [], [], []
             this_trick_batch, valid_cards_batch = [], []
             leading_cards_batch, expose_cards_batch = [], []
-            probs_batch, scores_batch = [], []
+            probs_batch, scores_batch, scores_cards_batch = [], [], []
 
             samples = sample(self.data_buffer, self.batch_size)
             for current_player_idx, trick_cards, score_cards, possible_cards, this_trick, valid_cards, is_leading, is_expose, probs, scores in samples:
+                player_idx_batch.append(current_player_idx)
+
                 trick_cards_batch.append(transform_trick_cards(trick_cards))
                 score_cards_batch.append(transform_score_cards(score_cards))
                 possible_cards_batch.append(transform_possible_cards(possible_cards))
@@ -161,17 +164,19 @@ class TrainPipeline():
                 expose_cards_batch.append(transform_expose_cards(is_expose))
 
                 probs_batch.append(probs)
-                scores_batch.append(scores)
+                scores_batch.append(transform_results(scores))
+                scores_cards_batch.append(scores)
 
             old_probs, old_values = self.policy.policy_value_fn( \
+                player_idx_batch, \
                 trick_cards_batch, score_cards_batch, possible_cards_batch, \
                 this_trick_batch, valid_cards_batch, \
                 leading_cards_batch, expose_cards_batch)
 
-            old_card_owners = self.policy.get_card_loss( \
-                trick_cards_batch, score_cards_batch, possible_cards, \
+            old_card_owners = self.policy.get_card_owner( \
+                trick_cards_batch, score_cards_batch, possible_cards_batch, \
                 this_trick_batch, valid_cards_batch, \
-                leading_cards_batch, expose_cards_batch)
+                leading_cards_batch, expose_cards_batch, scores_batch)
 
             # update the PolicyValueNetwork
             loss, policy_loss, value_loss, entropy = self.policy.train_step(
@@ -182,30 +187,52 @@ class TrainPipeline():
                 self.learning_rate*self.lr_multiplier)
 
             new_probs, new_values = self.policy.policy_value_fn( \
+                player_idx_batch, \
                 trick_cards_batch, score_cards_batch, possible_cards_batch, \
                 this_trick_batch, valid_cards_batch, \
                 leading_cards_batch, expose_cards_batch)
 
-            new_card_owners = self.policy.get_card_loss( \
+            new_card_owners = self.policy.get_card_owner( \
                 trick_cards_batch, score_cards_batch, possible_cards_batch, \
                 this_trick_batch, valid_cards_batch, \
-                leading_cards_batch, expose_cards_batch)
+                leading_cards_batch, expose_cards_batch, scores_batch)
 
-            kl = np.mean(np.sum(old_probs * (np.log(old_probs + 1e-16) - np.log(new_probs + 1e-16)),
-                         axis=1))
+            kl = []
+            for old_prob, new_prob in zip(old_probs, new_probs):
+                old_prob = np.array(old_prob)
+                new_prob = np.array(new_prob)
+
+                kl.append(np.sum(old_prob * (np.log(old_prob+1e-16) - np.log(new_prob+1e-16))))
+
+            kl = np.mean(kl)
 
             if kl > self.kl_targ*4:
                 print("early stopping because of {:.8f} > {:.8f}".format(kl, self.kl_targ*4))
                 break
 
-            print("epoch: {:4d}/{:4d}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}, entropy: {:.8f}".format(\
-                i+1, n_epochs, policy_loss, value_loss, loss, entropy))
+            print("epoch: {:4d}/{:4d}, kl: {:.8f}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}, entropy: {:.8f}".format(\
+                i+1, n_epochs, kl, policy_loss, value_loss, loss, entropy))
+
+
+            old_card_owner = []
+            for idx in range(len(old_card_owners)):
+                old_card_owner.append([])
+
+                for sub_idx in range(15):
+                    old_card_owner[-1].append(np.argmax(old_card_owners[sub_idx][idx]))
+
+            new_card_owner = []
+            for idx in range(len(new_card_owners)):
+                new_card_owner.append([])
+
+                for sub_idx in range(15):
+                    new_card_owner[-1].append(np.argmax(new_card_owners[sub_idx][idx]))
 
             owners = {}
             for card in SORTED_CARDS:
                 owners[card] = [0, 0]
 
-            for old_cards, new_cards, owner_cards in zip(old_card_owners, new_card_owners, scores_batch):
+            for old_cards, new_cards, owner_cards in zip(old_card_owner, new_card_owner, scores_cards_batch):
                 for card, old_card, new_card in zip(SORTED_CARDS, old_cards, new_cards):
                     for real_player_idx, owner_card in enumerate(owner_cards):
                         if card in owner_card:
@@ -219,7 +246,10 @@ class TrainPipeline():
                         owners[card][1] += 1
 
             for card, losses in owners.items():
-                print("\t loss of {}: {:.8f}".format(card, sum([loss[0] for loss in losses])/len(scores_batch)))
+                old_mean_loss = losses[0] / len(scores_cards_batch)
+                new_mean_loss = losses[1] / len(scores_cards_batch)
+
+                print("\t loss of {}: {:.8f} --> {:.8f}".format(card, old_mean_loss, new_mean_loss))
 
         # adaptively adjust the learning rate
         if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
@@ -281,6 +311,7 @@ class TrainPipeline():
                         start_idx+1, myself_score, others_score))
                 else:
                     self.collect_selfplay_data(self.play_batch_size)
+                    self.collect_memory()
                     print("batch i: {:04d}, memory_size: {:5d}".format(start_idx+1, len(self.data_buffer)))
 
                     if DEBUG:

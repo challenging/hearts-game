@@ -101,6 +101,9 @@ class IntelligentPlayer(RiderPlayer):
                 if not self.is_self_play and valid_probs[-1] > 0:
                     self.say("Player-{}, played card: {}, {} times", self.position, valid_cards[-1], valid_probs[-1])
 
+        if not valid_probs:
+            print(results)
+
         valid_probs = softmax(valid_probs, temp)
 
         if self.is_self_play:
