@@ -217,17 +217,20 @@ class PolicyValueNet(object):
 
             probs = []
             if is_need_card:
-                where = np.where(valid_cards[0, current_player_idx] == 1)
+                where = np.where(valid_cards[current_player_idx] == 1)
                 for pos_x, pos_y in zip(where[0], where[1]):
-                    probs.append(((pos_x, 1<<pos_y), np.exp(results[0][pos_x*13+pos_y])))
+                    probs.append(((pos_x, 1<<pos_y), np.exp(results[0][0][pos_x*13+pos_y])))
             else:
-                where = np.where(valid_cards[0, current_player_idx] != -1)
+                probs = []
+                where = np.where(valid_cards[0, current_player_idx] != 99999999)
                 for pos_x, pos_y in zip(where[0], where[1]):
                     probs.append(np.exp(results[0][pos_x*13+pos_y]))
 
             probs_batch.append(probs)
             score_cards_batch.append(scores)
 
+        #print("      probs_batch:", probs_batch)
+        #print("score_cards_batch:", score_cards_batch)
         return probs_batch, score_cards_batch
 
 
@@ -239,14 +242,20 @@ class PolicyValueNet(object):
                                     np.array([this_trick_cards]), np.array([valid_cards]), \
                                     np.array([leading_cards]), np.array([expose_cards]))
 
-        return self.transform_results([state.start_pos], valid_cards, expose_cards, [results])[0]
+        all_results = [[]]
+        for idx in range(16):
+            all_results[-1].append(results[idx])
+
+        probs, scores = self.transform_results([state.start_pos], valid_cards, expose_cards, all_results)
+
+        return probs[0], scores[0]
 
 
     def policy_value_fn(self, current_player_idx, trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards):
         results = self.policy_value(trick_cards, score_cards, possible_cards, this_trick_cards, valid_cards, leading_cards, expose_cards)
 
         all_results = []
-        for idx in range(len(current_player_idx)):
+        for idx in range(len(trick_cards)):
             all_results.append([])
 
             for sub_idx in range(16):
