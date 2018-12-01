@@ -78,7 +78,7 @@ class TrainPipeline():
 
         self.cpu_count = min(mp.cpu_count(), 12)
 
-        self.play_batch_size = 16
+        self.play_batch_size = 1
         self.epochs = int(52*self.cpu_count/8/self.play_batch_size)
         print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}".format(\
             self.cpu_count, self.batch_size, self.epochs, self.play_batch_size))
@@ -304,7 +304,7 @@ class TrainPipeline():
 
                 self.init_nn_model()
 
-                if start_idx == 0:
+                if start_idx == -1:
                     myself_score, others_score = self.policy_evaluate()
                     print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
                         start_idx+1, myself_score, others_score))

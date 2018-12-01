@@ -48,19 +48,19 @@ class PolicyValueNet(object):
 
         conv1 = tf.layers.conv3d(inputs=input_state,
                                  filters=32,
-                                 kernel_size=[4, 4, 4],
+                                 kernel_size=[4, 13, 4],
                                  padding="same",
                                  activation=activation_fn)
 
         conv2 = tf.layers.conv3d(inputs=conv1,
                                  filters=64,
-                                 kernel_size=[4, 4, 4],
+                                 kernel_size=[4, 13, 4],
                                  padding="same",
                                  activation=activation_fn)
 
         conv3 = tf.layers.conv3d(inputs=conv2,
                                  filters=128,
-                                 kernel_size=[4, 4, 4],
+                                 kernel_size=[4, 13, 4],
                                  padding="same",
                                  activation=activation_fn)
 

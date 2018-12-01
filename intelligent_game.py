@@ -5,6 +5,8 @@ from rules import is_card_valid, is_score_card
 
 from game import Game
 
+IS_DEBUG = False
+
 
 class IntelligentGame(Game):
     def __init__(self, players, buffer_size=2**15, simulation_time_limit=1, verbose=False, out_file=sys.stdout):
@@ -85,7 +87,8 @@ class IntelligentGame(Game):
                                    probs,
                                    None])
 
-        print_a_memory(self._short_memory[-1])
+        if IS_DEBUG:
+            print_a_memory(self._short_memory[-1])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
@@ -122,4 +125,5 @@ class IntelligentGame(Game):
             for idx, memory in enumerate(self._short_memory):
                 self._short_memory[idx][-1] = results
 
-            print_a_memory(self._short_memory[-1])
+            if IS_DEBUG:
+                print_a_memory(self._short_memory[-1])
