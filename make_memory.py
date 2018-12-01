@@ -40,7 +40,6 @@ def run(init_model, c_puct, time, min_times, n_games, filepath_out):
             game.reset()
 
             count_f += 1
-            raise
 
     sys.stderr.write("count_s, count_f = {}, {}\n".format(count_s, count_f))
     policy.close()

@@ -18,8 +18,6 @@ def softmax(x, temp, small_v=1e-16):
     probs = np.exp(x - np.max(x))
     probs /= np.sum(probs)
 
-    #probs = x / np.sum(x)
-
     return probs
 
 
@@ -60,7 +58,7 @@ class IntelligentPlayer(RiderPlayer):
 
         game.are_hearts_broken()
 
-        hand_cards, historical_cards, init_trick, must_have, selection_func = \
+        hand_cards, trick_cards, init_trick, must_have, selection_func = \
             self.get_simple_game_info(game)
 
         vcards = self.get_valid_cards(game._player_hands[self.position], game)
@@ -76,7 +74,7 @@ class IntelligentPlayer(RiderPlayer):
                                vcards, 
                                self.remaining_cards, 
                                game._b_cards_taken,
-                               historical_cards,
+                               trick_cards,
                                self.num_hand_cards, 
                                init_trick, 
                                self.void_info, 

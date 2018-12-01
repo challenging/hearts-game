@@ -85,7 +85,7 @@ class IntelligentGame(Game):
                                    probs,
                                    None])
 
-        #print_a_memory(self._short_memory[-1])
+        print_a_memory(self._short_memory[-1])
 
         self._player_hands[self.current_player_idx].remove(played_card)
         self.trick.append(played_card)
@@ -122,4 +122,4 @@ class IntelligentGame(Game):
             for idx, memory in enumerate(self._short_memory):
                 self._short_memory[idx][-1] = results
 
-            #print_a_memory(self._short_memory[-1])
+            print_a_memory(self._short_memory[-1])

@@ -66,14 +66,16 @@ class PolicyValueNet(object):
 
         # 3. Policy Networks
         action_conv = tf.layers.conv3d(inputs=conv3,
-                                       filters=16,
+                                       filters=32,
                                        kernel_size=[1, 1, 1],
                                        padding="same",
                                        activation=activation_fn)
 
-        action_conv_flat = tf.reshape(action_conv, [-1, 16 * n_player * n_suit * n_rank])
-        action_fc1 = tf.layers.dense(inputs=action_conv_flat, units=128, activation=activation_fn)
-        self.action_fc = tf.layers.dense(inputs=action_fc1, units=52, activation=tf.nn.log_softmax)
+        action_conv_flat = tf.reshape(action_conv, [-1, 32 * n_player * n_suit * n_rank])
+        action_fc1 = tf.layers.dense(inputs=action_conv_flat, units=4096, activation=activation_fn)
+        action_fc2 = tf.layers.dense(inputs=action_fc1, units=1024, activation=activation_fn)
+        action_fc3 = tf.layers.dense(inputs=action_fc2, units=256, activation=activation_fn)
+        self.action_fc = tf.layers.dense(inputs=action_fc3, units=52, activation=tf.nn.log_softmax)
         self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))
 
 

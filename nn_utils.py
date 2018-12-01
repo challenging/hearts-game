@@ -352,7 +352,7 @@ def print_a_memory(played_data):
         print("    this_trick:", player_idx, card, np.where(results_this_trick[-idx, player_idx] == 1))
 
     results_valid_cards = transform_valid_cards(current_player_idx, valid_cards)
-    print("   valid_cards:", current_player_idx, valid_cards, np.where(results_valid_cards[0, 0] == 1))
+    print("   valid_cards:", current_player_idx, valid_cards, np.where(results_valid_cards[0, current_player_idx] == 1))
 
     results_leading_cards = transform_leading_cards(current_player_idx, leading_cards)
     print("    is_leading:", leading_cards, np.unique(results_leading_cards), results_leading_cards.shape)

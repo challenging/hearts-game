@@ -78,7 +78,7 @@ class TrainPipeline():
 
         self.cpu_count = min(mp.cpu_count(), 12)
 
-        self.play_batch_size = 1
+        self.play_batch_size = 16
         self.epochs = int(52*self.cpu_count/8/self.play_batch_size)
         print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}".format(\
             self.cpu_count, self.batch_size, self.epochs, self.play_batch_size))
@@ -248,8 +248,7 @@ class TrainPipeline():
             for card, losses in owners.items():
                 old_mean_loss = losses[0] / len(scores_cards_batch)
                 new_mean_loss = losses[1] / len(scores_cards_batch)
-
-                print("\t loss of {}: {:.8f} --> {:.8f}".format(card, old_mean_loss, new_mean_loss))
+                print("\t loss of {}: {:.4f} --> {:.4f}".format(card, old_mean_loss, new_mean_loss))
 
         # adaptively adjust the learning rate
         if kl > self.kl_targ * 2 and self.lr_multiplier > 0.1:
@@ -305,7 +304,7 @@ class TrainPipeline():
 
                 self.init_nn_model()
 
-                if start_idx == -1:
+                if start_idx == 0:
                     myself_score, others_score = self.policy_evaluate()
                     print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
                         start_idx+1, myself_score, others_score))
