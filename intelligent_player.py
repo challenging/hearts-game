@@ -11,14 +11,7 @@ from dragon_rider_player import RiderPlayer
 from simulated_player import TIMEOUT_SECOND
 from intelligent_mcts import IntelligentMCTS
 
-
-def softmax(x, temp, small_v=1e-16):
-    x = 1.0/temp * np.log(np.array(x)+small_v)
-
-    probs = np.exp(x - np.max(x))
-    probs /= np.sum(probs)
-
-    return probs
+from nn_utils import log_softmax
 
 
 class IntelligentPlayer(RiderPlayer):
@@ -48,7 +41,7 @@ class IntelligentPlayer(RiderPlayer):
         return hand_cards, trick_cards, init_trick, must_have, [random_choose]*4
 
 
-    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND, temp=1):
+    def play_card(self, game, other_info={}, simulation_time_limit=TIMEOUT_SECOND):
         stime = time.time()
 
         if game.trick_nr == 0 and len(game.trick) == 0:
@@ -67,6 +60,8 @@ class IntelligentPlayer(RiderPlayer):
         etime = simulation_time_limit
         if self.is_self_play:
             etime = len(vcards)*simulation_time_limit
+        else:
+            etime = 4
 
         results = \
             self.mcts.get_move(game.current_player_idx, 
@@ -102,7 +97,7 @@ class IntelligentPlayer(RiderPlayer):
         if not valid_probs:
             print(results)
 
-        valid_probs = softmax(valid_probs, temp)
+        valid_probs = log_softmax(valid_probs)
 
         if self.is_self_play:
             cards, probs = [], []
@@ -115,7 +110,7 @@ class IntelligentPlayer(RiderPlayer):
                 if probs[-1] > 0:
                     self.say("Player-{}, played card: {}, {} times, value={}", self.position, cards[-1], probs[-1], value)
 
-            probs = softmax(probs, temp)
+            #probs = softmax(probs, temp)
 
             move = np.random.choice(
                     valid_cards,

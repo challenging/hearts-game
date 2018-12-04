@@ -46,11 +46,16 @@ def run(idx, init_model, c_puct, time, min_times, n_games, filepath_out, filepat
     args = shlex.split(command_line)
 
     with open(filepath_log, "w") as in_file:
-        subprocess.check_call(args, stdout=sys.stdout if DEBUG else in_file)
+        try:
+            subprocess.check_call(args, stdout=sys.stdout if DEBUG else in_file)
+        except Exception as e:
+            import traceback
+
+            traceback.print_exc()
 
 
 class TrainPipeline():
-    def __init__(self, init_model=None, card_time=2):
+    def __init__(self, init_model=None, card_time=2, n_played_game=1):
         self.basepath = "prob"
         self.basepath_round = os.path.join(self.basepath, "round_{:04d}")
         self.basepath_data = os.path.join(self.basepath_round, "data")
@@ -73,13 +78,13 @@ class TrainPipeline():
         self.min_times = 32
 
         self.buffer_size = 2**16
-        self.batch_size = 16
+        self.batch_size = 52
         self.data_buffer = deque(maxlen=self.buffer_size)
 
         self.cpu_count = min(mp.cpu_count(), 12)
 
-        self.play_batch_size = 1
-        self.epochs = int(52*self.cpu_count/8/self.play_batch_size)
+        self.play_batch_size = n_played_game
+        self.epochs = int(self.cpu_count*self.play_batch_size)*2
         print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}".format(\
             self.cpu_count, self.batch_size, self.epochs, self.play_batch_size))
 
@@ -142,9 +147,7 @@ class TrainPipeline():
 
 
     def policy_update(self):
-        n_epochs = max(256, len(self.data_buffer) // self.batch_size * 2)
-
-        for i in range(n_epochs):
+        for i in range(self.epochs):
             player_idx_batch = []
             trick_cards_batch, score_cards_batch, possible_cards_batch = [], [], []
             this_trick_batch, valid_cards_batch = [], []
@@ -211,7 +214,7 @@ class TrainPipeline():
                 break
 
             print("epoch: {:4d}/{:4d}, kl: {:.8f}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}, entropy: {:.8f}".format(\
-                i+1, n_epochs, kl, policy_loss, value_loss, loss, entropy))
+                i+1, self.epochs, kl, policy_loss, value_loss, loss, entropy))
 
 
             old_card_owner = []
@@ -364,7 +367,9 @@ if __name__ == "__main__":
 
     simulated_time = float(sys.argv[1])
     round_idx = int(sys.argv[2]) if len(sys.argv) > 2 else 0
-    print("set model_filepath={}, round_idx={}".format(model_filepath, round_idx))
+    n_played_game = int(sys.argv[3]) if len(sys.argv) > 3 else 1
+    print("set model_filepath={}, round_idx={}, n_played_game={}".format(\
+        model_filepath, round_idx, n_played_game))
 
-    training_pipeline = TrainPipeline(model_filepath, simulated_time)
+    training_pipeline = TrainPipeline(model_filepath, simulated_time, n_played_game)
     training_pipeline.run(round_idx)

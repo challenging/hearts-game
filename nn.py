@@ -17,6 +17,7 @@ IS_DEBUG = False
 
 class PolicyValueNet(object):
     def __init__(self, model_file=None):
+        padding = "same"
         n_channel, n_suit, n_rank, n_player = 21, 4 ,13, 4
 
         activation_fn = tf.nn.relu
@@ -48,42 +49,42 @@ class PolicyValueNet(object):
 
         conv1 = tf.layers.conv3d(inputs=input_state,
                                  filters=32,
-                                 kernel_size=[4, 13, 4],
-                                 padding="same",
+                                 kernel_size=[4, 4, 13],
+                                 padding=padding,
                                  activation=activation_fn)
 
         conv2 = tf.layers.conv3d(inputs=conv1,
                                  filters=64,
-                                 kernel_size=[4, 13, 4],
-                                 padding="same",
+                                 kernel_size=[4, 4, 13],
+                                 padding=padding,
                                  activation=activation_fn)
 
         conv3 = tf.layers.conv3d(inputs=conv2,
                                  filters=128,
-                                 kernel_size=[4, 13, 4],
-                                 padding="same",
+                                 kernel_size=[4, 4, 13],
+                                 padding=padding,
                                  activation=activation_fn)
 
         # 3. Policy Networks
         action_conv = tf.layers.conv3d(inputs=conv3,
                                        filters=32,
                                        kernel_size=[1, 1, 1],
-                                       padding="same",
+                                       padding=padding,
                                        activation=activation_fn)
 
         action_conv_flat = tf.reshape(action_conv, [-1, 32 * n_player * n_suit * n_rank])
         action_fc1 = tf.layers.dense(inputs=action_conv_flat, units=4096, activation=activation_fn)
         action_fc2 = tf.layers.dense(inputs=action_fc1, units=1024, activation=activation_fn)
         action_fc3 = tf.layers.dense(inputs=action_fc2, units=256, activation=activation_fn)
-        self.action_fc = tf.layers.dense(inputs=action_fc3, units=52, activation=tf.nn.log_softmax)
-        self.policy_loss = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1)))
+        self.action_fc = tf.layers.dense(inputs=action_fc3, units=52, activation=tf.nn.softmax)
+        self.policy_loss = tf.reduce_mean(tf.reduce_sum(tf.multiply(self.probs, self.action_fc), 1))
 
 
         # 4. Value Networks
         evaluation_conv = tf.layers.conv3d(inputs=conv3,
                                            filters=4,
                                            kernel_size=[1, 1, 1],
-                                           padding="same",
+                                           padding=padding,
                                            activation=activation_fn)
 
         evaluation_conv_flat = tf.reshape(evaluation_conv, [-1, 4 * n_player * n_suit * n_rank])
@@ -154,7 +155,7 @@ class PolicyValueNet(object):
         self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate).minimize(self.loss)
 
         # calc policy entropy, for monitoring only
-        self.entropy = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.exp(self.action_fc) * self.action_fc, 1)))
+        self.entropy = tf.negative(tf.reduce_mean(tf.reduce_sum(tf.log(self.action_fc) * self.action_fc, 1)))
 
         # Make a session
         self.session = tf.Session()
@@ -221,12 +222,19 @@ class PolicyValueNet(object):
             if is_need_card:
                 where = np.where(valid_cards[current_player_idx] == 1)
                 for pos_x, pos_y in zip(where[0], where[1]):
-                    probs.append(((pos_x, 1<<pos_y), np.exp(results[0][0][pos_x*13+pos_y])))
+                    probs.append(((pos_x, 1<<pos_y), results[0][0][pos_x*13+pos_y]))
+                    #probs.append(((pos_x, 1<<pos_y), np.exp(results[0][0][pos_x*13+pos_y])))
+
+                #print("results", results)
+                #print("-->", valid_cards[current_player_idx])
+                #print("probs", probs)
+
             else:
                 probs = []
                 where = np.where(valid_cards[0, current_player_idx] != 99999999)
                 for pos_x, pos_y in zip(where[0], where[1]):
-                    probs.append(np.exp(results[0][pos_x*13+pos_y]))
+                    probs.append(results[0][pos_x*13+pos_y])
+                    #probs.append(np.exp(results[0][pos_x*13+pos_y]))
 
             probs_batch.append(probs)
             score_cards_batch.append(scores)

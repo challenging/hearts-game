@@ -1,9 +1,10 @@
 import sys
 
-from nn_utils import print_a_memory, card2v
+from nn_utils import print_a_memory, card2v, log_softmax
 from rules import is_card_valid, is_score_card
 
 from game import Game
+
 
 IS_DEBUG = False
 
@@ -72,6 +73,8 @@ class IntelligentGame(Game):
         for card, prob in results:
             valid_cards.append(card)
             probs[card2v(card)] = prob
+
+        probs = log_softmax(probs)
 
         leading_cards = len(self.trick) == 0
         expose_cards = self.expose_info

@@ -7,8 +7,18 @@ from card import NUM_TO_INDEX, SUIT_TO_INDEX, INDEX_TO_NUM, INDEX_TO_SUIT
 from card import bitmask_to_card, batch_bitmask_to_card
 
 
+def log_softmax(probs, temp=1.0, small_v=1e-16):
+    #x = 1.0/temp * np.log(np.array(x)+small_v)
+    #probs = np.exp(x - np.max(x))
+
+    probs = probs / np.sum(probs)
+
+    return probs
+
+
 def card2v(card):
     return card.suit.value*13+(card.rank.value-2)
+
 
 def v2card(v):
     suit, suit_num = None, v//13
@@ -360,7 +370,7 @@ def print_a_memory(played_data):
     results_expose_cards = transform_expose_cards(expose_cards)
     print("    is_expose:", expose_cards, np.unique(results_expose_cards), results_expose_cards.shape)
 
-    if probs:
+    if np.any(probs):
         print("        probs:", probs)
 
     if results:
