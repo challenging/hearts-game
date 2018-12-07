@@ -307,7 +307,7 @@ class TrainPipeline():
 
                 self.init_nn_model()
 
-                if start_idx == 0:
+                if start_idx == -1:
                     myself_score, others_score = self.policy_evaluate()
                     print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
                         start_idx+1, myself_score, others_score))

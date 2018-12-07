@@ -162,7 +162,7 @@ class RiderPlayer(MonteCarloPlayer7):
 
         must_have = state.players[self.position].transfer_cards
 
-        selection_func = [random_choose]*4
+        selection_func = [expert_choose]*4
 
         return hand_cards, trick_cards, init_trick, must_have, selection_func
 
@@ -200,7 +200,6 @@ class RiderPlayer(MonteCarloPlayer7):
                                game.trick_nr+1, 
                                game.is_heart_broken, 
                                [2 if player.expose else 1 for player in game.players], 
-                               game.player_winning_info,
                                True, 
                                simulation_time_limit,
                                True,

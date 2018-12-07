@@ -8,6 +8,7 @@ import sys
 import pickle
 
 from intelligent_game import IntelligentGame
+from intelligent_mcts import IntelligentMCTS
 from intelligent_player import IntelligentPlayer
 
 from nn import PolicyValueNet as Net
@@ -17,9 +18,15 @@ def run(init_model, c_puct, time, min_times, n_games, filepath_out):
     data_buffer = []
 
     policy = Net(init_model)
-    policy_value_fn = policy.predict
+    mcts = IntelligentMCTS(policy.predict, None, c_puct, min_times=min_times)
 
-    players = [IntelligentPlayer(policy_value_fn, c_puct=c_puct, is_self_play=True, min_times=min_times, verbose=(True if player_idx == 3 else False)) for player_idx in range(4)]
+    players = [IntelligentPlayer(policy.predict,
+                                 c_puct=c_puct,
+                                 mcts=mcts,
+                                 is_self_play=True,
+                                 min_times=min_times,
+                                 verbose=(True if player_idx == 3 else False)) for player_idx in range(4)]
+
     game = IntelligentGame(players, simulation_time_limit=time, verbose=True)
 
     count_s, count_f = 0, 0
@@ -36,7 +43,6 @@ def run(init_model, c_puct, time, min_times, n_games, filepath_out):
             count_s += 1
         except Exception as e:
             game = IntelligentGame(players, simulation_time_limit=time, verbose=True)
-
             game.reset()
 
             count_f += 1

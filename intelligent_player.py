@@ -15,17 +15,26 @@ from nn_utils import log_softmax
 
 
 class IntelligentPlayer(RiderPlayer):
-    def __init__(self, policy, c_puct, is_self_play=False, min_times=32, verbose=False):
+    def __init__(self, policy, c_puct, mcts=None, is_self_play=False, min_times=32, verbose=False):
         super(IntelligentPlayer, self).__init__(policy, c_puct, verbose=verbose)
 
         self.is_self_play = is_self_play
         self.min_times = min_times
 
+        if self.is_self_play:
+            self.mcts = mcts
+        else:
+            self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=self.min_times)
 
-    def reset(self):
+
+    def reset(self, mcts=None):
         super(RiderPlayer, self).reset()
 
-        self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=self.min_times)
+        if self.is_self_play:
+            self.mcts.root_node._children = {}
+            self.mcts.start_node = self.mcts.root_node
+        else:
+            self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=self.min_times)
 
 
     def see_played_trick(self, card, game):
@@ -62,6 +71,9 @@ class IntelligentPlayer(RiderPlayer):
             etime = len(vcards)*simulation_time_limit
         else:
             etime = 4
+
+        self.mcts._self_player_idx = self.position
+        print(self.mcts)
 
         results = \
             self.mcts.get_move(game.current_player_idx, 

@@ -1,5 +1,6 @@
 import sys
 
+from intelligent_mcts import IntelligentMCTS
 from nn_utils import print_a_memory, card2v, log_softmax
 from rules import is_card_valid, is_score_card
 
@@ -24,7 +25,6 @@ class IntelligentGame(Game):
             self.trick_cards.append([None, None, None, None])
 
         self.score_cards = [[], [], [], []]
-
         self._short_memory = []
 
 

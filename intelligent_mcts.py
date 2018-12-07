@@ -37,4 +37,4 @@ class IntelligentMCTS(MCTS):
 
 
     def __str__(self):
-        return "IntelligentMCTS"
+        return "IntelligentMCTS - {}".format(id(self))

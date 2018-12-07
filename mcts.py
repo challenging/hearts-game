@@ -172,8 +172,6 @@ class MCTS(object):
         for simulation_card in simulation_cards:
             for player_idx, cards in enumerate(simulation_card):
                 simulation_card[player_idx] = str_to_bitmask(cards)
-                #print("player-{}, {}, {}, first_player_idx={}".format(player_idx, cards, len(cards), first_player_idx))
-            #print()
 
             try:
                 sm = StepGame(trick_nr,
