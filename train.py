@@ -74,7 +74,7 @@ class TrainPipeline():
         self.lr_multiplier = 1.0
         self.learning_rate = 1e-4
 
-        self.c_puct = 64
+        self.c_puct = 128
         self.min_times = 32
 
         self.buffer_size = 2**16
@@ -307,7 +307,7 @@ class TrainPipeline():
 
                 self.init_nn_model()
 
-                if start_idx == -1:
+                if start_idx == 0:
                     myself_score, others_score = self.policy_evaluate()
                     print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
                         start_idx+1, myself_score, others_score))
