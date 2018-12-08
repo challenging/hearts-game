@@ -21,7 +21,7 @@ class IntelligentPlayer(RiderPlayer):
         self.is_self_play = is_self_play
         self.min_times = min_times
 
-        if self.is_self_play:
+        if self.is_self_play and mcts is not None:
             self.mcts = mcts
         else:
             self.mcts = IntelligentMCTS(self.policy, self.position, self.c_puct, min_times=self.min_times)
@@ -68,7 +68,7 @@ class IntelligentPlayer(RiderPlayer):
 
         etime = simulation_time_limit
         if self.is_self_play:
-            etime = len(vcards)*simulation_time_limit
+            etime = max(8.0, len(vcards)*simulation_time_limit)
         else:
             etime = 4
 
@@ -106,8 +106,7 @@ class IntelligentPlayer(RiderPlayer):
                     self.say("Player-{}, played card: {}, {} times", self.position, valid_cards[-1], valid_probs[-1])
 
         if not valid_probs:
-            print(results)
-
+            print("!!!!!! warning ----> ", results)
         valid_probs = log_softmax(valid_probs)
 
         if self.is_self_play:
@@ -121,11 +120,12 @@ class IntelligentPlayer(RiderPlayer):
                 if probs[-1] > 0:
                     self.say("Player-{}, played card: {}, {} times, value={}", self.position, cards[-1], probs[-1], value)
 
-            #probs = softmax(probs, temp)
-
+            """
             move = np.random.choice(
                     valid_cards,
                     p=0.75*valid_probs + 0.25*np.random.dirichlet(0.3*np.ones(len(valid_probs))))
+            """
+            move = valid_cards[np.argmax(valid_probs)]
 
             self.say("Cost: {:.4f} seconds, Hand card: {}, Validated card: {}, Picked card: {}", \
                 time.time()-stime, hand_cards, valid_cards, move)

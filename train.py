@@ -75,7 +75,7 @@ class TrainPipeline():
         self.learning_rate = 1e-4
 
         self.c_puct = 2**8
-        self.min_times = 32
+        self.min_times = 2**6
 
         self.buffer_size = 2**16
         self.batch_size = 32
@@ -85,8 +85,8 @@ class TrainPipeline():
 
         self.play_batch_size = n_played_game
         self.epochs = int(52*self.cpu_count*self.play_batch_size/self.batch_size)*2
-        print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}".format(\
-            self.cpu_count, self.batch_size, self.epochs, self.play_batch_size))
+        print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}, min_times={}".format(\
+            self.cpu_count, self.batch_size, self.epochs, self.play_batch_size, self.min_times))
 
         self.c_puct_evaluation = self.c_puct
         self.filepath_evaluation = os.path.join("game", "game_0008", "01", "game_*.pkl")
