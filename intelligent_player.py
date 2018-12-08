@@ -73,7 +73,6 @@ class IntelligentPlayer(RiderPlayer):
             etime = 4
 
         self.mcts._self_player_idx = self.position
-        print(self.mcts)
 
         results = \
             self.mcts.get_move(game.current_player_idx, 
