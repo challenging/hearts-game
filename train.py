@@ -74,8 +74,8 @@ class TrainPipeline():
         self.lr_multiplier = 1.0
         self.learning_rate = 1e-4
 
-        self.c_puct = 2**8
-        self.min_times = 2**6
+        self.c_puct = 2**11
+        self.min_times = 2**8
 
         self.buffer_size = 2**16
         self.batch_size = 32
@@ -89,7 +89,7 @@ class TrainPipeline():
             self.cpu_count, self.batch_size, self.epochs, self.play_batch_size, self.min_times))
 
         self.c_puct_evaluation = self.c_puct
-        self.filepath_evaluation = os.path.join("game", "game_0008", "01", "game_*.pkl")
+        self.filepath_evaluation = os.path.join("game", "game_0004", "01", "game_*.pkl")
         print("filepath_evaluation={}".format(self.filepath_evaluation))
 
         self.card_time = card_time
@@ -337,8 +337,6 @@ class TrainPipeline():
                         filepath_model = os.path.join(self.basepath, "best_policy.model")
                         self.policy.save_model(filepath_model)
 
-                        self.init_model = filepath_model
-
                         best_score = myself_score
                         if myself_score/others_score < 1:
                             self.pure_mcts_simulation_time_limit <<= 1
@@ -346,6 +344,8 @@ class TrainPipeline():
                         self.card_time = 1
                     else:
                         self.card_time *= 1.1
+
+                    self.init_model = filepath_model
 
                 start_idx += 1
         except KeyboardInterrupt:

@@ -107,9 +107,11 @@ class IntelligentPlayer(RiderPlayer):
 
         if not valid_probs:
             print("!!!!!! warning ----> ", results)
+
         valid_probs = log_softmax(valid_probs)
 
         if self.is_self_play:
+            n_total_visits = 0
             cards, probs = [], []
             for card, info in sorted(results.items(), key=lambda x: x[1]):
                 n_visits, value = info[0], info[1]
@@ -118,7 +120,17 @@ class IntelligentPlayer(RiderPlayer):
                 probs.append(n_visits)
 
                 if probs[-1] > 0:
-                    self.say("Player-{}, played card: {}, {} times, value={}", self.position, cards[-1], probs[-1], value)
+                    n_total_visits += probs[-1]
+
+                    self.say("Player-{}, played card: {}, {:4d}/{:5d} times, value={:.8f}", \
+                        self.position, cards[-1], probs[-1], n_total_visits, value)
+
+            """
+            from render_tree import get_tree
+            tree = get_tree(self.mcts.start_node)
+            tree.show()
+            print("depth={}".format(tree.depth()))
+            """
 
             """
             move = np.random.choice(

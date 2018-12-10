@@ -52,8 +52,8 @@ class TreeNode(object):
 
 
     def get_value(self, c_puct):
-        #u = (c_puct * self._P * math.log(self._parent._n_visits)/(1 + self._n_visits))**0.5
-        u = (c_puct * self._P * (self._parent._n_visits)**0.5 / (1 + self._n_visits))
+        u = c_puct * self._P * (math.log(self._parent._n_visits)/(1 + self._n_visits))**0.5
+        #u = (c_puct * self._P * (self._parent._n_visits)**0.5 / (1 + self._n_visits))
         #q = self._Q[self._player_idx]/(1e-16+self._n_visits)
         q = self._Q / (1e-16+self._n_visits)
 
