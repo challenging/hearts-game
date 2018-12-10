@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import os
-os.environ["CUDA_VISABLE_DEVICES"] = ""
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 import sys
 
