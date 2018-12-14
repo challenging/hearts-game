@@ -71,6 +71,7 @@ class IntelligentPlayer(RiderPlayer):
             etime = max(8.0, len(vcards)*simulation_time_limit)
         else:
             etime = 4
+            self.mcts.min_times = 8
 
         self.mcts._self_player_idx = self.position
 

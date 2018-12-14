@@ -23,8 +23,6 @@ class IntelligentMCTS(MCTS):
     def _post_playout(self, node, trick_nr, state, selection_func, prob_cards):
         if not state.is_finished:
             probs, scores = self._policy(trick_nr, state)
-            #print("probs", probs, scores)
-
             node.expand(state.start_pos, probs)
         else:
             scores, _ = state.score()

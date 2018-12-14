@@ -89,9 +89,10 @@ class TrainPipeline():
             self.cpu_count, self.batch_size, self.epochs, self.play_batch_size, self.min_times))
 
         self.c_puct_evaluation = self.c_puct
-        self.filepath_evaluation = os.path.join("game", "game_0004", "01", "game_*.pkl")
+        self.filepath_evaluation = os.path.join("game", "game_0002", "01", "game_*.pkl")
         print("filepath_evaluation={}".format(self.filepath_evaluation))
 
+        self.ori_card_time = card_time
         self.card_time = card_time
         self.pure_mcts_simulation_time_limit = 1
 
@@ -341,7 +342,7 @@ class TrainPipeline():
                         if myself_score/others_score < 1:
                             self.pure_mcts_simulation_time_limit <<= 1
 
-                        self.card_time = 1
+                        self.card_time = self.ori_card_time
                     else:
                         self.card_time *= 1.1
 
