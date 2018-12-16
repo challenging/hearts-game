@@ -15,12 +15,13 @@ class TreeNode(object):
 
         self._children = {}
         self._n_visits = 0
-        self._Q = 0 #[0, 0, 0, 0]
+        self._Q = [0, 0, 0, 0]
         self._u = 0
         self._P = prior_p
 
 
     def expand(self, player_idx, action_priors):
+        #print("expand", player_idx, action_priors)
         for action, prob in action_priors:
             if action not in self._children:
                 self._children[action] = TreeNode(self, prob, player_idx)
@@ -37,8 +38,8 @@ class TreeNode(object):
     def update(self, leaf_value):
         self._n_visits += 1
 
-        #self._Q[self._player_idx] += leaf_value
-        self._Q += leaf_value
+        self._Q[self._player_idx] += leaf_value
+        #self._Q += leaf_value
 
 
     def update_recursive(self, scores):
@@ -54,10 +55,12 @@ class TreeNode(object):
     def get_value(self, c_puct):
         u = c_puct * self._P * (math.log(self._parent._n_visits)/(1 + self._n_visits))**0.5
         #u = (c_puct * self._P * (self._parent._n_visits)**0.5 / (1 + self._n_visits))
-        #q = self._Q[self._player_idx]/(1e-16+self._n_visits)
-        q = self._Q / (1e-16+self._n_visits)
+        q = self._Q[self._player_idx]/(1e-16+self._n_visits)
+        #q = self._Q / (1e-16+self._n_visits)
 
         value = q + u
+        #print("q={:2.8f}, u={:.8f}, c_puct={:.1f}, p={:.4f}, n_parent_visits={}, n_visits={}".format(\
+        #    q, u, c_puct, self._P, self._parent._n_visits, self._n_visits))
         #value = self._Q[self._player_idx]/(1e-16+self._n_visits) + self._u
 
         return value

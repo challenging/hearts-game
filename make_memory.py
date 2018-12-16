@@ -25,7 +25,7 @@ def run(init_model, c_puct, time, min_times, n_games, filepath_out):
                                  mcts=mcts,
                                  is_self_play=True,
                                  min_times=min_times,
-                                 verbose=(True if player_idx == 3 else False)) for player_idx in range(4)]
+                                 verbose=(True if player_idx == 3 else True)) for player_idx in range(4)]
 
     game = IntelligentGame(players, simulation_time_limit=time, verbose=True)
 

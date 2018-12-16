@@ -68,7 +68,7 @@ class IntelligentPlayer(RiderPlayer):
 
         etime = simulation_time_limit
         if self.is_self_play:
-            etime = max(8.0, len(vcards)*simulation_time_limit)
+            etime = max(16.0, len(vcards)*simulation_time_limit)
         else:
             etime = 4
             self.mcts.min_times = 8
@@ -108,7 +108,6 @@ class IntelligentPlayer(RiderPlayer):
 
         if not valid_probs:
             print("!!!!!! warning ----> ", results)
-
         valid_probs = log_softmax(valid_probs)
 
         if self.is_self_play:
@@ -123,15 +122,7 @@ class IntelligentPlayer(RiderPlayer):
                 if probs[-1] > 0:
                     n_total_visits += probs[-1]
 
-                    self.say("Player-{}, played card: {}, {:4d}/{:5d} times, value={:.8f}", \
-                        self.position, cards[-1], probs[-1], n_total_visits, value)
-
-            """
-            from render_tree import get_tree
-            tree = get_tree(self.mcts.start_node)
-            tree.show()
-            print("depth={}".format(tree.depth()))
-            """
+                    self.say("Player-{}, played card: {}, {:4d}/{:5d} times, value={}", self.position, cards[-1], probs[-1], n_total_visits, value)
 
             """
             move = np.random.choice(

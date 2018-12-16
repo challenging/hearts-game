@@ -228,12 +228,6 @@ class MCTS(object):
                         say("seen: {}, valid_cards: {}, {}-->{}: {} times, percentage: {:.4f}%, value: {:.4f}", \
                             not not_seen, vcards, node._player_idx, bitmask_to_card(k[0], k[1]), node._n_visits, node._P*100, \
                             node.get_value(self._c_puct))
-
-                        """
-                        for child_k, child_node in sorted(node._children.items(), key=lambda x: -x[1]._n_visits):
-                            say("\t{}-->{}: {} times, percentage: {:.4f}%", \
-                                child_node._player_idx, bitmask_to_card(child_k[0], child_k[1]), child_node._n_visits, child_node._P*100)
-                        """
                     elif node._P == 0:
                         continue
 

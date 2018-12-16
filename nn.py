@@ -344,6 +344,7 @@ class PolicyValueNet(object):
 
     def restore_model(self, model_path):
         self.saver.restore(self.session, model_path)
+        print("restore model from {}".format(model_path))
 
 
     def close(self):

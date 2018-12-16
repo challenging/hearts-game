@@ -84,15 +84,13 @@ class TrainPipeline():
         self.cpu_count = min(mp.cpu_count(), 12)
 
         self.play_batch_size = n_played_game
-        self.epochs = int(52*self.cpu_count*self.play_batch_size/self.batch_size)*2
-        print("cpu_count={}, batch_size={}, epochs={}, play_batch_size={}, min_times={}".format(\
-            self.cpu_count, self.batch_size, self.epochs, self.play_batch_size, self.min_times))
+        print("cpu_count={}, batch_size={}, play_batch_size={}, min_times={}".format(\
+            self.cpu_count, self.batch_size, self.play_batch_size, self.min_times))
 
         self.c_puct_evaluation = self.c_puct
-        self.filepath_evaluation = os.path.join("game", "game_0002", "01", "game_*.pkl")
+        self.filepath_evaluation = os.path.join("game", "game_0004", "01", "game_*.pkl")
         print("filepath_evaluation={}".format(self.filepath_evaluation))
 
-        self.ori_card_time = card_time
         self.card_time = card_time
         self.pure_mcts_simulation_time_limit = 1
 
@@ -148,7 +146,9 @@ class TrainPipeline():
 
 
     def policy_update(self):
-        for i in range(self.epochs):
+        epochs = int(52*self.cpu_count*self.play_batch_size/self.batch_size)*2
+
+        for i in range(epochs):
             player_idx_batch = []
             trick_cards_batch, score_cards_batch, possible_cards_batch = [], [], []
             this_trick_batch, valid_cards_batch = [], []
@@ -210,12 +210,12 @@ class TrainPipeline():
 
             kl = np.mean(kl)
 
-            if kl > self.kl_targ*4:
-                print("early stopping because of {:.8f} > {:.8f}".format(kl, self.kl_targ*4))
-                break
+            #if kl > self.kl_targ*4:
+            #    print("early stopping because of {:.8f} > {:.8f}".format(kl, self.kl_targ*4))
+            #    break
 
             print("epoch: {:4d}/{:4d}, kl: {:.8f}, policy_loss: {:.8f}, value_loss: {:.8f}, loss: {:.8f}, entropy: {:.8f}".format(\
-                i+1, self.epochs, kl, policy_loss, value_loss, loss, entropy))
+                i+1, epochs, kl, policy_loss, value_loss, loss, entropy))
 
 
             old_card_owner = []
@@ -299,16 +299,13 @@ class TrainPipeline():
         try:
             best_score = sys.maxsize
 
-            start_idx
             while True:
                 basepath_round = self.basepath_round.format(start_idx+1)
                 self.basepath_data = os.path.join(basepath_round, "data")
                 self.basepath_model = os.path.join(basepath_round, "model")
                 self.basepath_log = os.path.join(basepath_round, "log")
 
-                self.init_nn_model()
-
-                if start_idx == 0:
+                if start_idx == -1:
                     myself_score, others_score = self.policy_evaluate()
                     print("current self-play batch: {}, and myself_score: {:.2f}, others_score: {:.2f}".format(\
                         start_idx+1, myself_score, others_score))
@@ -342,11 +339,13 @@ class TrainPipeline():
                         if myself_score/others_score < 1:
                             self.pure_mcts_simulation_time_limit <<= 1
 
-                        self.card_time = self.ori_card_time
-                    else:
-                        self.card_time *= 1.1
+                        self.card_time = 8
 
-                    self.init_model = filepath_model
+                        self.init_model = filepath_model
+                        self.init_nn_model()
+                    else:
+                        #self.card_time *= 1.1
+                        pass
 
                 start_idx += 1
         except KeyboardInterrupt:

@@ -16,8 +16,8 @@ def walk(data):
         node = Tree()
         node.create_node("root", current_idx)
 
-    #if current_idx >= 2**14:
-    #   return
+    if current_idx >= 4096:
+       return
 
     root_idx = current_idx
     for (suit, rank), child in data._children.items():
